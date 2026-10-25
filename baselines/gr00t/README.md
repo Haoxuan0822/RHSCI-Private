@@ -24,6 +24,6 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 | Initialization |Public `nvidia/GR00T-N1.6-3B`| Same |
 | Checkpoint saving | Every 10000 steps; limit 4 | Every 1000 steps; retain 10000-step anchors and the latest rolling checkpoint |
 
-RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. HE pretraining is not required. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
+RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
 
 Use matching Eagle initialization assets and the task's RGB/ARDY dataset. `--dry-run` resolves the configuration; `--check-data` checks data without loading the complete backbone. GPU memory and distributed behavior require their own validation.
