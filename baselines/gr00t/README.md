@@ -17,7 +17,7 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 
 | Setting | SIMPLE reference | RHSCI README example |
 | --- | --- | --- |
-| Updates / global batch | 50000 / 24 | Same |
+| Updates / global batch | 20000 / 24 | Same |
 | Learning rate / warmup ratio / weight decay | `1e-4` / `0.05` / `1e-5` | Same |
 | Color jitter: brightness, contrast, saturation, hue | `0.3`, `0.4`, `0.5`, `0.08` | Same |
 | GPU layout | 2 GPUs | 8 GPUs × batch 3; accumulation 1 |
