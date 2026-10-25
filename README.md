@@ -131,7 +131,7 @@ The reference π0.5 recipe follows the [official Psi0 SIMPLE training guide](htt
 | Final learning rate | `1e-8` |
 | Action dimension | 36 |
 
-The official guide includes examples with action horizons of both 30 and 16; set the horizon explicitly for each experiment and keep the training and inference settings consistent. See [π0.5](baselines/pi05/README.md) for RHSCI-specific variants and launch options.
+The current RHSCI π0.5 adapter freezes PaliGemma, predicts 30 actions per chunk, and returns the first 24 actions per inference request. These horizons are fixed in the current implementation. See [π0.5](baselines/pi05/README.md) for RHSCI-specific variants and launch options.
 
 ## Evaluation
 
