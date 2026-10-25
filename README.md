@@ -62,9 +62,9 @@ uv pip install --python "$GROOT_RSCI_PYTHON" --no-deps -e ./src/gr00t
 
 ### Data and weights
 
-Prepare the processed 50 Hz SIMPLE training dataset at `$HUG_DATASET` and its matching formal ARDY labels at `$HUG_SIDECAR`. These training assets are not bundled or published for download yet.
+Restore the processed 50 Hz SIMPLE box-hugging dataset to `$HUG_DATASET` and its matching ARDY labels to `$HUG_SIDECAR`. See [Hugging Face assets](docs/ASSETS.md) for our data and trained-checkpoint directories.
 
-Download the initialization weights to `$PSI_VLM`, `$PSI_AE` and `$GROOT_BASE` using the [asset commands](docs/DATA_PREPARATION.md#initialization-weights). Generate normalization files before building labels:
+Download the initialization weights to `$PSI_VLM`, `$PSI_AE` and `$GROOT_BASE` using the [asset commands](docs/DATA_PREPARATION.md#initialization-weights). The archived data already includes normalization files. For newly prepared data, generate them before building labels:
 
 ```bash
 "$PSI0_PYTHON" scripts/data/prepare_simple_stats.py --dataset "$HUG_DATASET"

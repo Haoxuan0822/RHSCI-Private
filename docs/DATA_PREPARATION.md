@@ -26,7 +26,7 @@ Supply a SIMPLE G1 LeRobot v2 dataset with `meta/info.json`, `meta/episodes.json
 
 The `states` order is 14 hand joints, 14 arm joints, three measured waist angles and the previous commanded height. Actions use the same first 28 joint values followed by roll, pitch, yaw, height, torso velocity x/y/yaw and target yaw. Do not assemble the state by slicing the first 32 dimensions of the 43D raw G1 joint vector.
 
-Processed SIMPLE replay/conversion must preserve this schema and its episode mapping to the original raw capture. Keep that mapping and raw base poses if rebuilding ARDY labels. The upstream `scripts/data/raw_to_lerobot_v2.py` converts real-robot recordings at 30 FPS; it is not the converter for these SIMPLE examples. RHSCI's processed training assets are not yet published as a downloadable dataset.
+Processed SIMPLE replay/conversion must preserve this schema and its episode mapping to the original raw capture. Keep that mapping and raw base poses if rebuilding ARDY labels. The upstream `scripts/data/raw_to_lerobot_v2.py` converts real-robot recordings at 30 FPS; it is not the converter for these SIMPLE examples. Existing processed datasets and matching labels are listed in [Hugging Face assets](ASSETS.md). Preserve their archived statistics and metadata when restoring them.
 
 ## Generate both normalization files
 
@@ -83,7 +83,7 @@ PYTHONPATH="$PSI_HOME/src" "$ARDY_PYTHON" scripts/data/build_simple_ardy_sidecar
 
 This checks exact action/joint episode alignment, source revision, teacher hashes and the pinned processed-episode-0/raw-episode-1 latent digest. Omitting `--formal-verified` creates candidate labels, which the training preflight rejects. Repeating an interrupted build with the same inputs and `--resume` checks the saved context before continuing. Do not use `--episode-limit` for the full training recipe.
 
-The fixed reference digest does not certify another task or a reordered/subsampled dataset. For other tasks, supply their separately verified formal labels; this builder cannot generate them by renaming directories or copying a manifest. The README uses the box-hugging task `G1WholebodyPickAndPlaceAndHugContainerTeleop-v0`, which is distinct from XMovePick and requires its own matching data, formal labels and evaluation task. The reference commands above are separate from that box-hugging run. Published download locations and a general formal-label generation workflow for those other datasets are not yet available.
+The fixed reference digest does not certify another task or a reordered/subsampled dataset. For other tasks, supply their separately verified formal labels; this builder cannot generate them by renaming directories or copying a manifest. The README uses the box-hugging task `G1WholebodyPickAndPlaceAndHugContainerTeleop-v0`, which is distinct from XMovePick and requires its own matching data, formal labels and evaluation task. The reference commands above are separate from that box-hugging run. Use the matching box-hugging archives in [Hugging Face assets](ASSETS.md); a general formal-label generation workflow for other tasks is not provided here.
 
 ## Validate training inputs
 

@@ -26,7 +26,7 @@ Copy `.env.sample` to `.env` and set `PSI_HOME` and `PSI_RUNTIME_ROOT` to the sa
 
 ## Assets and training
 
-Prepare a SIMPLE G1 LeRobot dataset with PSI0 normalization statistics (`meta/stats_psi0.json`), matching ARDY sidecars for query variants, a compatible PSI0 VLM checkpoint and an action-expert checkpoint. EGQ variants additionally need a local DINOv2 checkpoint. RHSCI dataset and research-checkpoint download locations are not yet published.
+Prepare a SIMPLE G1 LeRobot dataset with PSI0 normalization statistics (`meta/stats_psi0.json`), matching ARDY sidecars for query variants, a compatible PSI0 VLM checkpoint and an action-expert checkpoint. EGQ variants additionally need a local DINOv2 checkpoint. See [Hugging Face assets](../../docs/ASSETS.md) for dataset and research-checkpoint locations.
 
 Use `"$PSI0_PYTHON" scripts/data/prepare_simple_stats.py --dataset /datasets/my_task` to prepare the normalization files. See [SIMPLE data preparation](../../docs/DATA_PREPARATION.md) for schema checks and the complete ARDY preparation recipe.
 

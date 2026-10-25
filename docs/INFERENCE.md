@@ -1,5 +1,7 @@
 # Inference
 
+Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.md). Preserve the saved run configuration and consult the historical-checkpoint compatibility notes below.
+
 ## PSI0
 
 Copy `.env.sample` to an untracked `.env` and set paths as described in the [PSI0 guide](../baselines/psi0/README.md). Serve a checkpoint with the normal server arguments:

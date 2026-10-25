@@ -1,9 +1,13 @@
 {
   "format": 3,
   "files": {
+    "docs/ASSETS.md": {
+      "export_sha256": "e8d15a6b5e05515435ba0a42eec6d5254be99b01afaecb28a661e803beb3e90b",
+      "bytes": 3171
+    },
     "docs/DATA_PREPARATION.md": {
-      "export_sha256": "80296a9a7bea07d17d1d57e355c23d2e2c90852cb228bc5467ff426c1262be45",
-      "bytes": 8587
+      "export_sha256": "70cc5c2574cd7d4d41c1abe0d594172becec67349561209647a52a705f9b9fa2",
+      "bytes": 8701
     },
     "scripts/data/prepare_simple_stats.py": {
       "export_sha256": "d9eddd265b90b5438d3e0321c2fd0f3d3b35731c43f4f74921ce419dc385801e",
@@ -90,8 +94,8 @@
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "7a9391696418f2f3836da53bed06bbede0794c3851cc37f88d183d9086c1d0e1",
-      "bytes": 10327
+      "export_sha256": "1f1c641af7382c0c37a5b8dee66625d1449eff7d7b5df264df88e68040d7a1df",
+      "bytes": 10411
     },
     "baselines/act/README.md": {
       "export_sha256": "b1759b90050a9eeb86f0a402710e4da159c2eda576fb644e973ffe6a313fb110",
@@ -162,8 +166,8 @@
       "bytes": 3885
     },
     "baselines/psi0/README.md": {
-      "export_sha256": "d7cc09a2342d1dfa5a15f53fa8ba5ff4cc08d3ead0a1e7fe92ad401c269c3822",
-      "bytes": 2994
+      "export_sha256": "eb282260b0f6814aadbac74dbf1c1eb123324e523d0e43cd803a8a63a9e53fe7",
+      "bytes": 3009
     },
     "configs/train/act.json": {
       "export_sha256": "ec4047e3c67b2b88aa5be1b5dbb7934af4623b36e4c63beb5730062c4c07f488",
@@ -186,16 +190,16 @@
       "bytes": 11311
     },
     "docs/INFERENCE.md": {
-      "export_sha256": "cce2bd5e4b32eb2a60f8afdef0109f12c5d63f8d3a3a8e153dece700a98b9d35",
-      "bytes": 10579
+      "export_sha256": "5fbc279a46df7690c8bc219164821a3ca2250fd3afa4ed9ce5b69b7893f52069",
+      "bytes": 10766
     },
     "docs/SOURCES.md": {
       "export_sha256": "99de766cfdf05d979d93fdf3f375e9d564be3170e7c95f4ce5148e04ee84762e",
       "bytes": 2518
     },
     "docs/TRAINING.md": {
-      "export_sha256": "ec83e62b1bfac86fcff228774f0c18f5770b8e8161c8fbe77435c1b7abb39fd0",
-      "bytes": 14288
+      "export_sha256": "2c7aeb7f7ac203137c0edd40e13bcb9658997970ee7bcdbf29ec58f3f8eedd68",
+      "bytes": 14294
     },
     "pyproject.toml": {
       "export_sha256": "6737ee2ba6675807fdd378b9ca1eaa63f566bcb0434db39decfdc32659a2e688",
