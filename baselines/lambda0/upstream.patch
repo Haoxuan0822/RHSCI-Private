@@ -1,0 +1,300 @@
+diff --git a/lambda0/lambda0/data/domain_handler/psi_simple.py b/lambda0/lambda0/data/domain_handler/psi_simple.py
+index e2f4b6e..68a55ec 100644
+--- a/lambda0/lambda0/data/domain_handler/psi_simple.py
++++ b/lambda0/lambda0/data/domain_handler/psi_simple.py
+@@ -107,6 +107,8 @@ def decode_video_segment(
+ class PsiSimpleHandler(DomainHandler):
+     """Emit 36D G1 simulator actions and their independent 32D proprio state."""
+ 
++    normalization_contract = NORMALIZATION_CONTRACT
++
+     def __init__(self, meta: dict, num_views: int) -> None:
+         super().__init__(meta, num_views)
+         if num_views <= 0:
+@@ -128,7 +130,7 @@ class PsiSimpleHandler(DomainHandler):
+             str(meta["dataset_name"]),
+             expected_action_space=ACTION_SPACE,
+             expected_coordinate_contract=COORDINATE_CONTRACT,
+-            expected_normalization_contract=NORMALIZATION_CONTRACT,
++            expected_normalization_contract=self.normalization_contract,
+             action_dim=ACTION_DIM,
+             proprio_dim=PROPRIO_DIM,
+         )
+diff --git a/lambda0/lambda0/models/configuration_lambda0.py b/lambda0/lambda0/models/configuration_lambda0.py
+index aa9bf96..81f7f42 100644
+--- a/lambda0/lambda0/models/configuration_lambda0.py
++++ b/lambda0/lambda0/models/configuration_lambda0.py
+@@ -145,7 +145,7 @@ class Lambda0Config(PretrainedConfig):
+             state_conditioning_mode,
+             state_discrete_bins,
+         )
+-        if not self.use_proprio:
++        if self.state_conditioning_mode == DISCRETE_VLM and not self.use_proprio:
+             raise ValueError(
+                 "Discrete VLM state conditioning requires use_proprio=True."
+             )
+diff --git a/lambda0/lambda0/models/modeling_lambda0.py b/lambda0/lambda0/models/modeling_lambda0.py
+index 2de04da..42984b6 100644
+--- a/lambda0/lambda0/models/modeling_lambda0.py
++++ b/lambda0/lambda0/models/modeling_lambda0.py
+@@ -240,7 +240,7 @@ class Lambda0(PreTrainedModel):
+                 requested_mode,
+                 requested_bins,
+             )
+-            if not model.use_proprio:
++            if mode == "discrete_vlm" and not model.use_proprio:
+                 raise ValueError(
+                     "Discrete VLM state conditioning requires use_proprio=True."
+                 )
+diff --git a/lambda0/lambda0/training/engine.py b/lambda0/lambda0/training/engine.py
+index b8b9258..9e60461 100644
+--- a/lambda0/lambda0/training/engine.py
++++ b/lambda0/lambda0/training/engine.py
+@@ -1143,6 +1143,15 @@ def trace_training_phase(
+     )
+ 
+ 
++def clip_gradients(accelerator, model, max_norm):
++    """Reject nonfinite total norms before any optimizer update on every rank."""
++    norm = accelerator.clip_grad_norm_(model.parameters(), max_norm)
++    total = accelerator.reduce(norm.detach(), reduction="sum")
++    if not torch.isfinite(total):
++        raise FloatingPointError("Nonfinite gradient norm; refusing optimizer update")
++    return norm
++
++
+ def run_training(args, model, processor, tracker_name="Lambda0") -> None:
+     output_dir = Path(args.output_dir)
+     find_unused_parameters = (
+@@ -1204,6 +1213,9 @@ def run_training(args, model, processor, tracker_name="Lambda0") -> None:
+         data_root=args.data_root,
+         image_max_pixels=getattr(args, "image_max_pixels", None),
+     )
++    # RHSCI: 注册精确消费游标；官方普通 DataLoader 不受影响。
++    if hasattr(train_dataloader, "state_dict"):
++        accelerator.register_for_checkpointing(train_dataloader)
+     validation_metas = parse_validation_metas(args.validation_metas_path)
+     validation_dataloaders = {
+         name: create_dataloader(
+@@ -1600,7 +1612,7 @@ def run_training(args, model, processor, tracker_name="Lambda0") -> None:
+             step_started,
+         )
+         if args.max_grad_norm:
+-            accelerator.clip_grad_norm_(model.parameters(), args.max_grad_norm)
++            clip_gradients(accelerator, model, args.max_grad_norm)
+         optimizer.step()
+         if (
+             ema_model is not None
+
+--- a/lambda0/lambda0/training/engine.py
++++ b/lambda0/lambda0/training/engine.py
+@@ -403,7 +403,7 @@
+             )
+ 
+ 
+-def load_model_and_processor(args):
++def load_model_and_processor(args, model_class=Lambda0):
+     if args.require_fast_linear_attention:
+         validate_fast_linear_attention_environment()
+         from transformers.models.qwen3_5.modeling_qwen3_5 import (
+@@ -415,7 +415,7 @@
+                 "Qwen3.5 fast linear attention is required, but FLA or "
+                 "causal-conv1d is unavailable."
+             )
+-    model = Lambda0.from_pretrained_or_vlm(
++    model = model_class.from_pretrained_or_vlm(
+         args.models,
+         variant=args.variant,
+         num_domains=args.num_domains,
+@@ -662,7 +662,9 @@
+     wandb_commit: bool = True,
+     ema_policy=None,
+     metric_prefix="validation",
++    prepare_batch=None,
+ ) -> dict[str, float]:
++    prepare_batch = prepare_inputs if prepare_batch is None else prepare_batch
+     policy = accelerator.unwrap_model(model)
+     was_training = policy.training
+     policy.eval()
+@@ -696,7 +698,7 @@
+             for batch_index, batch in enumerate(dataloader):
+                 if max_batches and batch_index >= max_batches:
+                     break
+-                inputs = prepare_inputs(
++                inputs = prepare_batch(
+                     batch,
+                     processor,
+                     accelerator.device,
+@@ -834,7 +836,7 @@
+             accelerator, ema_policy, processor, dataloaders, global_step,
+             noise_samples, seed, max_batches, action_chunk_mse,
+             action_chunk_samples, action_chunk_steps, wandb_commit,
+-            metric_prefix="validation_ema"))
++            metric_prefix="validation_ema", prepare_batch=prepare_batch))
+     return logs
+ 
+ 
+@@ -1152,7 +1154,8 @@
+     return norm
+ 
+ 
+-def run_training(args, model, processor, tracker_name="Lambda0") -> None:
++def run_training(args, model, processor, tracker_name="Lambda0", backend=None) -> None:
++    operations = backend if backend is not None else sys.modules[__name__]
+     output_dir = Path(args.output_dir)
+     find_unused_parameters = (
+         not args.ddp_static_graph
+@@ -1198,7 +1201,7 @@
+         sampling_plan = json.loads(args.sampling_plan_json)
+         if not isinstance(sampling_plan, dict):
+             raise TypeError("--sampling_plan_json must decode to a JSON object.")
+-    train_dataloader = create_dataloader(
++    train_dataloader = operations.create_dataloader(
+         batch_size=args.batch_size,
+         metas_path=args.train_metas_path,
+         num_actions=policy.num_actions,
+@@ -1218,7 +1221,7 @@
+         accelerator.register_for_checkpointing(train_dataloader)
+     validation_metas = parse_validation_metas(args.validation_metas_path)
+     validation_dataloaders = {
+-        name: create_dataloader(
++        name: operations.create_dataloader(
+             batch_size=args.batch_size,
+             metas_path=metas_path,
+             num_actions=policy.num_actions,
+@@ -1239,7 +1242,7 @@
+         args.trainable_action_space_ids,
+     )
+     logger.info("Trainable action-space heads: %s", trainable_action_spaces)
+-    optimizer = build_optimizer(model, args)
++    optimizer = operations.build_optimizer(model, args)
+     # The iterable dataset owns rank and worker sharding. Preparing this
+     # dataloader would shard it a second time and discard prefetched batches.
+     model, optimizer = accelerator.prepare(model, optimizer)
+@@ -1258,7 +1261,7 @@
+     )
+     global_step = 0
+     if resume_checkpoint is not None:
+-        global_step = load_training_checkpoint(
++        global_step = operations.load_training_checkpoint(
+             accelerator,
+             resume_checkpoint,
+             args,
+@@ -1323,6 +1326,7 @@
+                     args.validation_action_chunk_steps,
+                     wandb_commit=False,
+                     ema_policy=ema_model.module if ema_model is not None else None,
++                    prepare_batch=operations.prepare_inputs,
+                 )
+                 if accelerator.is_main_process:
+                     _write_json_atomic(
+@@ -1395,6 +1399,7 @@
+             args.validation_action_chunk_steps,
+             wandb_commit=False,
+             ema_policy=ema_model.module if ema_model is not None else None,
++            prepare_batch=operations.prepare_inputs,
+         )
+         if accelerator.is_main_process:
+             _write_json_atomic(
+@@ -1455,6 +1460,7 @@
+                     args.validation_action_chunk_samples,
+                     args.validation_action_chunk_steps,
+                     ema_policy=ema_model.module if ema_model is not None else None,
++                    prepare_batch=operations.prepare_inputs,
+                 )
+                 if accelerator.is_main_process:
+                     _write_json_atomic(
+@@ -1531,7 +1537,7 @@
+                 step_started,
+                 batch,
+             )
+-            inputs = prepare_inputs(
++            inputs = operations.prepare_inputs(
+                 batch,
+                 processor,
+                 accelerator.device,
+@@ -1679,7 +1685,7 @@
+         global_step += 1
+         should_save = global_step == args.iters or global_step % args.save_interval == 0
+         if should_save:
+-            save_training_checkpoint(
++            operations.save_training_checkpoint(
+                 accelerator,
+                 model,
+                 ema_model,
+@@ -1713,6 +1719,7 @@
+                 args.validation_action_chunk_steps,
+                 wandb_commit=(global_step == args.iters),
+                 ema_policy=ema_model.module if ema_model is not None else None,
++                prepare_batch=operations.prepare_inputs,
+             )
+             if accelerator.is_main_process:
+                 _write_json_atomic(
+@@ -1744,7 +1751,7 @@
+         )
+ 
+ 
+-def main(args) -> None:
++def main(args, backend=None) -> None:
+     if not args.release_data_manifest:
+         raise ValueError("Use python -m lambda0 train with a prepared data bundle.")
+     release_manifest = json.loads(Path(args.release_data_manifest).read_text())
+@@ -1835,5 +1842,6 @@
+             raise ValueError("--iters must be divisible by --ema_update_interval.")
+     # Initialize newly added action-space heads identically across scaling runs.
+     set_seed(args.seed, args.deterministic)
+-    model, processor = load_model_and_processor(args)
+-    run_training(args, model, processor)
++    operations = backend if backend is not None else sys.modules[__name__]
++    model, processor = operations.load_model_and_processor(args)
++    run_training(args, model, processor, backend=backend)
+
+--- a/lambda0/lambda0/inference/server.py
++++ b/lambda0/lambda0/inference/server.py
+@@ -214,6 +214,7 @@
+     inference_seed: int | None = None,
+     inference_steps: int = 10,
+     model_path: str | None = None,
++    normalization_contract: str = QUANTILE_NORMALIZATION_CONTRACT,
+ ) -> FastAPI:
+     if inference_seed is not None and inference_seed < 0:
+         raise ValueError("inference_seed must be non-negative.")
+@@ -278,10 +279,10 @@
+             raise ValueError(
+                 "Discrete VLM state conditioning requires a q01/q99 normalizer."
+             )
+-        if normalizer.normalization_contract != QUANTILE_NORMALIZATION_CONTRACT:
++        if normalizer.normalization_contract != normalization_contract:
+             raise ValueError(
+                 "Discrete VLM state conditioning requires the "
+-                f"{QUANTILE_NORMALIZATION_CONTRACT!r} normalization contract."
++                f"{normalization_contract!r} normalization contract."
+             )
+         if (
+             default_action_space_id is not None
+@@ -509,7 +510,7 @@
+     return app
+ 
+ 
+-def main(argv=None) -> None:
++def main(argv=None, *, model_class=Lambda0, normalization_contract=QUANTILE_NORMALIZATION_CONTRACT) -> None:
+     parser = argparse.ArgumentParser(prog="lambda0 serve", description="Launch Lambda0 FastAPI server")
+     parser.add_argument("--model", dest="model_path", type=str, required=True)
+     parser.add_argument("--processor", dest="processor_path", type=str, default=None)
+@@ -577,7 +578,7 @@
+     processor = Lambda0Processor.from_pretrained(
+         args.processor_path or args.model_path
+     )
+-    model = Lambda0.from_pretrained(
++    model = model_class.from_pretrained(
+         args.model_path,
+         dtype=resolve_dtype(args.dtype, device),
+         low_cpu_mem_usage=True,
+@@ -644,6 +645,7 @@
+         inference_seed=args.inference_seed,
+         inference_steps=args.inference_steps,
+         model_path=str(Path(args.model_path).resolve()),
++        normalization_contract=normalization_contract,
+     )
+     uvicorn.run(app, host=host, port=args.port)
+ 

@@ -1,0 +1,14 @@
+This directory contains modified NVIDIA Isaac-GR00T N1.6 source imported through PSI0.
+Copyright notices in individual source files remain applicable.
+
+Upstream: https://github.com/NVIDIA/Isaac-GR00T
+Immediate source: physical-superintelligence-lab/Psi0,
+revision cda3fdfafe47cb6fa75400d013de1bd36e3cea05, src/gr00t.
+
+The NVIDIA License in LICENSE applies to this work and its derivatives,
+including the non-commercial research use limitation in section 3.3.
+It must not be replaced by a license from a newer upstream release.
+
+RSCI changes and license provenance are recorded in SOURCE_MANIFEST.json
+and ../../THIRD_PARTY_NOTICES.md. This attribution notice is supplied by
+the distributor; it is not represented as an upstream NOTICE file.

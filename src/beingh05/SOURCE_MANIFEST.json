@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/BeingBeyond/Being-H",
+  "revision": "27ec67b84ac6c8e55f95408205e1ad7ba8bec253",
+  "upstream_directory": "Being-H05",
+  "license": "Apache-2.0",
+  "omitted_artifacts": ["configs/rng_state.pkl"],
+  "integration": "Native source and training entry only; no SIMPLE or RSCI adapter"
+}

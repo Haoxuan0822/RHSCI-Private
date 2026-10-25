@@ -1,0 +1,584 @@
+{
+  "schema": 1,
+  "immediate_source": {
+    "repo": "physical-superintelligence-lab/Psi0",
+    "revision": "cda3fdfafe47cb6fa75400d013de1bd36e3cea05",
+    "path": "src/dreamzero"
+  },
+  "original_checkout_revision": null,
+  "provenance_note": "PSI0 did not record the original pre-import checkout revision. The license reference is a historical component license source, not a claim of byte-identical code provenance.",
+  "license_source": {
+    "repo": "dreamzero0/dreamzero",
+    "revision": "2fcf79eb7d8615153304bbed33f589999a2526f8",
+    "files": [
+      "LICENSE",
+      "COPYRIGHT"
+    ],
+    "scope": [
+      "src/dreamzero"
+    ],
+    "terms": "Apache-2.0; file-level third-party notices also apply"
+  },
+  "files": {
+    "COPYRIGHT": {
+      "sha256": "4e021175692dd5063d16883f306197da8fd9dd089249987b3fc86c98f08f2e2c",
+      "psi0_git_blob": null,
+      "status": "distribution-addition"
+    },
+    "LICENSE": {
+      "sha256": "8f2f9955895e664d84a98ff47debe8d4aaa76665afec7d8d3f1efa36c395d849",
+      "psi0_git_blob": null,
+      "status": "distribution-addition"
+    },
+    "eval_utils/policy_client.py": {
+      "sha256": "4f9f062bdc5bec081a459b75a29825c0438f15d22da601e20305e843cd05b5f1",
+      "psi0_git_blob": "5511ff3afdad382e02fd04fc72f018e3fcfbb80c",
+      "status": "unchanged-from-psi0"
+    },
+    "eval_utils/policy_server.py": {
+      "sha256": "14afacc303715fa62ba9ea6354a6bb6c3427158ddbf586975724b254da22c3c2",
+      "psi0_git_blob": "0ab1b4c23dc4bce48133dbf182f17f21634cd7e9",
+      "status": "unchanged-from-psi0"
+    },
+    "eval_utils/run_sim_eval.py": {
+      "sha256": "ef938678d40ed3f49f7d5dacc54b168eaa05682572dacd7bfe524ccc3a104384",
+      "psi0_git_blob": "cb194e77113a09db0e8756cf27a5bc31e0e04e51",
+      "status": "unchanged-from-psi0"
+    },
+    "eval_utils/serve_dreamzero_wan22.py": {
+      "sha256": "b3141daa0d635168bc057741a69342df708b6fddaeda762fd82b482ba3544d96",
+      "psi0_git_blob": "e6b378e73e64589ee2f9036e452d7772072eee4f",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/control/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/control/tensorrt_utils.py": {
+      "sha256": "b32724aba5528ac829d06b6cf4729d141d7bf6c416bdafad7da6ea099c0cbe9c",
+      "psi0_git_blob": "74e25eb85698d6e5736d3a8708fe4882aa39db87",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/__init__.py": {
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "psi0_git_blob": "8b137891791fe96927ad78e64b0aad7bded08bdc",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/__init__.py": {
+      "sha256": "3fff1b16cfaa5d8ef454c4e289d4e11bf69d02bdfdd11557a298f8f82f5f0ea3",
+      "psi0_git_blob": "762cc7c5bd7c6231b10f1155ed1f3c83ae933ac0",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/data_structure/__init__.py": {
+      "sha256": "e8f80e2a2b1ec61f14bee79697ce5f7477f9b578991683421b80ef8aff3f0eb7",
+      "psi0_git_blob": "c3e40684ae7be6d8a216204a4d89b6c5352a72f2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/data_structure/shape_utils.py": {
+      "sha256": "518ee7f1a30ce65eb3660e6ef197ac299682514ade061ed2b029425c39712f49",
+      "psi0_git_blob": "343524c5db1247a6c27f8322b983a5058ddaa17a",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/data_structure/tree_utils.py": {
+      "sha256": "c68c0ef2691e754db186ac043c306498b365ee4db39db30c829c76cdfcb727f7",
+      "psi0_git_blob": "9cce53b6c14b1e7cf4ccd93790e964f47b2c84d8",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/__init__.py": {
+      "sha256": "21948aa72c84d8fb492ad873d632d7a315650b8b43e4cebd153be3fc85851862",
+      "psi0_git_blob": "8dc853ff2849d027d12c92d09d2ebaa553cfd97e",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/config_utils.py": {
+      "sha256": "2010b50eea2e646f8fb858d28b8aea963a909418831c4742c30e8f75ed4b1324",
+      "psi0_git_blob": "d8d541efa9c55107c37c0cd3bcb32566b0ce2f8b",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/file_utils.py": {
+      "sha256": "2f99afa695d1ea257c97cc6cc880f69b346bfeb28c27648ae85042ab263be2e3",
+      "psi0_git_blob": "3e53246b39997b519b1f131a440c64d500c00db2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/hdf5_utils.py": {
+      "sha256": "193e3c013f74ab7986bdf830952d9b246c392213c08612b2f339f89b274f0916",
+      "psi0_git_blob": "03775968a73e9c3a39d1371472e10eb8f323323a",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/json_utils.py": {
+      "sha256": "8f8b13b68693b9a533d815fee23e78edefc8b55d58ffff353796579f6fdf7ff9",
+      "psi0_git_blob": "34eb226264b6ae98f017ea46bbdd0bbdb549604f",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/print_utils.py": {
+      "sha256": "ff9e3b6a8ae0350087d074ac1e38861604469cce166e9a503a9fbb6862bc48c3",
+      "psi0_git_blob": "161746c9c83179dbb4a61902478e767854efaa36",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/io/termcolor.py": {
+      "sha256": "c6aa2f584a3da76c9c099580edd05a4299272752a0a59eb5d96a0d87c6359e20",
+      "psi0_git_blob": "bf5a13d3aebb39b02cee7d6f709696cafca92197",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/__init__.py": {
+      "sha256": "1a4f48d78e1211ae81a061361fc2dc21445ef8f617ba3868df967be86b1d23b9",
+      "psi0_git_blob": "a3ab939903e7c546f80c32175d84560e747557a1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/array_tensor_utils.py": {
+      "sha256": "30f19ac056b05e35506a83bdf94f8ba41f44e56228298c99d6ff8ca1e684edcb",
+      "psi0_git_blob": "6585ca8a2693c38390b6236eb7c2a337bf3f2926",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/functional_utils.py": {
+      "sha256": "9d79c17e0a422ac86fc5769811bb61128d9ee3899fb0d99d6eda9939c6598948",
+      "psi0_git_blob": "9a5a509feac792751ccfd7956736f932bea33679",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/image_utils.py": {
+      "sha256": "31e10392dfd2fa518ae75c7e76a30eb1e2caf072ea7a16b354def46fa82d78b0",
+      "psi0_git_blob": "46ae18cf8b9b89e577da99df8dd0919d07318c71",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/misc_utils.py": {
+      "sha256": "11f4727106c200784f7ded2d2e10ee03e2159cc12de184182e229a6b253aa96e",
+      "psi0_git_blob": "ed486fec52a63fe1c97039c813ceaf03f5db5315",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/torch_utils.py": {
+      "sha256": "8e14fc9f5b506827fca89d4b4bc7e1b7887d00beb3204dd40611a63a49e91936",
+      "psi0_git_blob": "e735532c4289262d632adfee93ca68581f248533",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/common/utils/misc/video_utils.py": {
+      "sha256": "719dbfbc8d7ab6f965bf431393d54fae3f8014905db2f84258e7149138cd101d",
+      "psi0_git_blob": "481f169cef3adf518df273e1175603c31cfcfdd0",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/conf.yaml": {
+      "sha256": "205ba9b8b56f2fff8b4501f90c30825633ac241ce4769fa316e64802247a5dde",
+      "psi0_git_blob": "acbe28bc320540513cd17a480cf93989133ccad6",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/agibot_relative.yaml": {
+      "sha256": "5bac65a5aa1dbd2cb9539d68e62d5a913aba1e75c3be01ada20bd715d71d0dd4",
+      "psi0_git_blob": "1972af4e9ab846f94bc9304a238b731e4c2deb14",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/base_48_wan_fine_aug_relative.yaml": {
+      "sha256": "51e2f453ffdc2051ca034e2dcfaaa3472035a54d04be773b8e486112ed1ea164",
+      "psi0_git_blob": "3943101d5c1553817bd9f61ab9ae646ed0ecf287",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/droid_relative.yaml": {
+      "sha256": "fbc70bb768a4d595857cd5110a12f082ea6d45d3a0ed23706d747ce6e5926a3e",
+      "psi0_git_blob": "197ff702b465dddd0ef54cd572e59921bae04302",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/droid_relative_wan22.yaml": {
+      "sha256": "53720816aed5b2ea7042318661db52bde31af075e88a2e59f80c9559ffa8319d",
+      "psi0_git_blob": "42537e2b7b66be9b55c4b936eaa931b5fb3f17d1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/g1_neck.yaml": {
+      "sha256": "49fb2b2463ead9702b9c634f599e06fc6def6fad1399935babfc51781a88f913",
+      "psi0_git_blob": "e1b557a885135c985eec99e1edf669654a7228a5",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/g1_sonic.yaml": {
+      "sha256": "e8cd3a247d1a2332e2d7ebb42dc5f8a1bd0c115018a358948a06d9938d40e2ef",
+      "psi0_git_blob": "98bad7be7051836b3bffb161011ec36288141cf9",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/g1_sonic_neck.yaml": {
+      "sha256": "0541e9be1a9e621e61ad3808d16431c5f7993939022cdab3e4096c1f3648e98b",
+      "psi0_git_blob": "448f82d9eb29a7279511415fd854a385da1afdc5",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/simple.yaml": {
+      "sha256": "055f2785ecb3e64705b3804536b7d70673d2d8bc7973bdb78c2e0da405d6a6ea",
+      "psi0_git_blob": "965cd2c5608932e57395a997cb90c64ec3805774",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/data/dreamzero/yam_relative.yaml": {
+      "sha256": "622e313fb24740d03d82923a977ad96a9defcc00fca59134b7d5b5ee64d77ed2",
+      "psi0_git_blob": "2670479f2c2369f1440f5c8333adf2310391bbd2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/deepspeed/zero2.json": {
+      "sha256": "9e35a48c4187c87871912ffa879ff5d9e611ca6005937da59d6da85528284ca5",
+      "psi0_git_blob": "b1a5a0b41b082ff36c8a0cec197bb61c7d78c2b1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/deepspeed/zero2_offload.json": {
+      "sha256": "2b01785801c68e6bc5d326174b62e18ec5f15a5dbf1dc3adf8f5a1f2aa4fe894",
+      "psi0_git_blob": "29c7f2f22577fa6ef48a9958285a4bbf5dc4026d",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/deepspeed/zero3.json": {
+      "sha256": "ed38ea323cf2ecbd35bf1e307be26fab7394706641bed2cb0d442d92683060a1",
+      "psi0_git_blob": "cfd068a9f91485787b0895e029bc3f0b1577adf1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/action_head/wan_flow_matching_action_tf.yaml": {
+      "sha256": "571bce2d657d72c4588b94dae5fdc93bac2bf61dfecf695941f75d1214bf1871",
+      "psi0_git_blob": "b3ae43f1d956847e2777ea6a7c95a13da49d4c22",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/action_head/wan_flow_matching_action_tf_wan22.yaml": {
+      "sha256": "ef20e5f039578dba80d36e1154423f907a6a202370f210ee85147210f01f96ab",
+      "psi0_git_blob": "1fa6c8e8de9ee0e88f9ea5fdf066f69f46f04cda",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/backbone/identity.yaml": {
+      "sha256": "5d8056a49f652fca287bb933b0dcbf41b4f4c8464535843abe02d8202b0261aa",
+      "psi0_git_blob": "2e4cf9ced4117a2dc622308691e39551ef0ff2c6",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/transform/base.yaml": {
+      "sha256": "e1a78e25fe59c8c2ab36664f5f6798ede1701fbb9650126746c0660e458b3a83",
+      "psi0_git_blob": "2aa3ab2945619233ed12917664da06b445880435",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/transform/dreamzero_cotrain.yaml": {
+      "sha256": "6890ef26b9a5a768cdbf3f1ae67b65726d543d5728ac3d557c91b918949a0960",
+      "psi0_git_blob": "b39a62f300410c921c54056f54754b1e3ec20a8c",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/configs/model/dreamzero/vla.yaml": {
+      "sha256": "e6e8d8429a2c75c3787261c61a37bb5048cebbdde2ed789112ebd43e01b78087",
+      "psi0_git_blob": "4ab9fac6999409208720e71754ba1a9a0207b39f",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/g1_simple/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/g1_simple/action_padding.py": {
+      "sha256": "adc7959f59fc04ce68040cdc1a6621be9f31c80d670ee792f27ae393baf45951",
+      "psi0_git_blob": "bc1edf9b617e9e23601067204cb5cf2a3190e1d2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/gr1/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/gr1/constants.py": {
+      "sha256": "5630c04c2d9afa8201c6d4deb5c9709739b2e4f5b0b3a6bd0cc3b27d5187efec",
+      "psi0_git_blob": "3c3345c382b65bbbd7ba186fa27f3bcfecad42ee",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/gr1/get_initial_actions.py": {
+      "sha256": "099495165ff14413f1a115eb424bd8860f0763631e29ecf323c9b96eb11b1a49",
+      "psi0_git_blob": "cd86a66659bb84f148a4c816bdcc63be29cafa80",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/conversion/simple/action_padding.py": {
+      "sha256": "ddb135a2a51824148c019c7fbe4d56427a3dc389cd0b81aa9a3d876e4477ebfd",
+      "psi0_git_blob": "e862e9d41778b54c7588d519de2c2f4b3eab70f4",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/__init__.py": {
+      "sha256": "e32a8f09f94b981373567502c50937a402cc7feb91b369251fefa2c895e8898a",
+      "psi0_git_blob": "db17fc385679fa2b4e40e5c5c7631e43d3ae3638",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/lerobot.py": {
+      "sha256": "ea5bb41f0671ca3c9185cc8a8e439747248d4b8236ae143827cb8994e868b626",
+      "psi0_git_blob": "b1890c51045f5da4d7726f4b0f36a59b658876eb",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/lerobot_sharded.py": {
+      "sha256": "59902cf353946fbb1486c16a70204268ecd6b917c85350e6c540b25489c32e9b",
+      "psi0_git_blob": "107fede4b135d2c8a8c5a06c4a30dce48b046ed2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/macro.py": {
+      "sha256": "8c06cdbfa33114e8b949a87f189a2e113888c8a4a47916c62796b9bb63987498",
+      "psi0_git_blob": "94077443e7660765e4a56a60ba88280ebcd7e830",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/metadata.py": {
+      "sha256": "607fec8d75ac1359f78bf6f235ecb8d353fd0ccfc136d406c4823c96e5ae2fa8",
+      "psi0_git_blob": "419be97033181499189a8a58d2152338dfeb407e",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/dataset/registry.py": {
+      "sha256": "0758ba402ba1bdfc7e3444fb318d7bff3f50ffe4f440b3bd1b48c0a039b78a4f",
+      "psi0_git_blob": "f9e3f10e93b3556453b34151d9fb898a38fed632",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/schema/__init__.py": {
+      "sha256": "4faddf9f722a6b3f8f4ea8b84aaa5c19340c695afd311503ae438c98e5953a11",
+      "psi0_git_blob": "786e3cb513a829954ce7709786f37a5393e722a2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/schema/embodiment_tags.py": {
+      "sha256": "f599ae7c80395d5531ea35453691a38441e101af2cbb9c20b20b7b940be1238d",
+      "psi0_git_blob": "ef6be4cbbc8d25cc7638640adbb90fbc01c59747",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/schema/lerobot.py": {
+      "sha256": "7e44b2647e10b16d19605747c0e3edec92b720e9a05c54952b784c5ef72036d7",
+      "psi0_git_blob": "4139f5697e79a00edf5e845bdd9720677fbed553",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/__init__.py": {
+      "sha256": "7e8a65bb1af4a092d0ecc382df1ec4f7c716765bd6e2efef080d5a175ad02475",
+      "psi0_git_blob": "f60535ae8556b63133db01bda89e8975827375eb",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/base.py": {
+      "sha256": "585a64189af0e9df21ddfcbad4111efb8255f2efd72fafedadcf231a97051e9f",
+      "psi0_git_blob": "6b7465d1db83e09d6081e0912bc7af0af42f77f9",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/concat.py": {
+      "sha256": "53535527d350c11b0c31a407cc9590cbcf0d6fd2e60992bc5bcf1bd089a360fb",
+      "psi0_git_blob": "64e5503bdf664c66f85353f44dd62b940173a019",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/language.py": {
+      "sha256": "4f3b14769a7a9b08b5008439389f6cc160eb8b2d6b2011a22b7090539a0ac10b",
+      "psi0_git_blob": "77b93a45137d062a59867df96f22042a2fc53f99",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/pad.py": {
+      "sha256": "b4f94a05342abc821b6c17365398526d722e154bf7d4e32f1ec10d3787cd2696",
+      "psi0_git_blob": "422dc76a9ffe48b3c826a8a43840c44b6e349886",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/state_action.py": {
+      "sha256": "1c427a444c96f7af0c1adfd523819069310d4c896cab7e0955c69d8421572341",
+      "psi0_git_blob": "146f4d38866269e985d5b76cba151be2bdd6b1fb",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/data/transform/video.py": {
+      "sha256": "b3ba2f3a7330a69597df4a0356e4888dd756dc4193ec6de19eaa97c76ecf94a8",
+      "psi0_git_blob": "ec1f7775c7625a2f116b78d73f151eaaf820fd8c",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/__init__.py": {
+      "sha256": "bfe83a5ac50d502387f912ea56b5d32ef9f0310b9f71fbd0bb8eca4a8801ca33",
+      "psi0_git_blob": "59c08340d9bbcc5d4e8155a10f4d866f11aba3fa",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/base.py": {
+      "sha256": "a6b4d3c6a5f75c713408f899d82d884d366b04cd9b0a8ec5fa8dc28c72908bc2",
+      "psi0_git_blob": "24dcfc3d28b393b6c5f1a6ef3edc11c404a0cbc1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/denoise_val_callback.py": {
+      "sha256": "dadaa7db1f92cae83de05cae098f2627b3d1e93b709c62d79de73a6a6f042a03",
+      "psi0_git_blob": "bb58b6b2c015c3443935f9e7944b4bfe73718681",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/experiment.py": {
+      "sha256": "a4e7bc51173d0c3cd28c598a7c9f14ff317f411f58c40f6d4b7d91d412f13518",
+      "psi0_git_blob": "d2b9fce44bd41ad9eedb6a4cbb0b4269c48f7962",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/test_lerobot_sharded.py": {
+      "sha256": "f5a96e8970f8f8d63477bccc0ba3861b45bfc341a8762e77c006df66c94779ab",
+      "psi0_git_blob": "97778a473e87ff77dd7ec3563265e0531bccefd4",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/experiment/utils.py": {
+      "sha256": "537a86bc8538c2f67506837ed8d5287672387fb0fd63eab1539a6068fde852bf",
+      "psi0_git_blob": "d54993b2096aa6cc38ada6151da19b83d26ae2e5",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/action_head/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/action_head/wan_flow_matching_action_tf.py": {
+      "sha256": "406ebe897c1ee7be5675ba36388d6d8455c3aae310f5aead561ca4a8e9b56879",
+      "psi0_git_blob": "e1b1280cbd538d6b825aa9596b6a8ea9252cfae2",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/backbone/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/backbone/base_backbone.py": {
+      "sha256": "c3167be5b1fac1da0025b2bc7f9d9a1335bb8f39b88f27422de3885074ff2b70",
+      "psi0_git_blob": "b768bcdef5fa0e6b08ee4634ec2e144e549edbb7",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/backbone/identity.py": {
+      "sha256": "a0c17c30efb2c060c3553d253557f41628fc32dd941d222f520443b36a779260",
+      "psi0_git_blob": "0c64852d9e7e035ebb340f0290485152c98804e8",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/base_vla.py": {
+      "sha256": "bb1a8a6101453a832cc368503e50bbe9110f6c950b121d7941d0f6d328c897c2",
+      "psi0_git_blob": "86febd9cbeb522882fb0b650fecf221a60979a58",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/attention.py": {
+      "sha256": "6228c9d5fbcac71c82004c0fd954de629955130b6a9cc7e59de8de0942393e43",
+      "psi0_git_blob": "0ebc62a64a02b84cbecbc682e5612b0e290a87d4",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/cudnn_attention.py": {
+      "sha256": "6a896b1d936f0148c6017f9de528b5e2b1a6a18691b2d854c74b1217ba0c5fb4",
+      "psi0_git_blob": "c996baa33c4f8212652234a8f6d9ba7645d3c234",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/flow_match_scheduler.py": {
+      "sha256": "6c3f720e7520bf6e138a0e78732c7b7283b109c589dd2e231c6a67ff9f663477",
+      "psi0_git_blob": "03b53b3b26237ef82492d174c78b971a22280a0f",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/flow_unipc_multistep_scheduler.py": {
+      "sha256": "8748ff51dc050833ae75e621088787a9d1eaf28d8c964dd7639528c29395765e",
+      "psi0_git_blob": "df7ea56e278813a242cbb1cec873edc79649f8a5",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/utils.py": {
+      "sha256": "30d8d7cd347347955cb607b6f9aa9fd8a649494ab0e9d6a7ca0b711db7b52e6a",
+      "psi0_git_blob": "0d58e4e11dc844822d0588dac7f432e7e31b8daf",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/vram_management.py": {
+      "sha256": "39f521acb5f4e71d017803060b6baa3b9dc43e97febc5d3f5d6ce9ef45ef12cd",
+      "psi0_git_blob": "c66cee4f0d9c186b6030b6978d20dc6a49fd4299",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan2_1_attention.py": {
+      "sha256": "eb2a540ebf35be0aa7d4229a9108bc6576a7e8d2cac6129838a8c10ba46b4044",
+      "psi0_git_blob": "024ee02a2c9a1b5941d9dffa1f7891047d55f372",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan2_1_submodule.py": {
+      "sha256": "66b9084c0e8b0036087502e07c7b547ca2e06eb475b9b62f260ac864b93c0719",
+      "psi0_git_blob": "b68e8fb6370070bcaa5f8f8badfe46fe1b718c37",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_camera_controller.py": {
+      "sha256": "90768ef31fc5ed0fead9f25f931bc3125039abe9f02adb8182cfea39d41c7883",
+      "psi0_git_blob": "8cbe658699e52c8cf3854d94ed4d0c356bb96989",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_dit.py": {
+      "sha256": "f516d574d1329516de8a41d382a849b48f974ea25cdd4b326e3a646b562f8175",
+      "psi0_git_blob": "e9c4b880ea07b048835e6320af8ad7ae999e47e1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_dit_action_casual_chunk.py": {
+      "sha256": "d420b46ee0197460da6e3ea27aef3368da9b072ec62daee7c4127808e8fbd45b",
+      "psi0_git_blob": "4937582f23fdad19c7792927c160a3c27c82c864",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_image_encoder.py": {
+      "sha256": "0d1801d5a0daef9a0d2b956e3d23d24f74403fa6a590c9fde661b542ac8079ea",
+      "psi0_git_blob": "e27b49181ec8284f30fea4e2fd02a764e7c61aa6",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_text_encoder.py": {
+      "sha256": "8dfddba064cbe5ce12b2481c84c0ac0e1ecf2dd5484be8f026ce3d34b357a5b9",
+      "psi0_git_blob": "abeb018333f6f61f1af12aa39ab064105274f8d1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/modules/wan_video_vae.py": {
+      "sha256": "1f65f8fd915c1e6703da9d320e764df107dbb988b12623a7e087554281c84edc",
+      "psi0_git_blob": "4e2ff44f0db1e043b3ba9914962040f5ca0d36fa",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/transform/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/transform/common.py": {
+      "sha256": "4b058ec1179d67f99a5880ea65568be20ddb32ddb462554bf851e7168734622c",
+      "psi0_git_blob": "913add82986c026fb17f0c0ca6224102dd2a8cc1",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/dreamzero/transform/dreamzero_cotrain.py": {
+      "sha256": "28b5a287d0264743cde3bd5ea7985e5204e2063df5ba87d7afecd7bc4f7b9c02",
+      "psi0_git_blob": "dd7d3911d4bc5413211a8fa81334e0a59f1794e6",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/action_head/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/action_head/base_action_head.py": {
+      "sha256": "dc6db3651042dced44727161699e741a4b6ab3a8d3c10356e10d546c5c4b2119",
+      "psi0_git_blob": "e8398622d4da362796b0fdb8a807a1592b55270e",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/modules/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/modules/action_encoder.py": {
+      "sha256": "9f42b500c1899a2a71aed08413495e105738a5fcd887e5848cd8f1aa0151eb4b",
+      "psi0_git_blob": "55a39303c2c69913be01c7a86fc5cea7af6921bb",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/model/n1_5/sim_policy.py": {
+      "sha256": "f76dad85e0ce35a7a9c8e7b2ec1f2ad266f5d338ab2267be7be3589999bea4de",
+      "psi0_git_blob": "38d555960e6bf2a609f590b1ff78d45ece5a9c00",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/utils/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/utils/action_args_override_utils.py": {
+      "sha256": "8614ddd846f7f88725b11678f8260cfd25f68c71527504af47fe9d9f2183c735",
+      "psi0_git_blob": "67ecdbb307bf02ebef0282a1d5065f4d3bd8b24f",
+      "status": "unchanged-from-psi0"
+    },
+    "groot/vla/utils/timer.py": {
+      "sha256": "6a4a4614fa72144e84b85f1b29ddc40ffc553d4a5211644f76d11ef9edfc44e9",
+      "psi0_git_blob": "d4e17daa2caee54c85fd7869195136cd2b098a87",
+      "status": "unchanged-from-psi0"
+    }
+  }
+}

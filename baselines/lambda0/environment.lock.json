@@ -1,0 +1,27 @@
+{
+  "schema": "lambda0-local-overlay-v1",
+  "base_environment": "/opt/rsci-data/.venv-egovla-rsci",
+  "versions": {
+    "torch": "2.7.0+cu128",
+    "torchvision": "0.22.0+cu128",
+    "transformers": "5.14.1",
+    "accelerate": "1.14.0",
+    "av": "15.0.0",
+    "numpy": "1.26.3",
+    "pyarrow": "20.0.0",
+    "Pillow": "12.2.0",
+    "mmengine": "0.10.5",
+    "einops": "0.8.1",
+    "safetensors": "0.8.0",
+    "tensorboard": "2.21.0",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.34.3",
+    "json_numpy": "2.1.0",
+    "huggingface-hub": "1.33.0",
+    "tokenizers": "0.22.2",
+    "scipy": "1.15.3"
+  },
+  "official_torch": "2.6.0",
+  "official_torchvision": "0.21.0",
+  "difference_reason": "Reuse installed cu128 torch2.7 stack for Blackwell; original active environment is read-only."
+}

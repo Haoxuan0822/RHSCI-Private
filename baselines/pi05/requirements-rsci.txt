@@ -1,0 +1,18 @@
+# Python 3.10. Install Torch cu128 first; see README.md.
+torch==2.7.0
+torchvision==0.22.0
+torchcodec==0.4.0
+transformers==4.53.2
+tokenizers==0.21.4
+accelerate==1.7.0
+numpy==1.26.4
+sentencepiece==0.2.1
+safetensors==0.6.2
+datasets==3.6.0
+pillow>=10
+einops==0.8.1
+opencv-python-headless==4.11.0.86
+requests>=2.32
+fastapi==0.119.1
+uvicorn==0.38.0
+pydantic==2.10.6

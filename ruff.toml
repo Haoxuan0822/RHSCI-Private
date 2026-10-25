@@ -1,0 +1,37 @@
+required-version = "==0.17.2"
+target-version = "py310"
+line-length = 100
+cache-dir = "/tmp/rsci-ruff-cache"
+extend-exclude = [
+    "src/psi", "src/openpi", "src/gr00t", "src/egovla", "src/openlambda",
+    "src/act", "src/dp", "src/InternVLA-M1", "src/h_rdt", "src/dreamzero", "src/beingh05",
+    "src/egodex", "src/egomimic", "src/fast", "src/lerobot_patch", "packages",
+]
+include = [
+    "src/rsci/**/*.py",
+    "scripts/train/*.py",
+    "scripts/check_gr00t_memory_devices.py",
+    "scripts/check_nccl_runtime.py",
+    "scripts/with_nccl_runtime.py",
+    "scripts/validate_pi05_speed.py",
+    "scripts/data/build_simple_ardy_sidecars.py",
+    "scripts/data/prepare_simple_stats.py",
+    "scripts/data/extract_simple_raw_labels.py",
+    "scripts/data/download_ardy_teacher.py",
+    "scripts/data/audit_raw_processed_rgb.py",
+    "tools/*.py",
+    "tests/**/*.py",
+]
+
+[lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[lint.per-file-ignores]
+"scripts/*.py" = ["E402"]
+"scripts/**/*.py" = ["E402"]
+"tools/*.py" = ["E402"]
+"tests/**/*.py" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
