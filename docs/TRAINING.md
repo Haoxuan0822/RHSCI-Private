@@ -20,7 +20,7 @@ DATASET_PATH=/datasets/my-task python3 scripts/train/baseline.py --backbone gr00
   --embodiment-tag G1_LOCO_DOWNSTREAM \
   --modality-config-path "$PWD/src/gr00t/gr00t/configs/modality/g1_locomanip.py" \
   --output-dir /runs/gr00t/my-task \
-  --max-steps 50000 --global-batch-size 24 \
+  --max-steps 20000 --global-batch-size 24 \
   --learning-rate 1e-4 --warmup-ratio 0.05 --weight-decay 1e-5 \
   --dataloader-num-workers 4 --save-steps 10000 --save-total-limit 4 \
   --color-jitter-params brightness 0.3 contrast 0.4 saturation 0.5 hue 0.08
