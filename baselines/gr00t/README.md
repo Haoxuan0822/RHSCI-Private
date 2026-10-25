@@ -9,7 +9,7 @@ The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 part
 
 The separate environment requires [requirements.txt](requirements.txt) and the native GR00T dependencies. `GROOT_RSCI_PYTHON` overrides the interpreter; the default is `$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python`.
 
-See the [end-to-end README example](../../README.md#getting-started) for the isolated installation recipe and a box-hugging VGQ-AE run, followed by its matching HTTP server and SIMPLE evaluation commands. The example pins PyTorch 2.7.0, Transformers 4.51.3 and FlashAttention 2.7.4.post1, uses `top4` tuning with global batch 24 and trains for 50000 updates. Its service loads `checkpoint-50000` and returns 16 actions per request.
+See the [end-to-end README example](../../README.md#getting-started) for the isolated installation recipe and a box-hugging VGQ-AE run, followed by its matching HTTP server and SIMPLE evaluation commands. The example pins PyTorch 2.7.0, Transformers 4.51.3 and FlashAttention 2.7.4.post1, uses `top4` tuning with global batch 24 and trains for 50000 updates. Its service loads `checkpoint-20000` and returns 16 actions per request.
 
 ## SIMPLE recipe
 
