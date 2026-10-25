@@ -82,7 +82,7 @@ class OfficialOptimizationTests(unittest.TestCase):
                 output_dir=directory + "/official",
                 use_cpu=True,
                 report_to="none",
-                max_steps=50000,
+                max_steps=20000,
                 learning_rate=native.learning_rate,
                 lr_scheduler_type=native.lr_scheduler_type,
                 weight_decay=native.weight_decay,
@@ -99,22 +99,22 @@ class OfficialOptimizationTests(unittest.TestCase):
                 "optim",
             ):
                 self.assertEqual(getattr(actual, key), getattr(expected, key))
-            self.assertEqual(actual.max_steps, 50000)
-            self.assertEqual(actual.get_warmup_steps(50000), 2500)
+            self.assertEqual(actual.max_steps, 20000)
+            self.assertEqual(actual.get_warmup_steps(20000), 1000)
             self.assertEqual(actual.gradient_accumulation_steps, 2)
             model = torch.nn.Linear(3, 2)
             a = Trainer(model=copy.deepcopy(model), args=actual)
             b = Trainer(model=copy.deepcopy(model), args=expected)
             for trainer in (a, b):
-                trainer.create_optimizer_and_scheduler(50000)
+                trainer.create_optimizer_and_scheduler(20000)
             for left, right in zip(a.optimizer.param_groups, b.optimizer.param_groups):
                 for key in ("betas", "eps", "weight_decay", "lr"):
                     self.assertEqual(left[key], right[key])
-            for step in (0, 1, 1000, 2499, 2500, 25000, 49999, 50000):
+            for step in (0, 1, 999, 10000, 19999, 20000):
                 self.assertEqual(
                     a.lr_scheduler.lr_lambdas[0](step), b.lr_scheduler.lr_lambdas[0](step)
                 )
-            self.assertAlmostEqual(a.lr_scheduler.lr_lambdas[0](1000), 0.4)
+            self.assertAlmostEqual(a.lr_scheduler.lr_lambdas[0](1000), 1.0)
 
     def test_new_output_namespace_preserves_original_runs(self):
         cli = parser().parse_args(
