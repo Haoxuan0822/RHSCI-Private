@@ -97,7 +97,7 @@ groot_train=(
   --gradient-accumulation-steps 1 --num-workers 4
   --dataset "$HUG_DATASET" --sidecar "$HUG_SIDECAR"
   --checkpoint "$GROOT_BASE" --output-dir "$GROOT_RUN"
-  --max-steps 50000 --seed 292285
+  --max-steps 20000 --seed 292285
 )
 bash scripts/train/gr00t.sh "${groot_train[@]}" --check
 bash scripts/train/gr00t.sh "${groot_train[@]}"
@@ -109,8 +109,8 @@ bash scripts/train/gr00t.sh "${groot_train[@]}"
 | --- | --- | --- |
 | VLM tuning | frozen | top4 |
 | Global batch | 128 | 24 |
-| Training updates | 40000 | 50000 |
-| Final checkpoint | `$PSI_RUN/checkpoints/ckpt_40000` | `$GROOT_RUN/checkpoint-50000` |
+| Training updates | 40000 | 20000 |
+| Final checkpoint | `$PSI_RUN/checkpoints/ckpt_40000` | `$GROOT_RUN/checkpoint-20000` |
 | Actions per request | 30 | 16 |
 
 Keep the entire run directory. See [training options](docs/TRAINING.md) for other variants, state noise, no-Reader and future ARDY switches.
@@ -169,7 +169,7 @@ Serve the matching GR00T checkpoint, then evaluate on the same split:
 ```bash
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH="$PSI_HOME/src" "$GROOT_RSCI_PYTHON" \
   -m rsci.inference.http_server \
-  --backbone gr00t --run-dir "$GROOT_RUN" --checkpoint-step 50000 \
+  --backbone gr00t --run-dir "$GROOT_RUN" --checkpoint-step 20000 \
   --device cuda:0 --host 127.0.0.1 --port 8125 --no-deterministic-eval
 ```
 
@@ -179,7 +179,7 @@ CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoup
   "simple/$SIM_TASK" psi0_decoupled_wbc level-0 \
   --host 127.0.0.1 --port 8125 --sim-mode mujoco_isaac --headless \
   --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/level-0" \
-  --eval-dir "$PSI_RUNTIME_ROOT/evals/gr00t/$TRAIN_TASK/VGQ-AE/step-50000/level-0" \
+  --eval-dir "$PSI_RUNTIME_ROOT/evals/gr00t/$TRAIN_TASK/VGQ-AE/step-20000/level-0" \
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
 
