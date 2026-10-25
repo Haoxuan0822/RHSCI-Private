@@ -21,7 +21,7 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 | Learning rate / warmup ratio / weight decay | `1e-4` / `0.05` / `1e-5` | Same |
 | Color jitter: brightness, contrast, saturation, hue | `0.3`, `0.4`, `0.5`, `0.08` | Same |
 | GPU layout | 2 GPUs | 8 GPUs × batch 3; accumulation 1 |
-| Initialization | HE-pretrained `pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000` | Public `nvidia/GR00T-N1.6-3B` |
+| Initialization |Public `nvidia/GR00T-N1.6-3B`| Same |
 | Checkpoint saving | Every 10000 steps; limit 4 | Every 1000 steps; retain 10000-step anchors and the latest rolling checkpoint |
 
 RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. HE pretraining is not required. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
