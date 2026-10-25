@@ -38,7 +38,7 @@ def parser():
     )
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--run-tag", default="main")
-    p.add_argument("--max-steps", type=int, default=50000)
+    p.add_argument("--max-steps", type=int, default=20000)
     p.add_argument("--seed", type=int, default=292285)
     p.add_argument("--checkpoint", type=Path, help="官方初始化目录；默认数据盘GR00T-N1.6-3B")
     p.add_argument("--resume", type=Path, help="本实验完整checkpoint；默认自动寻找")
