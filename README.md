@@ -1,6 +1,6 @@
 # RHSCI
 
-Rethinking State Conditioning in Vision-Language-Action Models.
+Rethinking Humanoid State Conditioning in Vision-Language-Action Models.
 
 RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5, GR00T, EgoVLA and λ₀, with ACT as a visual action baseline. VGQ/EGQ variants use four-frame visual histories and ARDY supervision during training. Nonstarred variants need only current RGB and language at inference.
 
