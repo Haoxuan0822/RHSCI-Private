@@ -175,7 +175,7 @@ cd "$SIMPLE_HOME"
 CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoupled_wbc \
   "simple/$SIM_TASK" psi0_decoupled_wbc level-0 \
   --host 127.0.0.1 --port 8124 --sim-mode mujoco_isaac --headless \
-  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/level-0" \
+  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/dr-level-0" \
   --eval-dir "$PSI_RUNTIME_ROOT/evals/psi0/$TRAIN_TASK/VGQ-AE/step-40000/level-0" \
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
@@ -196,7 +196,7 @@ cd "$SIMPLE_HOME"
 CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoupled_wbc \
   "simple/$SIM_TASK" psi0_decoupled_wbc level-0 \
   --host 127.0.0.1 --port 8125 --sim-mode mujoco_isaac --headless \
-  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/level-0" \
+  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/dr-level-0" \
   --eval-dir "$PSI_RUNTIME_ROOT/evals/gr00t/$TRAIN_TASK/VGQ-AE/step-20000/level-0" \
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
