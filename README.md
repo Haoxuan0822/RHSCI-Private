@@ -103,7 +103,7 @@ bash scripts/train/gr00t.sh "${groot_train[@]}" --check
 bash scripts/train/gr00t.sh "${groot_train[@]}"
 ```
 
-`--check` validates local assets and one real sample; the second invocation trains. Both runs use seed 292285 and ARDY weight 0.1. GR00T starts from NVIDIA's official `nvidia/GR00T-N1.6-3B` weights and matches the [SIMPLE optimization recipe](baselines/gr00t/README.md#simple-recipe): 50000 updates, global batch 24, learning rate `1e-4`, warmup `0.05` and weight decay `1e-5`.
+`--check` validates local assets and one real sample; the second invocation trains. Both runs use seed 292285 and ARDY weight 0.1. GR00T starts from NVIDIA's official `nvidia/GR00T-N1.6-3B` weights and matches the [SIMPLE optimization recipe](baselines/gr00t/README.md#simple-recipe): 20000 updates, global batch 24, learning rate `1e-4`, warmup `0.05` and weight decay `1e-5`.
 
 | Configuration | Ψ0 | GR00T |
 | --- | --- | --- |
@@ -114,6 +114,24 @@ bash scripts/train/gr00t.sh "${groot_train[@]}"
 | Actions per request | 30 | 16 |
 
 Keep the entire run directory. See [training options](docs/TRAINING.md) for other variants, state noise, no-Reader and future ARDY switches.
+
+### π0.5 training configuration
+
+The reference π0.5 recipe follows the [official Psi0 SIMPLE training guide](https://github.com/physical-superintelligence-lab/Psi0/blob/main/baselines/pi05/README.md). It initializes from the PyTorch-converted `pi05_droid` checkpoint and fine-tunes on the target SIMPLE task.
+
+| Setting | Value |
+| --- | --- |
+| Initialization | `pi05_droid` (PyTorch) |
+| Training updates | 40000 |
+| Global batch size | 128 |
+| Peak learning rate | `1e-4` |
+| Learning-rate schedule | Cosine decay |
+| Warmup updates | 1000 |
+| Decay updates | 40000 |
+| Final learning rate | `1e-8` |
+| Action dimension | 36 |
+
+The official guide includes examples with action horizons of both 30 and 16; set the horizon explicitly for each experiment and keep the training and inference settings consistent. See [π0.5](baselines/pi05/README.md) for RHSCI-specific variants and launch options.
 
 ## Evaluation
 
