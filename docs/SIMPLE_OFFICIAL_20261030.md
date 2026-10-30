@@ -20,6 +20,8 @@
 
 README 的默认 `SIMPLE_HOME` 改为 `$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786`；本机令 `PSI_RUNTIME_ROOT` 指向上述 CFS data 根目录即可对应。新源码独立于旧目录；不删除或覆盖历史实验。
 
+2026-10-30 用户要求清理旧版本：检查确认 RHSCI 当前树没有旧 SIMPLE 源码、嵌套子模块、备份或忽略的运行产物，CFS external 也只有本版 SIMPLE。已删除 `pyproject.toml` 中指向旧 `third_party/SIMPLE` 的废弃 sources/group 注释；依赖解析内容不变。当前树只保留有效接入，来源版本号作为迁移记录保留，Git 历史不改写。
+
 ## 核验与使用
 
 在本机 `/root/workspace/RHSCI-Private`，标准 Python 3 可执行以下只读检查，数据集、模型权重、结果和训练日志均不适用：

@@ -14,8 +14,8 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "337c73b47ed1baef23dd14a78f8cd689e939f0968ffc50ebac90223a0a256f36",
-      "bytes": 3693
+      "export_sha256": "f572907f4646166fb954d0ab075621d2c0dc67cc472b28c695efda6f07605005",
+      "bytes": 3923
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
@@ -154,8 +154,8 @@
       "bytes": 6698
     },
     "docs/SIMPLE_OFFICIAL_20261030.md": {
-      "export_sha256": "14f9ec01c523400682b615f64655daf8f18bd1e30c55f2fca1abec21a9cd6393",
-      "bytes": 7034
+      "export_sha256": "ed86eeebad845308bcea4805dae5c019d9e3d176b673215ee5d73e57f885ff3c",
+      "bytes": 7438
     },
     "docs/SOURCES.md": {
       "export_sha256": "45b5da780156aba9fd6384fd8904bbb165287430626e85cd0ad446570d0f53a6",
@@ -174,8 +174,8 @@
       "bytes": 11357
     },
     "pyproject.toml": {
-      "export_sha256": "6737ee2ba6675807fdd378b9ca1eaa63f566bcb0434db39decfdc32659a2e688",
-      "bytes": 2050
+      "export_sha256": "2c37baf892f81b63835c588a1db7eca5f12e902480d5c0e14169b722bf0c9616",
+      "bytes": 1839
     },
     "ruff.toml": {
       "export_sha256": "13fa0b995ed83a31b505a35cff6a907ea739435bb3b12625e98b9f0260fbc206",
