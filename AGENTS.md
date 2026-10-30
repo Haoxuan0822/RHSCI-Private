@@ -16,3 +16,5 @@
 2026-10-30 文档登记：main，[PSI0-RAW 整理记录](docs/PSI0_RAW_INTEGRATION_20261030.md)与[来源清单](docs/PSI0_RAW_INTEGRATION_20261030.json)；修改/迁移本批训练恢复和缓存前必读。CPU 验证范围见记录，CUDA/闭环及跨仓库 checkpoint 迁移未验。
 
 2026-10-30 文档登记：main，[训练职责整理](docs/TRAINING_STRUCTURE_20261030.md)；修改四骨干训练/恢复/缓存前必读。配方保留各骨干 config.py；入口只编排，公共 HF 门禁不混用 schema；缓存显式传参，环境默认仅在 CLI 解析。CPU 143 项通过，EgoVLA 1 项缺 FlashAttention 阻塞，CUDA/多卡/闭环待验；不自动推送远端。
+
+2026-10-30 文档登记：main，[官方 SIMPLE 替换](docs/SIMPLE_OFFICIAL_20261030.md)与[固定清单](configs/simple/official.json)；更新仿真依赖/引用评测前必读。默认官方 b75c6786（含 PR #29），外部源码及9子模块已落地，433文件SHA和14项CPU通过；环境/资产/GPU闭环待验，不携带历史本地仿真补丁，不自动推送。

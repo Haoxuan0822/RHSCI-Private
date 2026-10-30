@@ -18,3 +18,7 @@ The root [LICENSE](../LICENSE) is retained from PSI0; the [full Apache 2.0 text]
 Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
 
 The subsequent local [training structure refactor](TRAINING_STRUCTURE_20261030.md) uses integration commit `7c39b9ac9b0285f64596b0ea00e96210dd2009ba` as its base. The integration JSON retains historical target hashes for that commit; the export manifest describes current files.
+
+## Official SIMPLE (2026-10-30)
+
+External SIMPLE now uses official commit `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`, including PR #29. Its MIT license and component notices remain in that checkout. The [source lock](../configs/simple/official.json) records file SHA256 and official submodules; see the [migration and validation record](SIMPLE_OFFICIAL_20261030.md). Runtime assets and environments are not bundled or certified by the source check.

@@ -140,3 +140,5 @@ Historical run directories are not part of the source release. Training recovery
 ## 2026-10-30 PSI0-RAW integration
 
 Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
+
+The external SIMPLE default is now official `b75c6786`, under `$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786`. `configs/simple/official.json` records the version and `tools/check_simple.py` verifies that external source. See [migration and validation](SIMPLE_OFFICIAL_20261030.md).

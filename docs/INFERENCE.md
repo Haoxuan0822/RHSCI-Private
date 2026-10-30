@@ -2,6 +2,8 @@
 
 Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.md). Preserve the saved run configuration and consult the historical-checkpoint compatibility notes below.
 
+SIMPLE now defaults to official `b75c6786` (including PR #29). Before simulation, verify the external checkout with `python3 tools/check_simple.py "$SIMPLE_HOME"` and review [version, assets and protocol compatibility](SIMPLE_OFFICIAL_20261030.md). CPU wire-format compatibility does not validate old-checkpoint behavior in the new simulator.
+
 ## PSI0
 
 Copy `.env.sample` to an untracked `.env` and set paths as described in the [PSI0 guide](../baselines/psi0/README.md). Serve a checkpoint with the normal server arguments:
@@ -59,6 +61,8 @@ GR00T uses its native SIMPLE request conversion and sampling with a 16-step acti
 ## Reproducible action sampling
 
 Add `--deterministic-eval --eval-seed 73` to the PSI0 serving script or the π0.5/GR00T HTTP command. Configure the client with the same base evaluation seed. This is separate from `--state-noise-seed`. With this option off, native global-RNG action sampling remains unchanged.
+
+The unmodified official SIMPLE client does not generate the following RHSCI metadata. Keep server deterministic evaluation off when using it directly; enabling this option requires a separately validated client wrapper.
 
 Each request must carry `history.psi_eval_deterministic` with nonnegative integer `episode`, `episode_seed` and `inference_index`. Set `protocol` to `"episode-noise-v2-rtc"` for PSI0 with `--rtc`, or `"episode-noise-v1-no-rtc"` for PSI0 without RTC and for π0.5/GR00T. The episode seed must equal the base seed plus the episode number. Requests start at index zero for each episode and increment after each successful response. PSI0 clears its previous RTC action chunk on a new episode. Missing metadata, a seed mismatch or discontinuous indices are rejected; failed responses do not advance the index.
 

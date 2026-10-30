@@ -23,7 +23,7 @@ export PSI_RUN="$PSI_RUNTIME_ROOT/runs/psi0/$TRAIN_TASK/VGQ-AE/frozen/readme"
 export GROOT_RUN="$PSI_RUNTIME_ROOT/runs/gr00t/$TRAIN_TASK/VGQ-AE/top4/readme"
 export PSI0_PYTHON="$PSI_RUNTIME_ROOT/.venv-psi/bin/python"
 export GROOT_RSCI_PYTHON="$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python"
-export SIMPLE_HOME="$PSI_RUNTIME_ROOT/SIMPLE"
+export SIMPLE_HOME="$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786"
 mkdir -p "$PSI_RUNTIME_ROOT"
 ```
 
@@ -137,27 +137,31 @@ The current RHSCI π0.5 adapter freezes PaliGemma, predicts 30 actions per chunk
 
 ### Install SIMPLE
 
-Use a separate simulator environment and the pinned [SIMPLE installation guide](https://github.com/physical-superintelligence-lab/SIMPLE/blob/803db7e4c1f0fef11008c9480ee75b2f9cc0ca36/docs/source/tutorials/installation.md) for system dependencies and Isaac Sim setup:
+SIMPLE is pinned to official `b75c6786` (2026-10-29, including [PR #29](https://github.com/physical-superintelligence-lab/SIMPLE/pull/29)). The [version record](docs/SIMPLE_OFFICIAL_20261030.md) covers migration, assets and CPU validation. Use a separate simulator environment and the pinned [SIMPLE installation guide](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/docs/source/tutorials/installation.md) for system dependencies and Isaac Sim setup:
 
 ```bash
-git clone https://github.com/physical-superintelligence-lab/SIMPLE.git "$SIMPLE_HOME"
-git -C "$SIMPLE_HOME" checkout 803db7e4c1f0fef11008c9480ee75b2f9cc0ca36
-git -C "$SIMPLE_HOME" submodule update --init --recursive
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/physical-superintelligence-lab/SIMPLE.git "$SIMPLE_HOME"
+GIT_LFS_SKIP_SMUDGE=1 git -C "$SIMPLE_HOME" checkout b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11
+GIT_LFS_SKIP_SMUDGE=1 git -c url.https://github.com/.insteadOf=git@github.com: \
+  -C "$SIMPLE_HOME" submodule update --init --recursive --depth 1
+python3 "$PSI_HOME/tools/check_simple.py" "$SIMPLE_HOME"
 cd "$SIMPLE_HOME"
-UV_HTTP_TIMEOUT=3000 GIT_LFS_SKIP_SMUDGE=1 uv sync --all-groups --index-strategy unsafe-best-match
+UV_HTTP_TIMEOUT=3000 GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --all-groups --index-strategy unsafe-best-match
 source .venv/bin/activate
 bash scripts/install_curobo.sh
 python -c 'import simple; print(simple.__version__)'
 bash scripts/pre-minimal-download.sh
 
 hf download USC-PSI-Lab/psi-data "simple-eval/$SIM_TASK.zip" \
-  --repo-type dataset --local-dir "$PSI_RUNTIME_ROOT/downloads"
+  --revision e78fb93cc28912a3031a10b8656d32d7f0a2b867 --repo-type dataset --local-dir "$PSI_RUNTIME_ROOT/downloads"
 mkdir -p "$PSI_RUNTIME_ROOT/data/simple-eval"
 unzip "$PSI_RUNTIME_ROOT/downloads/simple-eval/$SIM_TASK.zip" \
   -d "$PSI_RUNTIME_ROOT/data/simple-eval"
 deactivate
 cd "$PSI_HOME"
 ```
+
+The clone commands above are for a fresh external directory. Keep existing runs and assets separate; check their revisions before evaluation. The code update does not certify that a local asset copy includes the data corrections mentioned in PR #29.
 
 ### Ψ0
 
@@ -221,7 +225,7 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 ## Documentation
 
-[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Development](docs/ARCHITECTURE.md)
+[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Official SIMPLE version](docs/SIMPLE_OFFICIAL_20261030.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Development](docs/ARCHITECTURE.md)
 
 ## Acknowledgements and license
 

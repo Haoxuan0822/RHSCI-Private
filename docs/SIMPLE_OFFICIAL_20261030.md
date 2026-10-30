@@ -1,0 +1,55 @@
+# SIMPLE 官方版本替换（2026-10-30）
+
+所属：RHSCI-Private/main 普通目录。替换 SIMPLE、安装仿真环境或比较新旧评测结果前必读。用户要求使用官方最新合并版本；本次仅本地提交，不推送远端。
+
+## 版本与来源
+
+- 官方：[physical-superintelligence-lab/SIMPLE](https://github.com/physical-superintelligence-lab/SIMPLE)。2026-10-30 只读核对 GitHub API 与远端 main，固定 `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`。
+- 此提交是 2026-10-29 合并的 [PR #29](https://github.com/physical-superintelligence-lab/SIMPLE/pull/29)：两桌递物任务复制控制器配置后，将双臂初始关节角设为零，避免原抬臂初值在稳定阶段碰桌；官方通用 `g1_sonic.py` 未改。PR 作者报告的 MuJoCo 结果不是本轮实测。
+- 旧 README 固定 `803db7e4c1f0fef11008c9480ee75b2f9cc0ca36`，官方比较 API 显示新版领先 28 个提交。本次采用整份新版原生源码，未将更新缩减成单个姿态补丁。
+- [固定清单](../configs/simple/official.json)保存 433 个顶层仓库文件的 Git blob、SHA256、大小与 9 个官方 gitlink。SIMPLE 保持外部依赖，不复制入 RHSCI 的 `src`。官方 `license.md`（MIT）与全部组件许可证保留在原 checkout。
+- 未携带历史本地 WBC、导航、渲染、水龙头或时钟补丁。RHSCI 星号模型的因果 RGB history 包装仍是显式 opt-in，不能将启用该包装的流程称为全部零修改官方链路。
+
+## 本机实际落地
+
+完整顶层源码和全部 9 个递归子模块位于：
+
+`/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/external/SIMPLE-official-b75c6786`
+
+子模块使用 SIMPLE gitlink 指定的 SHA，未单独追踪各自 main。SSH URL 仅在下载命令中等价转为 HTTPS，没有修改 `.gitmodules`。LFS smudge 关闭；顶层 16 个图片仍为指针，子模块运行资产也未下载。本轮没有安装 SIMPLE 的 Python/Isaac/CuRobo/WBC 环境，没有另行下载训练权重或评测数据。官方第三方 Git 源码自带的 AMO jit 策略、WBC ONNX 和测试回放等文件随仓库保留，不能将源码下载记成纯文本零资产。现有 PSI0-RAW 生产源码、训练环境、数据、checkpoint 和进程不变。
+
+README 的默认 `SIMPLE_HOME` 改为 `$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786`；本机令 `PSI_RUNTIME_ROOT` 指向上述 CFS data 根目录即可对应。新源码独立于旧目录；不删除或覆盖历史实验。
+
+## 核验与使用
+
+在本机 `/root/workspace/RHSCI-Private`，标准 Python 3 可执行以下只读检查，数据集、模型权重、结果和训练日志均不适用：
+
+```bash
+python3 tools/check_simple.py /mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/external/SIMPLE-official-b75c6786
+```
+
+检查 HEAD、433 文件 SHA、9 个直接及所有递归子模块版本，并拒绝源码修改、暂存修改或未跟踪文件；不下载，不启动训练或仿真。输出明确标记为 source only。运行环境中的 `simple` 也必须从此 checkout 的 `src` 导入，不能只按始终为 `0.1.0` 的包版本号判定。
+
+使用独立环境安装的供用户执行命令见 [README](../README.md#install-simple) 和[固定官方安装指南](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/docs/source/tutorials/installation.md)。`uv sync --frozen` 保持官方 lock；本轮未执行这些安装命令，也未在未安装环境中声称真实 CLI help/完整评测可运行。下载前后须记录同范围空间，环境放代码树外的 SIMPLE 独立目录。
+
+本轮 CPU 实际验证：
+
+- 官方源码检查：433 文件及 9 个递归子模块通过；直接从固定 `src` 导入的路径检查通过。
+- `test_simple_official`、`test_rsci_history_client`、`test_http_inference`：共 14 项通过。使用官方原生 `HttpActionClient.query_action`，通过内存 ASGI 服务验证 current RGB、32D state、reset、四帧 condition 与 16×36 动作响应的真实编解码。测试服务使用构造动作，不加载策略权重。
+- 语法/格式及源码导出清单检查见本轮提交；未执行 GPU 推理、物理仿真、成功率评测、训练或完整回放。
+
+复验上述 14 项时，设置 `PYTHONPATH=src:tests`、`PYTHONDONTWRITEBYTECODE=1`、`CUDA_VISIBLE_DEVICES=''`、`HF_HUB_OFFLINE=1`、`TRANSFORMERS_OFFLINE=1`、`SIMPLE_HOME` 为上方源码根，使用本机 `/root/workspace/PSI0-RAW/.venv-psi/bin/python -m unittest test_simple_official test_rsci_history_client test_http_inference -v`。这是既有服务 CPU 测试环境，不是 SIMPLE 仿真环境。未设置 `SIMPLE_HOME` 时新增官方源码集成测试明确跳过。
+
+验收曾遇到原生 GR00T-WholeBodyControl 的四个 `libddsc*.so.0` 符号链接被 `git status` 报 M，但类型、readlink 字节、SHA 与 HEAD 相同，`git diff --exit-code HEAD` 为零；具体 stat/filter 原因未定位。检查器改为分别检查 HEAD 内容、暂存内容及未跟踪文件，并逐个核对递归子模块，不忽略子模块生产源码变动，也未修改官方源码或使用 assume-unchanged 隐藏差异。
+
+## 数据与协议边界
+
+PR #29 另提及 level-2 episode 0/6/7/8/9 的初始手部与物体接触问题，相关物体位置修正在 eval data，**不包含在代码 PR 中**。本次未下载、替换或几何核验本地评测资产。
+
+2026-10-30 官方 HF API 返回 `USC-PSI-Lab/psi-data` main 为 `e78fb93cc28912a3031a10b8656d32d7f0a2b867`（lastModified 2026-09-14），`USC-PSI-Lab/SIMPLE` 为 `0e8f23cce8f2e96717aa60a0e26bed9d56223c2d`（2026-10-28）。README 的 task zip 下载示例固定前者，资源脚本仍为官方版本；这些元数据不证明 PR 所述修正已被纳入，后续须核验实际场景/episode，不能将两个仓库混称同一资产版本。
+
+历史训练数据、归一化、动作最后四维语义、RTC/噪声/时钟协议均不能因 HTTP 字段兼容就视为完整兼容。没有自动重写旧 checkpoint 或动作。本版评测结果使用独立输出目录并记录 SIMPLE SHA、子模块 SHA、资产 revision 和全部开关，不与旧版结果合并统计。官方客户端不自动生成 RHSCI 的 `history.psi_eval_deterministic` 元数据，直接使用时服务端保持 `--no-deterministic-eval`；只固定普通 seed 不等于验证了历史请求噪声协议。
+
+## 空间记录
+
+源码下载前后记录在主树 `Psi0_Image_Storage.md` 的 RHSCI 官方 SIMPLE 两阶段条目：顶层预算 200 MB、初始化全部子模块阶段预算 2 GB；CFS 原目录保留。最终同范围占用 2,184,257,536 bytes；子模块阶段增量 2,150,416,384 bytes，超过 2 GB 的预估增量 150,416,384 bytes。GitHub 仓库 size 元数据低估了固定旧提交及其工作区/Git 对象的合计；保留原件，没有为达到预估而清理。占用含子模块 Git 自带策略/回放及 Git 对象，不是平台镜像层验收。没有制作镜像或清理共享缓存。
