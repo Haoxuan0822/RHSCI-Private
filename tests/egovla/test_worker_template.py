@@ -31,12 +31,15 @@ class WorkerTemplateTests(unittest.TestCase):
         processor.action_tokenizer = None
         processor.tokenizer = None
         restored = pickle.loads(pickle.dumps(processor))
-        with patch.dict(sys.modules, {
-            "llava": llava,
-            "llava.conversation": conversation,
-            "human_plan.preprocessing.preprocessing": preprocessing,
-            "human_plan.preprocessing.prompting_format": prompting,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "llava": llava,
+                "llava.conversation": conversation,
+                "human_plan.preprocessing.preprocessing": preprocessing,
+                "human_plan.preprocessing.prompting_format": prompting,
+            },
+        ):
             for _ in range(2):
                 conversation.default_conversation = {"template": "fresh-worker-default"}
                 restored.prompt("pick the box")

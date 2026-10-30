@@ -18,7 +18,7 @@ Native packages such as `psi`, `openpi`, `gr00t`, `egovla` and `openlambda` reta
 
 PSI0 integrates through `RSCIFinetuneTrainer` and native trainer hooks. λ₀ integrates through `RSCITrainingBackend` and explicit server arguments. ACT and EgoVLA share sampler-epoch recovery through `runtime/hf_resume.py`; its compatibility check stays local to each derived Trainer. ACT's bounded decoder/frame cache stays in its adapter because it depends on its native LeRobot pipeline. Being-H0.5 retains official code under `src/beingh05` and uses only the native common launcher. The external SIMPLE client integration is an opt-in wrapper; see [Inference](INFERENCE.md).
 
-Adapters share file digests and numerical checks but retain their native checkpoint schemas. Checkpoint contracts validate source, configuration and data identities before resuming. Use a new output directory when changing those contracts.
+ACT and EgoVLA share complete HF checkpoint gates through `runtime/hf_full_state.py`, while their adapter modules retain separate schemas and model loading. Other adapters retain their native checkpoint implementations. Checkpoint contracts validate source, configuration and data identities before resuming. Use a new output directory when changing those contracts.
 
 ## Development
 
@@ -50,3 +50,8 @@ PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -p test_http_infe
 ## 2026-10-30 PSI0-RAW integration
 
 Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
+
+
+## Training responsibilities (2026-10-30)
+
+ACT, π0.5, GR00T and EgoVLA use `config`, `preflight`, `contract`, `trainer`, `worker` and guardian modules. `train.py` remains the compatible CLI entry and reexports existing helpers. See the [responsibility map and validation](TRAINING_STRUCTURE_20261030.md). Raw input caches use explicit `InputCacheConfig`; environment defaults are read only by the CLI.

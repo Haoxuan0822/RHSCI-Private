@@ -16,3 +16,5 @@ The root [LICENSE](../LICENSE) is retained from PSI0; the [full Apache 2.0 text]
 ## 2026-10-30 PSI0-RAW integration
 
 Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
+
+The subsequent local [training structure refactor](TRAINING_STRUCTURE_20261030.md) uses integration commit `7c39b9ac9b0285f64596b0ea00e96210dd2009ba` as its base. The integration JSON retains historical target hashes for that commit; the export manifest describes current files.

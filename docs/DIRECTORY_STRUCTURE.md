@@ -100,7 +100,7 @@ src/rsci/
 └── paths.py         # Explicit dataset/output arguments and optional NCCL wrapper
 ```
 
-Within an adapter, `model.py` defines research changes, `data.py` and optional `processing.py` translate native inputs, and `train.py` owns the backbone's recipe. Checkpoint logic remains specific to each native format. `launch.py` is present where a separate guardian is needed. Shared behavior belongs in `runtime`, `data` or `inference`; for example, ACT and EgoVLA share epoch-safe HF recovery and signal-safe worker termination.
+Within an adapter, `model.py` defines research changes, `data.py` and optional `processing.py` translate native inputs, and `train.py` remains its CLI entry. ACT/π0.5/GR00T/EgoVLA keep recipes in `config.py`, checks in `preflight.py`, identities in `contract.py`, Trainer hooks in `trainer.py`, and assembly in `worker.py`; see the [training responsibility map](TRAINING_STRUCTURE_20261030.md). Checkpoint logic remains specific to each native format. `launch.py` is present where a separate guardian is needed. Shared behavior belongs in `runtime`, `data` or `inference`; for example, ACT and EgoVLA share epoch-safe HF recovery and signal-safe worker termination.
 
 Ψ0 also uses hooks in `src/psi` and the upstream `scripts/train.py` driver. λ₀ calls the vendored native trainer through its backend interface. Native source retains upstream style; maintained RHSCI modules use the common Ruff rules. See [Code organization](ARCHITECTURE.md) for development commands.
 
@@ -124,7 +124,7 @@ The [root README](../README.md#getting-started) contains complete installation, 
 | --- | --- | --- |
 | Install | Root `uv.lock`, groups `psi`, `serve`, `viz`; native LeRobot 0.3.3 layout | `baselines/gr00t/requirements.txt`, pinned PyTorch/FlashAttention and native `src/gr00t` package |
 | Train | `scripts/train/psi0.sh` → `src/rsci/backbones/psi0/train.py` → native `scripts/train.py` | `scripts/train/gr00t.sh` → `src/rsci/backbones/gr00t/train.py` |
-| Saved run | `run_config.json`, `argv.txt`, `checkpoints/ckpt_40000/` | `launch_contract.json`, `checkpoint-50000/` with model and processor |
+| Saved run | `run_config.json`, `argv.txt`, `checkpoints/ckpt_40000/` | `launch_contract.json`, `checkpoint-20000/` with model and processor |
 | Serve | `scripts/deploy/serve_psi0_simple.sh` → `src/psi/deploy/psi0_serve_simple.py` | `src/rsci/inference/http_server.py` → `src/rsci/backbones/gr00t/serve.py` |
 | Evaluate | External SIMPLE `simple.cli.eval_decoupled_wbc`, HTTP client `psi0_decoupled_wbc` | Same client and evaluation split; separate server port and results directory |
 

@@ -237,5 +237,6 @@
     "worker_ipc": "blocked by sandbox socket restrictions",
     "siglip_full_import": "blocked by missing FlashAttention",
     "ruff": "not installed; not run"
-  }
+  },
+  "target_hash_scope": "Historical integration snapshot at 7c39b9ac9b0285f64596b0ea00e96210dd2009ba; subsequent structure refactor is documented in TRAINING_STRUCTURE_20261030.md. Current hashes are in PUBLIC_EXPORT_MANIFEST.json."
 }

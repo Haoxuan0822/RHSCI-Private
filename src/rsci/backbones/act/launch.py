@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 
+from rsci.data.cache_config import cache_arguments
 from rsci.runtime.processes import wait_worker
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
@@ -17,7 +18,8 @@ def guardian(args, paths, value=None, digest=None):
     with (output / "guardian.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if value is None:
-            from .train import check_data, contract, digest_contract
+            from .contract import contract, digest_contract
+            from .preflight import check_data
 
             # 先持锁再做耗时真实数据验收，避免重复启动或把预检时间当守护未启动。
             value = contract(args, paths)
@@ -51,6 +53,7 @@ def guardian(args, paths, value=None, digest=None):
                 "rsci.backbones.act.train",
                 *[arg for arg in sys.argv[1:] if arg != "--guardian"],
                 "--worker",
+                *cache_arguments(paths["input_cache"]),
             ]
             process = subprocess.Popen(
                 command,
@@ -66,7 +69,8 @@ def guardian(args, paths, value=None, digest=None):
 
 
 def main():
-    from .train import initialization, parser, resolve
+    from .config import parser, resolve
+    from .preflight import initialization
 
     args = parser().parse_args()
     from rsci.paths import with_nccl
@@ -78,7 +82,8 @@ def main():
         wrapped = with_nccl(command, args.nccl_library, expected_version="2.27.3")
         if wrapped != command:
             os.execvpe(wrapped[0], wrapped, {**os.environ, "RSCI_NCCL_PRELOADED": "1"})
-    output = resolve(args)["output"]
+    paths = resolve(args)
+    output = paths["output"]
     initialization()
     output.mkdir(parents=True, exist_ok=True)
     with (output / "launch.lock").open("a+") as lock:
@@ -93,7 +98,14 @@ def main():
         if not active:
             with log_path.open("ab", buffering=0) as log:
                 process = subprocess.Popen(
-                    [sys.executable, "-m", "rsci.backbones.act.train", *sys.argv[1:], "--guardian"],
+                    [
+                        sys.executable,
+                        "-m",
+                        "rsci.backbones.act.train",
+                        *sys.argv[1:],
+                        "--guardian",
+                        *cache_arguments(paths["input_cache"]),
+                    ],
                     stdin=subprocess.DEVNULL,
                     stdout=log,
                     stderr=subprocess.STDOUT,

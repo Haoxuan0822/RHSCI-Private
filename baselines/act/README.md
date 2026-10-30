@@ -38,3 +38,5 @@ For upstream ACT training, use `bash scripts/train/act.sh --help` and [the nativ
 ## 2026-10-30 PSI0-RAW integration
 
 Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
+
+2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。

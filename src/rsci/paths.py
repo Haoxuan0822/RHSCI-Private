@@ -67,6 +67,11 @@ def worker_arguments(args, argument_parser):
         value = getattr(args, action.dest, None)
         if action.dest in excluded or value is None or not action.option_strings:
             continue
+        # 无参const选项可能与带值选项共用dest；仅转发实际匹配的选项。
+        if action.nargs == 0 and not isinstance(value, bool):
+            if getattr(action, "const", None) == value:
+                result.append(action.option_strings[0])
+            continue
         if isinstance(value, bool):
             if value:
                 result.append(action.option_strings[0])

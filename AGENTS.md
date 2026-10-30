@@ -10,6 +10,9 @@
 - 40k 训练保留 10k/20k/30k/40k 完整点，之间每 1k 滚动保存；新点验证后才能轮换旧滚动点。不长读活动滚动点，不操作 PSI0-RAW 训练、进程、契约或 checkpoint。
 - 启动训练、完整评测、删除、移动或清理数据须有明确授权；整理源码不构成这些操作的授权。必要 CPU 检查可执行，实际覆盖与未验证范围分别报告。
 - 关键新增逻辑写中文注释；文档登记到本文件及 README，常设规则变更同步工作区 AGENTS。新增来源应记录固定版本和逐文件 SHA，保留组件许可证。
-- 经验证后仅 commit/push 本轮代码、配置、测试及文档；先检查 status 和 LFS。GitHub 不放权重、数据、环境或训练输出。权重使用公开 model ds1x/RHSCI/checkpoint，训练/评测数据使用 dataset ds1x/RHSCI 的 train-data/eval-data；发布前后核范围、类型、可见性、revision、大小和 SHA，保留原件。
+- 用户2026-10-30明确要求：RHSCI-Private 不自动提交到远端。只有用户明确要求推送时才执行 git push 或其他远端代码发布；此前的自动 commit/push 规则在本仓库的远端推送部分不再适用。网络恢复、验证完成或存在未推送提交均不构成推送授权。
+- 经验证后仅提交本轮代码、配置、测试及文档；先检查 status 和 LFS。GitHub 不放权重、数据、环境或训练输出。权重使用公开 model ds1x/RHSCI/checkpoint，训练/评测数据使用 dataset ds1x/RHSCI 的 train-data/eval-data；发布前后核范围、类型、可见性、revision、大小和 SHA，保留原件。
 
 2026-10-30 文档登记：main，[PSI0-RAW 整理记录](docs/PSI0_RAW_INTEGRATION_20261030.md)与[来源清单](docs/PSI0_RAW_INTEGRATION_20261030.json)；修改/迁移本批训练恢复和缓存前必读。CPU 验证范围见记录，CUDA/闭环及跨仓库 checkpoint 迁移未验。
+
+2026-10-30 文档登记：main，[训练职责整理](docs/TRAINING_STRUCTURE_20261030.md)；修改四骨干训练/恢复/缓存前必读。配方保留各骨干 config.py；入口只编排，公共 HF 门禁不混用 schema；缓存显式传参，环境默认仅在 CLI 解析。CPU 143 项通过，EgoVLA 1 项缺 FlashAttention 阻塞，CUDA/多卡/闭环待验；不自动推送远端。

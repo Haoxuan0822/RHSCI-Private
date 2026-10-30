@@ -3,6 +3,8 @@
 日期：2026-10-30。目标：RHSCI-Private / main，原 HEAD `0c4656e834d4cde8ccb22ac135508b5f07466f24`。
 来源：本机 PSI0-RAW / main，HEAD `9ceb57802f1dd8c0326c5ffed170c17e1776025d`，**包含未提交代码**；因此 HEAD 不能单独标识本次来源，逐文件 SHA 与目标映射见[来源清单](PSI0_RAW_INTEGRATION_20261030.json)。
 
+此文记录首次整合提交 `7c39b9ac9b0285f64596b0ea00e96210dd2009ba` 的历史状态；随后模块拆分、显式缓存 API 和更新验证见[训练结构整理](TRAINING_STRUCTURE_20261030.md)。下方旧测试环境限制不代替后续验收。
+
 ## 代码去向与取舍
 
 | 来源 | 整理位置 | 处理 |

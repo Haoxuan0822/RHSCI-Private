@@ -170,3 +170,8 @@ Use `baseline.py --mode native` with the selected backbone. PSI0 takes a `psi.co
 ## 2026-10-30 PSI0-RAW integration
 
 Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
+
+
+## Explicit raw input caches
+
+ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables. See [training structure and compatibility](TRAINING_STRUCTURE_20261030.md).

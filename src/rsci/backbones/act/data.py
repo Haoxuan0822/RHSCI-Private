@@ -7,9 +7,15 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, Sampler
 
-from psi.config.augmentation import CenterCrop, ColorJitter, Normalize, ResizeImage
+from psi.config.augmentation import (
+    CenterCrop,
+    ColorJitter,
+    Normalize,
+    ResizeImage,
+)
 from psi.config.transform import ActionStateTransform, ACTModelTransform, SimpleRepackTransform
 from psi.utils import pt_to_pil
+from rsci.data.cache_config import InputCacheConfig
 
 OFFSETS = [-6, -4, -2, 0]
 IMAGE = "observation.images.egocentric"
@@ -96,7 +102,9 @@ class Processor:
 
 
 class ACTDataset(Dataset):
-    def __init__(self, root, sidecar, variant, seed=2026, training=True):
+    def __init__(
+        self, root, sidecar, variant, seed=2026, training=True, *, cache=InputCacheConfig()
+    ):
         from psi.data.lerobot.compat import LeRobotDatasetMetadata
 
         from .video_cache import CachedLeRobotDataset
@@ -115,6 +123,7 @@ class ACTDataset(Dataset):
             delta_timestamps=delta,
             image_transforms=None,
             video_backend=None,
+            input_cache=cache,
         )
         if variant == "EGQ-AE":
             # 复用已核验的通用sidecar读取器，不加载EgoVLA模型或其训练配方。

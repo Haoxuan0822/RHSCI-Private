@@ -134,8 +134,9 @@ def main():
     import torch
 
     from .checkpoints import sha256
+    from .contract import CODE, digest_contract
     from .native import load_native
-    from .train import CODE, assets, digest_contract
+    from .preflight import assets
 
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=Path, required=True)

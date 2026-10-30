@@ -5,7 +5,9 @@ import os
 import subprocess
 import sys
 
-from .train import parser, resolve
+from rsci.data.cache_config import cache_arguments
+
+from .config import parser, resolve
 
 
 def main():
@@ -13,11 +15,18 @@ def main():
     paths = resolve(args)
     # 前台核对参数、路径和基础资产；守护必须通过正式数据验收后才会启动训练。
     checked = subprocess.run(
-        [sys.executable, "-m", "rsci.backbones.egovla.train", *sys.argv[1:], "--dry-run"]
+        [
+            sys.executable,
+            "-m",
+            "rsci.backbones.egovla.train",
+            *sys.argv[1:],
+            "--dry-run",
+            *cache_arguments(paths["input_cache"]),
+        ]
     )
     if checked.returncode:
         raise SystemExit(checked.returncode)
-    from .train import assets
+    from .preflight import assets
 
     assets(paths["checkpoint"])
     output = paths["output"]
@@ -44,6 +53,7 @@ def main():
                         "rsci.backbones.egovla.train",
                         *sys.argv[1:],
                         "--guardian",
+                        *cache_arguments(paths["input_cache"]),
                     ],
                     stdout=log,
                     stderr=subprocess.STDOUT,

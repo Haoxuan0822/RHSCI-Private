@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 
 from .checkpoints import atomic_json, sha256
-from .train import assets
+from .preflight import assets
 
 REPO = "rchal97/egovla_base_vlm"
 REVISION = "59a3400683ae07a77e348ac18153238a760d37b4"

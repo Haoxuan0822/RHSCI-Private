@@ -13,9 +13,9 @@ from act.models.act import ACTConfig
 from psi.deploy.helpers import RequestMessage, ResponseMessage
 
 from .checkpoints import checkpoint_ok, load_model_state, sha256
+from .contract import CODE, digest_contract
 from .data import Processor
 from .model import RSCIACT
-from .train import CODE, digest_contract
 
 
 class Policy:

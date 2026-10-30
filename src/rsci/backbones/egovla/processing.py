@@ -46,6 +46,7 @@ class Processor:
 
     def prompt(self, text, actions=None):
         from llava import conversation as conversation_lib
+
         # spawn会重建模块全局；每个worker从Processor恢复训练时的同一模板。
         conversation_lib.default_conversation = self.conversation
         from human_plan.preprocessing.preprocessing import preprocess_multimodal_vla, preprocess_vla
