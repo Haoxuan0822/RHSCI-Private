@@ -1,7 +1,6 @@
 """仅缓存增强前uint8像素和CPU解码器；不缓存增强、标签或随机状态。"""
-
-import os
 from collections import OrderedDict
+import os
 from pathlib import Path
 
 import torch
@@ -30,7 +29,6 @@ class VideoCache:
 
     def decode(self, path, timestamps, tolerance_s):
         from torchcodec.decoders import VideoDecoder
-
         if self.pid != os.getpid():
             self._reset()
         path = Path(path).resolve(strict=True)
@@ -50,12 +48,8 @@ class VideoCache:
         fresh = {i: self.frames[(identity, i)] for i in indices if (identity, i) in self.frames}
         if missing:
             batch = decoder.get_frames_at(indices=missing)
-            fresh.update(
-                {
-                    i: (frame.clone(), pts.item())
-                    for i, frame, pts in zip(missing, batch.data, batch.pts_seconds, strict=True)
-                }
-            )
+            fresh.update({i: (frame.clone(), pts.item()) for i, frame, pts in
+                          zip(missing, batch.data, batch.pts_seconds, strict=True)})
         selected = []
         for i in indices:
             key = (identity, i)
@@ -76,22 +70,34 @@ class VideoCache:
         distances = torch.cdist(torch.tensor(timestamps)[:, None], loaded_ts[:, None], p=1)
         minimum, nearest = distances.min(1)
         if not (minimum < tolerance_s).all():
-            raise AssertionError(
-                f"Video timestamp tolerance exceeded: {path}, {minimum}, {tolerance_s}"
-            )
+            raise AssertionError(f"Video timestamp tolerance exceeded: {path}, {minimum}, {tolerance_s}")
         # stack产生独立张量，后续处理不能写坏缓存内容。
         return torch.stack([selected[i][0] for i in nearest]).float() / 255
 
 
 class CachedLeRobotDataset(LeRobotDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cache_root = os.environ.get("RSCI_ACT_SPACE_CACHE")
+        self._rsci_raw_input_cache = None
+        if cache_root:
+            from rsci.data.raw_input_cache import RawInputCache
+            features = self.hf_dataset.features.copy()
+            for key in list(features):
+                if key.startswith("observation.depth."):
+                    del features[key]
+            self._rsci_raw_input_cache = RawInputCache(cache_root, self.root, features)
+            self.hf_dataset = self._rsci_raw_input_cache.table
+
     def _query_videos(self, query_timestamps, ep_idx):
         if self.video_backend != "torchcodec":
             return super()._query_videos(query_timestamps, ep_idx)
+        if self._rsci_raw_input_cache is not None:
+            return {key: self._rsci_raw_input_cache.decode(
+                self.root / self.meta.get_video_file_path(ep_idx, key), times,
+                self.tolerance_s).squeeze(0) for key, times in query_timestamps.items()}
         if not hasattr(self, "_rsci_video_cache"):
             self._rsci_video_cache = VideoCache()
-        return {
-            key: self._rsci_video_cache.decode(
-                self.root / self.meta.get_video_file_path(ep_idx, key), times, self.tolerance_s
-            ).squeeze(0)
-            for key, times in query_timestamps.items()
-        }
+        return {key: self._rsci_video_cache.decode(
+            self.root / self.meta.get_video_file_path(ep_idx, key), times, self.tolerance_s).squeeze(0)
+            for key, times in query_timestamps.items()}

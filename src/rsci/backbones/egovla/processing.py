@@ -17,9 +17,10 @@ class Processor:
         if tokenizer.pad_token_id is None:
             raise ValueError("Initialize official pad token before constructing Processor")
         # SIMPLE 训练/服务都保留此 fallback；发布的 conversation.py 没有 qwen2 注册项。
-        conversation_lib.default_conversation = conversation_lib.conv_templates.get(
+        self.conversation = conversation_lib.conv_templates.get(
             "qwen2", conversation_lib.conv_templates["vicuna_v1"]
-        )
+        ).copy()
+        conversation_lib.default_conversation = self.conversation
         model_args = VLAModelArguments()
         model_args.predict_future_step = 30
         model_args.sep_query_token = False
@@ -44,6 +45,9 @@ class Processor:
             setattr(config, key, getattr(self.action_tokenizer, key))
 
     def prompt(self, text, actions=None):
+        from llava import conversation as conversation_lib
+        # spawn会重建模块全局；每个worker从Processor恢复训练时的同一模板。
+        conversation_lib.default_conversation = self.conversation
         from human_plan.preprocessing.preprocessing import preprocess_multimodal_vla, preprocess_vla
         from human_plan.preprocessing.prompting_format import preprocess_language_instruction
 

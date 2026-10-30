@@ -167,6 +167,7 @@ def preflight(args, paths):
 
 def contract(args, paths):
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
+    from rsci.data.input_cache import cache_identity
 
     from .augmentation import AUGMENTATION_VERSION
 
@@ -212,6 +213,7 @@ def contract(args, paths):
         state_noise_location=STATE_NOISE_LOCATION,
         training_augmentation=AUGMENTATION_VERSION,
         dataset=dataset_content_fingerprint(paths["dataset"]),
+        input_cache=cache_identity(paths["dataset"]),
         initialization=str(paths["checkpoint"].resolve()),
         initialization_stat={
             key: getattr((paths["checkpoint"] / "model.safetensors").stat(), key)

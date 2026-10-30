@@ -27,3 +27,8 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
 
 Use matching Eagle initialization assets and the task's RGB/ARDY dataset. `--dry-run` resolves the configuration; `--check-data` checks data without loading the complete backbone. GPU memory and distributed behavior require their own validation.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

@@ -11,3 +11,8 @@ The λ₀ source in `src/openlambda` is based on upstream commit `858b3837d42946
 GR00T N1.6, EgoVLA/VILA and DreamZero were also imported through the same PSI0 revision. Their `SOURCE_MANIFEST.json` files identify the immediate source, license reference revisions and RHSCI modifications. The original checkout revisions before PSI0's modifications were not recorded by PSI0 and are not invented here. Historical component license texts have been restored separately from that source provenance: [GR00T N1.6](../src/gr00t/LICENSE), [VILA](../src/egovla/VILA/LICENSE) and [DreamZero](../src/dreamzero/LICENSE). GR00T N1.6's non-commercial research restriction also applies to derivatives; a later upstream Apache license is not substituted.
 
 The root [LICENSE](../LICENSE) is retained from PSI0; the [full Apache 2.0 text](../licenses/Apache-2.0.txt) and [third-party notices](../THIRD_PARTY_NOTICES.md) describe component scope. Component license and notice files apply to their respective source trees. Upstream documentation describes the native implementations; use [Training](TRAINING.md) and the per-backbone guides for the RHSCI entries.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

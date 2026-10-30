@@ -226,3 +226,8 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 ## Acknowledgements and license
 
 Built on [Ψ0](https://github.com/physical-superintelligence-lab/Psi0) and the native backbone implementations. See [Sources](docs/SOURCES.md) and [Third-party notices](THIRD_PARTY_NOTICES.md). The root [Apache 2.0 notice](LICENSE) does not cover all components; bundled [GR00T N1.6](src/gr00t/LICENSE) and derivatives have non-commercial research restrictions.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

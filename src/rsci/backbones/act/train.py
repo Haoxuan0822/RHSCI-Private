@@ -165,8 +165,12 @@ def contract(args, paths):
             "scripts/train/act_rsci.sh",
         )
     ]
+    from rsci.data.raw_input_cache import cache_identity
+
+    files += sorted((CODE / "src/rsci/data").glob("*.py"))
     return dict(
         schema="act-rsci-v1",
+        input_cache=cache_identity(paths["dataset"], dataset_content_fingerprint(paths["dataset"]), full=int(os.environ.get("WORLD_SIZE", "1")) == 1),
         variant=args.model,
         task=paths["task"],
         dataset=str(paths["dataset"]),

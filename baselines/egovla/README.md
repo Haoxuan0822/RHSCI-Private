@@ -50,7 +50,7 @@ bash scripts/train/egovla.sh \
   --num-workers 8 --seed 292285 --dry-run
 ```
 
-This selects 115 epochs and enforces global batch 512. The budget is derived from complete 30-step action windows in the dataset metadata and checked against the actual distributed loader. The local container-pick dataset has 45046 valid windows: 352 microbatches and 88 updates per epoch, hence 10120 updates. Another dataset may produce a different update count. Remove `--dry-run` to train; use an independent output directory for STATE and initialize it from the same base checkpoint, not the VGQ-AE output.
+This selects 115 epochs and enforces global batch 512. The budget is epochs × ceil(distributed loader microbatches / accumulation), derived from complete 30-step action windows and checked against the actual loader. A partial accumulation at each epoch end still updates. The local container-pick dataset has 45046 valid windows: 352 microbatches and 88 updates per epoch, hence 10120 updates. Another dataset may produce a different update count. Remove `--dry-run` to train; use an independent output directory for STATE and initialize it from the same base checkpoint, not the VGQ-AE output.
 
 ## Optional NCCL runtime
 
@@ -59,3 +59,8 @@ The 115-epoch preset also defaults `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:
 Setting `RSCI_NCCL_LIBRARY=/absolute/path/to/libnccl.so` preloads that library before torchrun and its workers start. The launcher checks the mapped library and its actual runtime version. EgoVLA expects `2.27.3` by default for this override; set `RSCI_NCCL_VERSION` explicitly for another verified version. With no override, it uses the environment's NCCL. This option does not change batch size, gradient reduction or model settings.
 
 Serving uses `python -m rsci.backbones.egovla.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

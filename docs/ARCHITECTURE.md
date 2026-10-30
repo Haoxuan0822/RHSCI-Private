@@ -45,3 +45,8 @@ The HTTP checkpoint and protocol tests run in the π0.5 environment with FastAPI
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -p test_http_inference.py
 ```
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

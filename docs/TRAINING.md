@@ -165,3 +165,8 @@ This invokes the native Hydra entry. Supply the dataset mixture, action/state di
 ## Native PSI0, π0.5, GR00T, EgoVLA and λ₀
 
 Use `baseline.py --mode native` with the selected backbone. PSI0 takes a `psi.config.train` module through `--config`; π0.5 takes an `openpi.training.config` name. GR00T forwards finetuning options to `gr00t.experiment.launch_finetune`. λ₀ takes an experiment JSON through `--config`. EgoVLA forwards HF-style options to its native trainer; this source snapshot does not include the complete native `llava/data` pipeline, so the native path needs that upstream dependency before it can run. The RHSCI EgoVLA reader is provided separately.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

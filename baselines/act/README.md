@@ -33,3 +33,8 @@ The local multi-GPU experiment explicitly used NCCL 2.27.3; to reproduce that ru
 Serve a complete RHSCI checkpoint with `python -m rsci.backbones.act.serve --checkpoint /runs/act/my_task/checkpoint-40000`. See [Inference](../../docs/INFERENCE.md). STATE requires measured 32D state; there is no fallback to previously predicted state.
 
 For upstream ACT training, use `bash scripts/train/act.sh --help` and [the native training example](../../docs/TRAINING.md#act-and-diffusion-policy), with `configs/train/act.json`. Native training has not been validated in this standalone release.
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

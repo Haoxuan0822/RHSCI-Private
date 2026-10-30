@@ -135,3 +135,8 @@ The SIMPLE checkout and its simulation environment live outside this repository.
 Keep datasets, ARDY labels, model assets, output runs, caches and environments outside the checkout. `PSI_RUNTIME_ROOT` controls default external paths; explicit dataset, model and output arguments are documented in [Training](TRAINING.md). Root `uv.lock` covers the Ψ0 stack; other backbones use isolated compatible environments.
 
 Historical run directories are not part of the source release. Training recovery checks source/configuration identities and does not silently migrate cross-version runs. Existing Ψ0 and π0.5 inference compatibility is described separately in the inference guide. Component revisions and licenses are listed in [Sources](SOURCES.md).
+
+
+## 2026-10-30 PSI0-RAW integration
+
+Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.

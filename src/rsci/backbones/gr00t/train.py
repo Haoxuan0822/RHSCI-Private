@@ -154,7 +154,7 @@ def preflight(args, paths):
         if not (checkpoint / shard).is_file():
             raise FileNotFoundError(checkpoint / shard)
     processor = build_processor(args, paths)
-    dataset = SimpleRSCIDataset(paths["dataset"], args.model, processor, paths["sidecar"])
+    dataset = SimpleRSCIDataset(paths["dataset"], args.model, processor, paths["sidecar"], seed=args.seed)
 
     # 起始无效历史及完整历史各一个真实样本，包含官方Eagle分词/图像处理。
     batch = processor.collator([dataset[0], dataset[6]])["inputs"]
@@ -180,6 +180,7 @@ def preflight(args, paths):
 
 def contract(args, paths):
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
+    from rsci.data.input_cache import cache_identity
 
     from .checkpoints import sha256
 
@@ -205,6 +206,7 @@ def contract(args, paths):
     identity = dict(
         schema=2,
         recipe="SIMPLE-GR00T-zero1-recompute-v1",
+        sampler="epoch-index-augmentation-preserve-skip-v1",
         model=args.model,
         vlm=args.vlm,
         task=args.task,
@@ -223,6 +225,7 @@ def contract(args, paths):
         history_offsets=[-6, -4, -2, 0],
         reader_layout="8image+8text-per-frame",
         dataset_fingerprint=dataset_content_fingerprint(paths["dataset"]),
+        input_cache=cache_identity(paths["dataset"], env_var="RSCI_GR00T_INPUT_CACHE"),
         initialization=str(paths["checkpoint"].resolve()),
         initialization_config=sha256(paths["checkpoint"] / "config.json"),
         initialization_index=sha256(paths["checkpoint"] / "model.safetensors.index.json"),
@@ -269,6 +272,28 @@ def check_training_environment():
             + ", ".join(failures)
             + "; see baselines/gr00t/README.md"
         )
+
+
+def resume_trainer_type():
+    from transformers import Trainer
+    from rsci.runtime.hf_resume import epoch_safe_training_loop
+
+    class ResumeTrainer(Trainer):
+        _inner_training_loop = epoch_safe_training_loop(Trainer)
+
+        def _get_train_sampler(self, train_dataset=None):
+            from .data import EpochSampler
+            return EpochSampler(self.train_dataset if train_dataset is None else train_dataset, self.args.seed)
+
+        def get_train_dataloader(self):
+            import torch
+            loader = super().get_train_dataloader()
+            # worker重建/跳batch不能消耗动作噪声与dropout使用的主线程RNG。
+            base = getattr(loader, 'base_dataloader', loader)
+            base.generator = torch.Generator().manual_seed(self.args.seed)
+            return loader
+
+    return ResumeTrainer
 
 
 def train(args, paths, processor, dataset, digest, *, validation_steps=0):
@@ -345,7 +370,7 @@ def train(args, paths, processor, dataset, digest, *, validation_steps=0):
     ):
         raise ValueError("Resume checkpoint is incomplete, corrupt, or belongs to a different run")
 
-    class RSCITrainer(ShardedOptimizerTrainerMixin, Trainer):
+    class RSCITrainer(ShardedOptimizerTrainerMixin, resume_trainer_type()):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             clip = self.accelerator.clip_grad_norm_
@@ -639,7 +664,7 @@ def main():
 
         from .data import SimpleRSCIDataset
 
-        dataset = SimpleRSCIDataset(paths["dataset"], args.model, sidecar=paths["sidecar"])
+        dataset = SimpleRSCIDataset(paths["dataset"], args.model, sidecar=paths["sidecar"], seed=args.seed)
 
         # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
         indices = [6, 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1, 6]

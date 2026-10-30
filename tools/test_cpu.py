@@ -31,11 +31,12 @@ PATTERNS = {
     ),
     "gr00t": (
         "test_gr00t_rsci.py",
+        "test_gr00t_resume.py",
         "test_gr00t_rsci_features_only.py",
         "test_gr00t_memory.py",
         "test_gr00t_official_optimization.py",
     ),
-    "egovla": ("test_egovla.py",),
+    "egovla": ("test_egovla.py", "test_epoch_tail.py", "test_worker_template.py"),
     "lambda0": ("test*.py",),
     "act": ("test*.py",),
 }

@@ -104,6 +104,8 @@ class Pi05RSCI(nn.Module):
             execution=execution,
             state_measurement_noise_std_rad=self.state_measurement_noise_std_rad,
         )
+        if variant != "VGQ-AE":
+            self.rsci_config.update(history=[0], ardy_weight=0.0, reader=None)
         if variant == "VGQ-AE":
             self.reader = Reader(vlm_width, ae_width)
             self.query = nn.Parameter(torch.randn(1, 1, ae_width) / ae_width**0.5)

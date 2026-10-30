@@ -73,6 +73,9 @@ class SimpleRSCIDataset(Dataset):
                     raise ValueError("ARDY frame count mismatch")
         self._tables, self._decoders = OrderedDict(), OrderedDict()
         self._cache_pid = os.getpid()
+        from rsci.data.input_cache import InputCache, cache_identity
+        self.cache_identity = cache_identity(self.root)
+        self.input_cache = InputCache(os.environ["RSCI_INPUT_CACHE"], self.root) if self.cache_identity else None
 
     def __len__(self):
         return int(self.ends[-1])
@@ -86,8 +89,9 @@ class SimpleRSCIDataset(Dataset):
         )
 
     def _table(self, episode):
+        if self.input_cache is not None:
+            return self.input_cache.episode_table(episode, self.episodes, self.variant == 'STATE')
         import pyarrow.parquet as pq
-
         index = episode["episode_index"]
         if index not in self._tables:
             # 显式列裁剪，不读取原包中未使用的整幅depth。
@@ -98,9 +102,7 @@ class SimpleRSCIDataset(Dataset):
             for key in ("action", "states"):
                 if key in table:
                     table[key] = np.stack(table[key]).astype(np.float32)
-            if len(table["action"]) != episode["length"] or not np.array_equal(
-                table["frame_index"], np.arange(episode["length"])
-            ):
+            if len(table["action"]) != episode["length"] or not np.array_equal(table["frame_index"], np.arange(episode["length"])):
                 raise ValueError("Parquet frame identity mismatch")
             if set(table["episode_index"]) != {index} or table["action"].shape[1] != 36:
                 raise ValueError("Parquet episode/action mismatch")
@@ -126,54 +128,31 @@ class SimpleRSCIDataset(Dataset):
         offsets = OFFSETS if self.variant == "VGQ-AE" else np.array([0])
         requested = frame + offsets
         clipped = np.maximum(requested, 0)
-        from torchcodec.decoders import VideoDecoder
-
         video_path = self.path(episode, "video")
         try:
-            if episode_id not in self._decoders:
-                decoder = VideoDecoder(str(video_path), device="cpu", num_ffmpeg_threads=1)
-                if len(decoder) != episode["length"]:
-                    raise ValueError("RGB video/parquet frame counts do not match")
-                self._decoders[episode_id] = decoder
-                if len(self._decoders) > 2:
-                    self._decoders.popitem(last=False)
-            self._decoders.move_to_end(episode_id)
-            images = (
-                self._decoders[episode_id]
-                .get_frames_at(indices=clipped.tolist())
-                .data.permute(0, 2, 3, 1)
-                .numpy()
-            )
+            if self.input_cache is not None:
+                images = self.input_cache.frames(episode_id, clipped.tolist())
+            else:
+                images = self._video_images(episode_id, episode, clipped)
         except (RuntimeError, ValueError) as exc:
-            # 不跳样本/换帧/静默重试；保留原始异常并给出可直接复现的样本身份。
             worker = torch.utils.data.get_worker_info()
-            raise RuntimeError(
-                f"RGB decode failed: video={video_path} episode={episode_id} "
+            raise RuntimeError(f"RGB decode failed: video={video_path} episode={episode_id} "
                 f"frame={frame} indices={clipped.tolist()} sample={index} pid={os.getpid()} "
-                f"worker={worker.id if worker else 'main'}: {exc}"
-            ) from exc
+                f"worker={worker.id if worker else 'main'}: {exc}") from exc
         if self.variant == "STATE":
-            state = table["states"][frame : frame + 1]
+            state = table["states"][frame:frame+1]
             if state.shape != (1, 32) or not np.isfinite(state).all():
                 raise ValueError("Expected finite 32D SIMPLE state")
-        actions = table["action"][frame : frame + HORIZON]
+        actions = table["action"][frame:frame+HORIZON]
         if not np.isfinite(actions).all():
             raise ValueError("Nonfinite action")
         metadata = {"episode_index": episode_id, "frame_index": frame}
         if self.reader is not None:
             target = self.reader.get(episode_id, frame)
-            metadata.update(
-                rsci_history_valid=(requested >= 0),
-                rsci_ardy_target=target.ardy_body_latent,
-                rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
-            )
-        return dict(
-            images=images,
-            state=state[0] if self.variant == "STATE" else None,
-            actions=actions,
-            text=self.tasks[int(table["task_index"][frame])],
-            **metadata,
-        )
+            metadata.update(rsci_history_valid=(requested >= 0), rsci_ardy_target=target.ardy_body_latent,
+                            rsci_ardy_valid=np.bool_(target.ardy_loss_mask))
+        return dict(images=images, state=state[0] if self.variant == "STATE" else None,
+                    actions=actions, text=self.tasks[int(table["task_index"][frame])], **metadata)
 
     def __getitem__(self, index):
         sample = self.raw_sample(index)
@@ -187,3 +166,15 @@ class SimpleRSCIDataset(Dataset):
             "_decoders": OrderedDict(),
             "_cache_pid": None,
         }
+
+    def _video_images(self, episode_id, episode, clipped):
+        from torchcodec.decoders import VideoDecoder
+        if episode_id not in self._decoders:
+            decoder = VideoDecoder(str(self.path(episode, 'video')), device="cpu", num_ffmpeg_threads=1)
+            if len(decoder) != episode["length"]:
+                raise ValueError("RGB video/parquet frame counts do not match")
+            self._decoders[episode_id] = decoder
+            if len(self._decoders) > 2:
+                self._decoders.popitem(last=False)
+        self._decoders.move_to_end(episode_id)
+        return self._decoders[episode_id].get_frames_at(indices=clipped.tolist()).data.permute(0, 2, 3, 1).numpy()

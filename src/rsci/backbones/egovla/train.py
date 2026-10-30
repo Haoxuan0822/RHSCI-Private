@@ -32,6 +32,8 @@ def parser():
     p.add_argument("--gradient-accumulation-steps", type=int, default=4)
     p.add_argument("--num-workers", type=int, default=8)
     p.add_argument("--preset", choices=("simple-115epoch",))
+    p.add_argument("--gradient-checkpointing", action=argparse.BooleanOptionalAction, default=True,
+                   help="视觉/语言非重入重算；默认启用，关闭时使用独立输出目录")
     length = p.add_mutually_exclusive_group()
     length.add_argument("--max-steps", type=int)
     length.add_argument("--num-train-epochs", type=int)
@@ -102,13 +104,8 @@ def resolve(args):
         ]
         samples = sum(max(0, e["length"] - 29) for e in episodes)
         batches = math.ceil(samples / (args.batch_size * len(args.gpus.split(","))))
-        # TF4.53.2的epoch预算以floor(batch/accum)计，末尾不足仍执行更新。
-        # 要求整除，避免名义100epoch却提前停止；不要静默近似。
-        if batches % args.gradient_accumulation_steps:
-            raise ValueError(
-                "Epoch recipe has a partial accumulation; use explicit steps or an exactly dividing accumulation"
-            )
-        args.max_steps = args.num_train_epochs * (batches // args.gradient_accumulation_steps)
+        # HF4.53.2保留每个epoch末尾不足累计组的更新；不得丢弃尾部样本。
+        args.max_steps = args.num_train_epochs * math.ceil(batches / args.gradient_accumulation_steps)
     return paths
 
 
@@ -208,6 +205,7 @@ def check_data(paths, variant="VGQ-AE"):
 
 def contract(args, paths, manifest):
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
+    from rsci.data.input_cache import cache_identity
 
     sources = sorted((CODE / "src/rsci/backbones/egovla").glob("*.py"))
     sources += sorted((CODE / "src/egovla").rglob("*.py"))
@@ -227,6 +225,7 @@ def contract(args, paths, manifest):
         vlm=args.vlm_training,
         dataset=str(paths["dataset"]),
         dataset_fingerprint=dataset_content_fingerprint(paths["dataset"]),
+        input_cache=cache_identity(paths["dataset"]),
         sidecar_manifest=sha256(paths["sidecar"] / "manifest.json")
         if args.model == "VGQ-AE"
         else None,
@@ -241,7 +240,7 @@ def contract(args, paths, manifest):
         epochs=args.num_train_epochs,
         attention=dict(language="sdpa", vision="sdpa"),
         gradient_checkpointing=dict(
-            enabled=args.vlm_training == "full", use_reentrant=False, scope="language-and-vision"
+            enabled=args.gradient_checkpointing and args.vlm_training == "full", use_reentrant=False, scope="language-and-vision"
         ),
         execution=dict(
             optimizer="adamw_torch_fused",
@@ -297,12 +296,12 @@ def trainer_type():
     import torch
     from transformers import Trainer
 
-    from rsci.runtime.hf_resume import epoch_safe_training_loop
+    from .resume_tail import tail_safe_training_loop
 
     from .checkpoints import load_trainables
 
     class RSCITrainer(Trainer):
-        _inner_training_loop = epoch_safe_training_loop(Trainer)
+        _inner_training_loop = tail_safe_training_loop(Trainer)
 
         def __init__(self, *args, launch_contract=None, **kwargs):
             super().__init__(*args, **kwargs)
@@ -384,7 +383,7 @@ def training_arguments(args, paths, cpu=False):
         bf16=not cpu,
         tf32=not cpu,
         use_cpu=cpu,
-        gradient_checkpointing=args.vlm_training == "full",
+        gradient_checkpointing=args.gradient_checkpointing and args.vlm_training == "full",
         gradient_checkpointing_kwargs={"use_reentrant": False},
         dataloader_num_workers=args.num_workers,
         dataloader_pin_memory=not cpu,
@@ -431,6 +430,33 @@ def completion_callback(output, world, digest):
     return Complete()
 
 
+def configure_vlm_execution(model, args):
+    """核验实际组件，而非仅检查Trainer字段；重算与是否训练参数相互独立。"""
+    modules = dict(vision=model.backbone.get_vision_tower(),
+                   projector=model.backbone.get_mm_projector(), language=model.backbone.get_llm())
+    enabled = args.gradient_checkpointing and args.vlm_training == "full"
+    if enabled:
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    else:
+        for module in (modules['language'].model, getattr(modules['vision'], 'vision_tower', modules['vision'])):
+            if hasattr(module, 'gradient_checkpointing_disable'):
+                module.gradient_checkpointing_disable()
+    actual = dict(language=bool(modules['language'].model.is_gradient_checkpointing),
+                  vision=bool(getattr(getattr(modules['vision'], 'vision_tower', modules['vision']),
+                                      'is_gradient_checkpointing', False)))
+    if any(value != enabled for value in actual.values()):
+        raise RuntimeError(f'Actual VLM recomputation differs: {actual}, expected={enabled}')
+    counts = {}
+    for name, module in modules.items():
+        parameters = list(module.parameters())
+        if any(p.requires_grad != (args.vlm_training == 'full') for p in parameters):
+            raise RuntimeError(f'Official VLM trainability differs: {name}')
+        counts[name] = dict(total=sum(p.numel() for p in parameters),
+                            trainable=sum(p.numel() for p in parameters if p.requires_grad))
+    print('EGOVLA_VLM_EXECUTION ' + json.dumps(dict(recomputation=actual, parameters=counts)), flush=True)
+    return actual, counts
+
+
 def train(args, paths, value, digest):
     import torch
 
@@ -460,6 +486,7 @@ def train(args, paths, value, digest):
     model, processor = load_native(
         paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model
     )
+    configure_vlm_execution(model, args)
     dataset = SimpleDataset(paths["dataset"], paths["sidecar"], processor, variant=args.model)
     trainer = trainer_type()(
         model=model,
@@ -471,10 +498,8 @@ def train(args, paths, value, digest):
     )
     if args.num_train_epochs:
         actual_batches = len(trainer.get_train_dataloader())
-        if (
-            actual_batches * args.num_train_epochs
-            != args.max_steps * args.gradient_accumulation_steps
-        ):
+        import math
+        if math.ceil(actual_batches / args.gradient_accumulation_steps) * args.num_train_epochs != args.max_steps:
             raise ValueError("Actual distributed loader differs from the epoch step budget")
     resume = latest(paths["output"], world, digest)
     print(
@@ -591,20 +616,26 @@ def main():
         model, processor = load_native(
             paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model
         )
-        if args.vlm_training == "full":
-            model.gradient_checkpointing_enable(
-                gradient_checkpointing_kwargs={"use_reentrant": False}
-            )
-            if not (
-                model.backbone.get_llm().model.is_gradient_checkpointing
-                and model.backbone.get_vision_tower().vision_tower.is_gradient_checkpointing
-            ):
-                raise RuntimeError("Native language/vision checkpointing did not activate")
+        configure_vlm_execution(model, args)
         dataset = check_data(paths, args.model)
         dataset.processor = processor
         batch = Collator(processor.tokenizer.pad_token_id)([dataset[0], dataset[6]])
         if batch["actions"].shape != (2, 30, 36):
             raise ValueError("Invalid model batch")
+        # 主进程预处理通过不代表worker能用；真实spawn读取同样两帧，
+        # 核对模板、动作标签、RGB/ARDY全字段，且不运行任何训练更新。
+        import torch
+        from torch.utils.data import DataLoader, Subset
+        worker_loader = DataLoader(Subset(dataset, [0, 6]), batch_size=2, num_workers=1,
+            multiprocessing_context="spawn", timeout=120,
+            collate_fn=Collator(processor.tokenizer.pad_token_id))
+        worker_batch, = list(worker_loader)
+        if worker_batch.keys() != batch.keys():
+            raise ValueError("Worker preprocessing keys differ from parent")
+        for key in batch:
+            torch.testing.assert_close(worker_batch[key], batch[key], rtol=0, atol=0,
+                                       msg=f"Worker preprocessing mismatch: {key}")
+        print("EGOVLA_SPAWN_PROCESSOR_CHECK_OK; no training started", flush=True)
         print(
             "EGOVLA_PARAMETERS "
             + json.dumps(
