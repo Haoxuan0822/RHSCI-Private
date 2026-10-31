@@ -6,19 +6,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from rsci.data.cache_config import InputCacheConfig, cache_arguments
-from rsci.paths import BACKBONE_MODULES, CODE_ROOT, worker_arguments
+from rhsci.data.cache_config import InputCacheConfig, cache_arguments
+from rhsci.paths import BACKBONE_MODULES, CODE_ROOT, worker_arguments
 
 
 class TrainingStructureTests(unittest.TestCase):
     def test_model_modules_resolve_inside_native_packages(self):
         expected = {
-            "psi0": "src/psi/rsci",
-            "pi05": "src/openpi/rsci",
-            "gr00t": "src/gr00t/rsci",
-            "egovla": "src/human_plan/rsci",
-            "act": "src/act/rsci",
-            "lambda0": "src/lambda0/rsci",
+            "psi0": "src/psi/rhsci",
+            "pi05": "src/openpi/rhsci",
+            "gr00t": "src/gr00t/rhsci",
+            "egovla": "src/human_plan/rhsci",
+            "act": "src/act/rhsci",
+            "lambda0": "src/lambda0/rhsci",
         }
         # 验证实际导入位置，防止独立环境中的旧 editable 包遮蔽本仓库。
         for backbone, relative in expected.items():
@@ -30,7 +30,7 @@ class TrainingStructureTests(unittest.TestCase):
                     self.assertEqual(contract.CODE_ROOT, CODE_ROOT)
                 else:
                     self.assertEqual(module.CODE, CODE_ROOT)
-        self.assertFalse((CODE_ROOT / "src/rsci/backbones").exists())
+        self.assertFalse((CODE_ROOT / "src/rhsci/backbones").exists())
 
     def test_native_package_entry_points_reexport_same_functions(self):
         for backbone in ("act", "pi05", "egovla", "gr00t"):
@@ -46,10 +46,10 @@ class TrainingStructureTests(unittest.TestCase):
 
     def test_cli_freezes_legacy_cache_default_and_worker_role(self):
         for backbone, env in (
-            ("act", "RSCI_ACT_SPACE_CACHE"),
-            ("pi05", "RSCI_INPUT_CACHE"),
-            ("egovla", "RSCI_INPUT_CACHE"),
-            ("gr00t", "RSCI_GR00T_INPUT_CACHE"),
+            ("act", "RHSCI_ACT_SPACE_CACHE"),
+            ("pi05", "RHSCI_INPUT_CACHE"),
+            ("egovla", "RHSCI_INPUT_CACHE"),
+            ("gr00t", "RHSCI_GR00T_INPUT_CACHE"),
         ):
             with self.subTest(backbone=backbone), patch.dict(os.environ, {env: "/cache/first"}):
                 config = importlib.import_module(f"{BACKBONE_MODULES[backbone]}.config")

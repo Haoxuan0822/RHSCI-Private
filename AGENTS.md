@@ -2,7 +2,7 @@
 
 - 修改前查看 Git 状态并保留已有改动；默认在当前检出目录工作。
 - 按任务查阅 [README](README.md)、[架构](docs/ARCHITECTURE.md)及对应 `baselines/<model>/README.md`，无需每次重复读取全部历史记录。
-- 六个模型包统一放在 `src/<原生包名>/`，扩展放在包内 `rsci/`；`src/rsci` 放跨模型公共工具。沿用对应骨干的处理器、算法和配方；ACT 使用 EGQ-AE，无 Reader。
+- 项目名称统一为 RHSCI，当前 Python 包/模块名为 `rhsci`，类名采用 `RHSCI`。旧权重键、配置字段和产物文件名保留兼容。六个模型包统一放在 `src/<原生包名>/`，扩展放在包内 `rhsci/`；`src/rhsci` 放跨模型公共工具。沿用对应骨干的处理器、算法和配方；ACT 使用 EGQ-AE，无 Reader。
 - 可复用的算法和基础设施优先放公共层，模型只声明实际差异；已共享函数见[架构表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。函数用明确的动作与对象命名，同类职责保持一致；关键逻辑用中文说明输入、返回值及副作用。目录与命名见[指南](docs/DIRECTORY_STRUCTURE.md)。
 - 数据、权重、环境和训练输出放在检出目录外。此机器默认数据根 `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`，权重与日志为同根 `checkpoints`；显式路径优先。
 - 缓存保存原始 RGB/小张量。续训核对模型、数据、配方和完整训练状态；源码摘要、注释、重命名和依赖精确版本不作为启动门槛。旧收据可保留作记录。

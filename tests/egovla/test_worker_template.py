@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from human_plan.rsci.processing import Processor
+from human_plan.rhsci.processing import Processor
 
 
 class WorkerTemplateTests(unittest.TestCase):

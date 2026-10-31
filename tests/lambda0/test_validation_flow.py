@@ -15,8 +15,8 @@ import torch.multiprocessing as mp
 from test_integration import inputs, tiny, vlm_inputs
 from torch import nn
 
-from lambda0.rsci.model import masked_ardy_loss
-from lambda0.rsci.runtime import check_finite, verify_restored_state
+from lambda0.rhsci.model import masked_ardy_loss
+from lambda0.rhsci.runtime import check_finite, verify_restored_state
 
 
 def validation_fixture(model, folder):

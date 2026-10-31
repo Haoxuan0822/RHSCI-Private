@@ -12,13 +12,13 @@ import torch
 
 from psi.deploy.helpers import RequestMessage, convert_numpy_in_dict, numpy_deserialize
 from psi.deploy.psi0_serve_simple import Server
-from rsci.data.state_noise import InferenceStateNoise
-from rsci.inference.state_noise import RequestStateNoise
+from rhsci.data.state_noise import InferenceStateNoise
+from rhsci.inference.state_noise import RequestStateNoise
 
 
 class ServingTests(unittest.TestCase):
     def test_request_noise_is_independent_of_global_rng_and_previous_episode_length(self):
-        from rsci.inference.action_noise import PROTOCOL, RTC_PROTOCOL, install_server
+        from rhsci.inference.action_noise import PROTOCOL, RTC_PROTOCOL, install_server
 
         def make_server(rtc):
             def sample(**kwargs):
@@ -28,7 +28,7 @@ class ServingTests(unittest.TestCase):
             server = Server.__new__(Server)
             server.model = SimpleNamespace(
                 rsci_spec=SimpleNamespace(name="NO-STATE"),
-                rsci_history_from_request=lambda *args: {},
+                rhsci_history_from_request=lambda *args: {},
                 predict_action=sample,
                 predict_action_with_training_rtc_flow=sample,
             )
@@ -117,7 +117,7 @@ class ServingTests(unittest.TestCase):
         class Policy:
             rsci_spec = SimpleNamespace(name="VGQ-VLM*")
 
-            def rsci_history_from_request(self, condition, *args):
+            def rhsci_history_from_request(self, condition, *args):
                 self_history = condition["rsci_history_valid"]
                 return {"history_valid": torch.from_numpy(self_history.copy())[None]}
 
@@ -179,7 +179,7 @@ class ServingTests(unittest.TestCase):
         server = Server.__new__(Server)
         server.model = SimpleNamespace(
             rsci_spec=SimpleNamespace(name="STATE"),
-            rsci_history_from_request=lambda *args: {},
+            rhsci_history_from_request=lambda *args: {},
             predict_action=predict,
         )
         server.model_transform = SimpleNamespace(

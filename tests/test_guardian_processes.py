@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from rsci.paths import BACKBONE_MODULES
+from rhsci.paths import BACKBONE_MODULES
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +20,7 @@ class GuardianProcessTests(unittest.TestCase):
 import importlib, pathlib, subprocess, sys
 from types import SimpleNamespace
 from unittest.mock import patch
-from rsci.data.cache_config import InputCacheConfig
+from rhsci.data.cache_config import InputCacheConfig
 module = importlib.import_module(sys.argv[1])
 real_popen = subprocess.Popen
 def worker(*args, **kwargs):

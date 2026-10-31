@@ -4,7 +4,7 @@ Rethinking Humanoid State Conditioning in Vision-Language-Action Models.
 
 RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5, GR00T, EgoVLA and λ₀, with ACT as a visual action baseline. VGQ/EGQ variants use four-frame visual histories and ARDY supervision during training. Nonstarred variants need only current RGB and language at inference.
 
-2026-11-01：六模型 Python 包统一为 `src/<包名>/rsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。
+2026-11-01：六模型 Python 包统一为 `src/<包名>/rhsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。
 
 ## Getting started
 
@@ -24,7 +24,7 @@ export GROOT_BASE="$PSI_RUNTIME_ROOT/cache/checkpoints/GR00T-N1.6-3B"
 export PSI_RUN="$PSI_RUNTIME_ROOT/runs/psi0/$TRAIN_TASK/VGQ-AE/frozen/readme"
 export GROOT_RUN="$PSI_RUNTIME_ROOT/runs/gr00t/$TRAIN_TASK/VGQ-AE/top4/readme"
 export PSI0_PYTHON="$PSI_RUNTIME_ROOT/.venv-psi/bin/python"
-export GROOT_RSCI_PYTHON="$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python"
+export GROOT_RHSCI_PYTHON="$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python"
 export SIMPLE_HOME="$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786"
 mkdir -p "$PSI_RUNTIME_ROOT"
 ```
@@ -48,18 +48,18 @@ Install GR00T in its own environment; FlashAttention needs a compatible CUDA too
 
 ```bash
 uv venv --python 3.10 "$PSI_RUNTIME_ROOT/.venv-gr00t-rsci"
-uv pip install --python "$GROOT_RSCI_PYTHON" \
+uv pip install --python "$GROOT_RHSCI_PYTHON" \
   torch==2.7.0 torchvision==0.22.0 \
   --index-url https://download.pytorch.org/whl/cu128
-uv pip install --python "$GROOT_RSCI_PYTHON" \
+uv pip install --python "$GROOT_RHSCI_PYTHON" \
   -r baselines/gr00t/requirements.txt \
   datasets==3.6.0 click==8.1.8 gymnasium==1.2.2 \
   matplotlib==3.10.1 wandb==0.23.0 pyzmq==27.0.1 \
   setuptools wheel packaging ninja
-uv pip install --python "$GROOT_RSCI_PYTHON" --no-build-isolation \
+uv pip install --python "$GROOT_RHSCI_PYTHON" --no-build-isolation \
   flash-attn==2.7.4.post1
-uv pip install --python "$GROOT_RSCI_PYTHON" --no-deps -e ./src/gr00t
-"$GROOT_RSCI_PYTHON" -c 'import torch, transformers, flash_attn; print(torch.__version__, transformers.__version__, flash_attn.__version__); assert torch.cuda.is_available()'
+uv pip install --python "$GROOT_RHSCI_PYTHON" --no-deps -e ./src/gr00t
+"$GROOT_RHSCI_PYTHON" -c 'import torch, transformers, flash_attn; print(torch.__version__, transformers.__version__, flash_attn.__version__); assert torch.cuda.is_available()'
 ```
 
 ### Data and weights
@@ -191,8 +191,8 @@ CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoup
 Serve the matching GR00T checkpoint, then evaluate on the same split:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH="$PSI_HOME/src" "$GROOT_RSCI_PYTHON" \
-  -m rsci.inference.http_server \
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH="$PSI_HOME/src" "$GROOT_RHSCI_PYTHON" \
+  -m rhsci.inference.http_server \
   --backbone gr00t --run-dir "$GROOT_RUN" --checkpoint-step 20000 \
   --device cuda:0 --host 127.0.0.1 --port 8125 --no-deterministic-eval
 ```
@@ -240,7 +240,7 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 
 2026-10-30: [训练职责与显式缓存配置](docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
 
-2026-10-31: 模型专属扩展已按原生包聚合，`src/rsci` 只保留共用工具；[位置、入口和兼容性](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)。
+2026-10-31: 模型专属扩展已按原生包聚合，`src/rhsci` 只保留共用工具；[位置、入口和兼容性](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)。
 
 2026-10-31: 训练/恢复函数统一使用明确的动作名称，较长预检归入 `preflight.py`；参见[函数命名与阅读顺序](docs/DIRECTORY_STRUCTURE.md#function-names-and-reading-order)及[验证记录](docs/NATIVE_PACKAGE_LAYOUT_20261031.md#可读性与函数命名整理2026-10-31)。
 

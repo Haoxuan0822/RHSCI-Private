@@ -12,14 +12,14 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from rsci.inference.checkpoints import discover, inspect_run
+from rhsci.inference.checkpoints import discover, inspect_run
 
 
 class CheckpointTests(unittest.TestCase):
     def make_run(self, root):
         run = Path(root) / "run"
         run.mkdir()
-        source = "src/openpi/rsci/processing.py"
+        source = "src/openpi/rhsci/processing.py"
         contract = dict(
             model="VGQ-AE",
             world_size=1,
@@ -149,7 +149,7 @@ class NativeActionNoiseTests(unittest.TestCase):
         import torch
         from fastapi.responses import JSONResponse
 
-        from rsci.inference.action_noise import PROTOCOL, install_server
+        from rhsci.inference.action_noise import PROTOCOL, install_server
 
         failed = [True]
 
@@ -177,8 +177,8 @@ class NativeActionNoiseTests(unittest.TestCase):
     def test_native_action_stream_is_independent_of_explicit_state_noise_generator(self):
         import torch
 
-        from rsci.data.state_noise import InferenceStateNoise
-        from rsci.inference.action_noise import noise_context
+        from rhsci.data.state_noise import InferenceStateNoise
+        from rhsci.inference.action_noise import noise_context
 
         values = []
         global_before = torch.get_rng_state().clone()
@@ -195,7 +195,7 @@ class NativeActionNoiseTests(unittest.TestCase):
     def test_native_response_without_captured_action_noise_is_rejected(self):
         from fastapi.responses import JSONResponse
 
-        from rsci.inference.action_noise import PROTOCOL, install_server
+        from rhsci.inference.action_noise import PROTOCOL, install_server
 
         server = install_server(
             SimpleNamespace(predict_action=lambda payload: JSONResponse({"action": [[0.0]]})),
@@ -219,7 +219,7 @@ class Pi05HTTPTests(unittest.TestCase):
         from safetensors.torch import save_file
         from torch import nn
 
-        from openpi.rsci.serve import Server
+        from openpi.rhsci.serve import Server
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -248,11 +248,13 @@ class Pi05HTTPTests(unittest.TestCase):
             (root / "model.safetensors.index.json").write_text(json.dumps(index))
             with (
                 patch(
-                    "openpi.rsci.model.Pi05RSCI",
+                    "openpi.rhsci.model.Pi05RHSCI",
                     side_effect=lambda *a, **k: nn.Linear(2, 2),
                 ),
-                patch("openpi.rsci.processing.Processor"),
-                patch("rsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixture"),
+                patch("openpi.rhsci.processing.Processor"),
+                patch(
+                    "rhsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixture"
+                ),
             ):
                 server = Server(root, contract, root, tokenizer, "cpu")
                 self.assertFalse(server.model.training)
@@ -273,12 +275,12 @@ class Pi05HTTPTests(unittest.TestCase):
         import torch
         from fastapi.testclient import TestClient
 
-        from openpi.rsci.processing import Processor
-        from openpi.rsci.serve import Server
+        from openpi.rhsci.processing import Processor
+        from openpi.rhsci.serve import Server
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.data.state_noise import InferenceStateNoise
-        from rsci.inference.http_server import create_app
-        from rsci.inference.state_noise import RequestStateNoise
+        from rhsci.data.state_noise import InferenceStateNoise
+        from rhsci.inference.http_server import create_app
+        from rhsci.inference.state_noise import RequestStateNoise
 
         model = SimpleNamespace(calls=0)
 
@@ -350,7 +352,7 @@ class Pi05HTTPTests(unittest.TestCase):
             self.assertEqual(client.post("/act", json=request.serialize()).status_code, 422)
 
     def test_gr00t_uses_saved_checkpoint_with_current_frame_and_native_horizon(self):
-        from gr00t.rsci.serve import build_server
+        from gr00t.rhsci.serve import build_server
 
         modality = {"video": SimpleNamespace(delta_indices=[-6, -4, -2, 0])}
         policy = SimpleNamespace(
@@ -371,7 +373,7 @@ class Pi05HTTPTests(unittest.TestCase):
             sys.modules,
             {
                 "gr00t.deploy.gr00t_serve_simple": module,
-                "gr00t.rsci.data": data,
+                "gr00t.rhsci.data": data,
             },
         ):
             self.assertIs(build_server(Path("/models/checkpoint-700"), "cpu"), server)

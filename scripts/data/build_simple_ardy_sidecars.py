@@ -15,7 +15,7 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from rsci.data.ardy_sidecar import (
+from rhsci.data.ardy_sidecar import (
     CANDIDATE_TEACHER_STATUS,
     FORMAL_TEACHER_STATUS,
     ArdySidecarWriter,
@@ -23,7 +23,7 @@ from rsci.data.ardy_sidecar import (
     find_unique_episode_mapping,
     window_indices,
 )
-from rsci.data.ardy_teacher_artifacts import (
+from rhsci.data.ardy_teacher_artifacts import (
     ARDY_MODEL_REVISION,
     ARDY_SOURCE_COMMIT,
     verify_ardy_teacher_dir,
@@ -725,7 +725,7 @@ def _build_context(
         "replay_manifest_sha256": _sha256_file(raw_root / "meta" / "replay.txt"),
         "generator_sha256": {
             "ardy_sidecar.py": _sha256_file(
-                PROJECT_ROOT / "src" / "rsci" / "data" / "ardy_sidecar.py"
+                PROJECT_ROOT / "src" / "rhsci" / "data" / "ardy_sidecar.py"
             ),
             "build_simple_ardy_sidecars.py": _sha256_file(Path(__file__)),
         },

@@ -49,7 +49,7 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
                 raise ValueError("RHSCI ARDY requires one task and data.rsci_ardy_sidecar_root")
             import json
             from pathlib import Path
-            from rsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
+            from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
             sidecar = Path(resolve_path(data_cfg.rsci_ardy_sidecar_root))
             context = json.loads((sidecar / "manifest.json").read_text())["context"]
             validate_processed_dataset_context(resolve_path(f"{data_cfg.root_dir}/{first_repo}"), context)
@@ -91,7 +91,7 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
                 if depth_key in self.base_dataset.hf_dataset.column_names:
                     self.base_dataset.hf_dataset = self.base_dataset.hf_dataset.remove_columns([depth_key])
         if cache_root:
-            from rsci.data.rgb_frame_cache import RGBFrameCache
+            from rhsci.data.rgb_frame_cache import RGBFrameCache
             if self.base_dataset.video_backend != "torchcodec":
                 raise ValueError("RGB cache requires the verified torchcodec backend")
             self.base_dataset.rgb_frame_cache = RGBFrameCache(resolve_path(cache_root), root_dir)
@@ -100,7 +100,7 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
     def __getitem__(self, idx) -> dict:
         sample = self.base_dataset[idx]
         if self.ardy_reader is not None:
-            from rsci.data.ardy_future import ardy_target_at_offset
+            from rhsci.data.ardy_future import ardy_target_at_offset
             sample["ardy_target"], sample["ardy_valid"] = ardy_target_at_offset(
                 self.ardy_reader, int(sample["episode_index"]), int(sample["frame_index"]),
                 self.ardy_offset)

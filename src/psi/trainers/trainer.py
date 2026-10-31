@@ -84,9 +84,9 @@ class Trainer(ABC):
         cls, cfg: LaunchConfig, device: Union[torch.device, int]
     ) -> "Trainer":
         if cfg.train.name == "finetune" and getattr(cfg.model, "rsci_variant", None):
-            from psi.rsci.trainer import RSCIFinetuneTrainer
+            from psi.rhsci.trainer import RHSCIFinetuneTrainer
 
-            return RSCIFinetuneTrainer(cfg, device)
+            return RHSCIFinetuneTrainer(cfg, device)
         trainer_name = cfg.train.name
         try:
             parts = re.split(r"[-_]", trainer_name)
@@ -585,7 +585,7 @@ class Trainer(ABC):
 
     def finalize(self):
 
-        from rsci.data.loader_cleanup import close_dataloaders
+        from rhsci.data.loader_cleanup import close_dataloaders
         closed = close_dataloaders(
             getattr(self, 'train_dataloader', None),
             getattr(self, 'val_dataloader', None),

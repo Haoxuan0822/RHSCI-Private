@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import TrainerCallback, TrainingArguments, set_seed
 
-from gr00t.rsci.train import create_resume_trainer_class
+from gr00t.rhsci.train import create_resume_trainer_class
 
 
 class Samples(Dataset):
@@ -43,7 +43,7 @@ class StopAtSeven(TrainerCallback):
 
 class ResumeTests(unittest.TestCase):
     def test_production_trainer_finite_loss_gate(self):
-        from gr00t.rsci.trainer import create_trainer_class
+        from gr00t.rhsci.trainer import create_trainer_class
 
         class LossModel(torch.nn.Module):
             def __init__(self):

@@ -15,9 +15,9 @@ from transformers.feature_extraction_utils import BatchFeature
 
 from gr00t.configs.model.gr00t_n1d6 import Gr00tN1d6Config
 from gr00t.model.gr00t_n1d6.gr00t_n1d6 import Gr00tN1d6
-from gr00t.model.gr00t_n1d6.rsci_query import masked_ardy_loss
-from gr00t.rsci import checkpoints
-from gr00t.rsci.data import GROUPS, TAG, modality
+from gr00t.model.gr00t_n1d6.rhsci_query import masked_ardy_loss
+from gr00t.rhsci import checkpoints
+from gr00t.rhsci.data import GROUPS, TAG, modality
 
 
 class TinyBackbone(nn.Module):
@@ -333,7 +333,7 @@ class ArchitectureTests(unittest.TestCase):
             Gr00tN1d6Config(rsci_variant="VGQ-AE", tune_llm=True)
 
     def test_simple_default_batch_follows_world_and_accumulation(self):
-        from gr00t.rsci.train import build_argument_parser, resolve_training_paths
+        from gr00t.rhsci.train import build_argument_parser, resolve_training_paths
 
         for gpus, accumulation, batch in (
             ("0,1,2,3,4,5,6,7", 1, 3),
@@ -508,7 +508,7 @@ class CheckpointTests(unittest.TestCase):
                 self.assertTrue((path.parent / "NUMERICAL_FAILURE.json").exists())
 
     def test_nonfinite_loss_blocks_future_resume(self):
-        from rsci.runtime.numerics import reject_numerical_failure, require_finite
+        from rhsci.runtime.numerics import reject_numerical_failure, require_finite
 
         with tempfile.TemporaryDirectory() as directory:
             require_finite([torch.tensor(1.0)], directory, 0, "loss")
@@ -664,9 +664,9 @@ class ProcessorAndServingTests(unittest.TestCase):
 
     def test_native_serving_request_noise_survives_different_episode_lengths(self):
         from gr00t.deploy.gr00t_serve_simple import Server
-        from gr00t.rsci.serve import build_server
+        from gr00t.rhsci.serve import build_server
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.inference.action_noise import PROTOCOL
+        from rhsci.inference.action_noise import PROTOCOL
 
         outputs = []
         for global_seed, prefix_length in ((2, 1), (900, 3)):

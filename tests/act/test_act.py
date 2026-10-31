@@ -9,8 +9,8 @@ from pathlib import Path
 import torch
 
 from act.models.act import ACTConfig
-from act.rsci.model import RSCIACT, masked_ardy_loss
-from act.rsci.train import create_optimizer
+from act.rhsci.model import RHSCIACT, masked_ardy_loss
+from act.rhsci.train import create_optimizer
 
 
 def config(state=False):
@@ -51,7 +51,7 @@ class ModelTests(unittest.TestCase):
         torch.set_num_threads(2)
 
     def test_state_native_forward_loss_and_gradients(self):
-        model = RSCIACT("STATE", config(True)).train()
+        model = RHSCIACT("STATE", config(True)).train()
         native = copy.deepcopy(model.policy).train()
         inputs = batch()
         torch.manual_seed(17)
@@ -76,23 +76,23 @@ class ModelTests(unittest.TestCase):
     def test_full_checkpoint_round_trip_preserves_parameters_and_buffers(self):
         from safetensors.torch import save_file
 
-        from act.rsci.checkpoints import load_model_state
+        from act.rhsci.checkpoints import load_model_state
 
-        model = RSCIACT("EGQ-AE", config()).eval()
+        model = RHSCIACT("EGQ-AE", config()).eval()
         inputs = batch()
         expected = model.predict_action(inputs)
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp)
             save_file(model.state_dict(), str(path / "model.safetensors"))
             (path / "rsci_config.json").write_text(json.dumps(model.rsci_config))
-            restored = RSCIACT("EGQ-AE", config()).eval()
+            restored = RHSCIACT("EGQ-AE", config()).eval()
             load_model_state(restored, path)
             for name, value in model.state_dict().items():
                 torch.testing.assert_close(value, restored.state_dict()[name], rtol=0, atol=0)
             torch.testing.assert_close(expected, restored.predict_action(inputs), rtol=0, atol=0)
 
     def test_no_state_removes_both_projections_and_ignores_actual_state(self):
-        model = RSCIACT("NO-STATE", config()).eval()
+        model = RHSCIACT("NO-STATE", config()).eval()
         inputs = batch()
         self.assertFalse(
             any("robot_state_input_proj" in name for name, _ in model.named_parameters())
@@ -105,7 +105,7 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(model._native_batch(inputs)["observation.state"].numel(), 0)
 
     def test_history_and_ardy_cannot_change_current_actions(self):
-        model = RSCIACT("EGQ-AE", config()).eval()
+        model = RHSCIACT("EGQ-AE", config()).eval()
         inputs = batch()
         expected = model.predict_action(inputs)
         feature = model.policy.model.backbone(inputs["observation.images"][:, 0])["feature_map"]
@@ -122,7 +122,7 @@ class ModelTests(unittest.TestCase):
         torch.testing.assert_close(first, second, rtol=0, atol=0)
 
     def test_auxiliary_nonzero_gradient_intersects_action_policy(self):
-        model = RSCIACT("EGQ-AE", config()).train()
+        model = RHSCIACT("EGQ-AE", config()).train()
         inputs = batch()
         # 先独立ARDY反传，不能用总loss梯度伪证辅助可达性。
         maps = model.policy.model.backbone(inputs["observation.images"][:, 0])["feature_map"]
@@ -159,7 +159,7 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(pred.grad.abs().sum(), 0)
 
     def test_native_action_queue_and_reset(self):
-        model = RSCIACT("NO-STATE", config()).eval()
+        model = RHSCIACT("NO-STATE", config()).eval()
         inputs = batch()
         chunk = model.predict_action(inputs)
         for i in range(3):

@@ -51,7 +51,7 @@ class Server:
         assert osp.exists(run_dir / "run_config.json"), f"run config does not exist!"
 
         # load launch config
-        from psi.rsci.config import load_run_config
+        from psi.rhsci.config import load_run_config
         launch_config = load_run_config(
             run_dir, run_dir / "checkpoints" / f"ckpt_{ckpt_step}" / "model.safetensors")
         seed_everything(launch_config.seed or 42)
@@ -60,8 +60,8 @@ class Server:
         self.model = Psi0Model.from_pretrained(run_dir, ckpt_step, launch_config, device=device)
         self.model.to(device)
         self.model.eval()
-        from rsci.data.state_noise import InferenceStateNoise
-        from rsci.inference.state_noise import RequestStateNoise
+        from rhsci.data.state_noise import InferenceStateNoise
+        from rhsci.inference.state_noise import RequestStateNoise
         variant = self.model.rsci_spec.name if self.model.rsci_spec is not None else "STATE"
         self.state_noise = RequestStateNoise(
             state_inference_measurement_noise_std_rad, state_noise_seed, variant)
@@ -98,7 +98,7 @@ class Server:
                            f"action_chunk_size={self.Tp}, \n"
                            f"action_exec_horizon={self.Ta}")
         self.last_serve_time = time.monotonic()
-        from rsci.inference.action_noise import install_server
+        from rhsci.inference.action_noise import install_server
         install_server(self, enabled=deterministic_eval, base_seed=eval_seed, rtc=enable_rtc)
 
 
@@ -128,7 +128,7 @@ class Server:
             # )
 
             if self.state_noise.scale > 0:
-                from rsci.data.state_noise import add_measurement_noise
+                from rhsci.data.state_noise import add_measurement_noise
                 if not self.maxmin.normalize_state:
                     raise ValueError("Measured-joint noise requires the SIMPLE state normalization contract")
                 states = add_measurement_noise(
@@ -145,7 +145,7 @@ class Server:
 
             def predict():
 
-                rgb_kwargs = self.model.rsci_history_from_request(condition_dict, instruction, self.model_transform,
+                rgb_kwargs = self.model.rhsci_history_from_request(condition_dict, instruction, self.model_transform,
                     next(iter(image_dict.values())) if len(image_dict) == 1 else None)
 
                 if not self.enable_rtc:
@@ -229,7 +229,7 @@ class Server:
 def serve(cfg: ServerConfig) -> None:
     if cfg.deterministic_eval:
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-        from rsci.inference.action_noise import configure_torch
+        from rhsci.inference.action_noise import configure_torch
         configure_torch()
     overwatch.info("Server :: Initializing Psi0")
     assert cfg.policy is not None, "which policy to serve?"

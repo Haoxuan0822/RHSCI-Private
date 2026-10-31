@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 import os
-assert load_dotenv() or os.environ.get("PSI_RSCI_TRAIN") == "1", "Failed to load .env file. Make sure it exists and is properly formatted."
+
+from rhsci.runtime.environment import get_env
+assert load_dotenv() or get_env("PSI_RHSCI_TRAIN") == "1", "Failed to load .env file. Make sure it exists and is properly formatted."
 import re
 import torch
 import gc
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from psi.config.config import LaunchConfig
 from psi.utils import batch_str_to_tensor, seed_everything, initialize_overwatch, nice, flatten
 from psi.trainers import Trainer
-from rsci.runtime.profiling import timed_batches
+from rhsci.runtime.profiling import timed_batches
 
 overwatch = initialize_overwatch(__name__)
 

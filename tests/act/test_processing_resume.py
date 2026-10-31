@@ -8,8 +8,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from act.rsci.data import IMAGE, ACTDataset, Processor
-from act.rsci.train import (
+from act.rhsci.data import IMAGE, ACTDataset, Processor
+from act.rhsci.train import (
     build_argument_parser,
     build_training_arguments,
     create_trainer_class,
@@ -171,7 +171,7 @@ class Resume(unittest.TestCase):
     def run_resume(self, workers):
         from transformers import TrainerCallback, set_seed
 
-        from act.rsci.checkpoints import checkpoint_ok, publish
+        from act.rhsci.checkpoints import checkpoint_ok, publish
 
         class StopAtFive(TrainerCallback):
             def on_step_end(self, args, state, control, **kwargs):

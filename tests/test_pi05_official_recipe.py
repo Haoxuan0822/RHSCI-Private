@@ -8,8 +8,8 @@ from unittest.mock import patch
 import torch
 from test_pi05_rsci import TinyBackbone
 
-from openpi.rsci.model import Pi05RSCI
-from openpi.rsci.train import (
+from openpi.rhsci.model import Pi05RHSCI
+from openpi.rhsci.train import (
     build_argument_parser,
     build_training_arguments,
     create_trainer_class,
@@ -48,7 +48,7 @@ class OfficialRecipeTests(unittest.TestCase):
             ),
         ):
             self.assertEqual(build_training_arguments(args, paths).max_steps, 2000)
-        from openpi.rsci.train import simple_lr_multiplier
+        from openpi.rhsci.train import simple_lr_multiplier
 
         self.assertAlmostEqual(simple_lr_multiplier(2000, 2000), 1e-4)
 
@@ -105,10 +105,12 @@ class OfficialRecipeTests(unittest.TestCase):
 
     def test_default_sampling_compilation_and_explicit_opt_out(self):
         with patch("torch.compile", side_effect=lambda method, **kwargs: method) as compile_call:
-            Pi05RSCI("NO-STATE", TinyBackbone(), vlm_width=64, ae_width=32)
+            Pi05RHSCI("NO-STATE", TinyBackbone(), vlm_width=64, ae_width=32)
             self.assertEqual(compile_call.call_args.kwargs, {"mode": "max-autotune"})
             compile_call.reset_mock()
-            Pi05RSCI("NO-STATE", TinyBackbone(), vlm_width=64, ae_width=32, compile_inference=False)
+            Pi05RHSCI(
+                "NO-STATE", TinyBackbone(), vlm_width=64, ae_width=32, compile_inference=False
+            )
             compile_call.assert_not_called()
 
 

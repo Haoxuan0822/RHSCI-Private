@@ -9,9 +9,9 @@ from unittest.mock import patch
 import numpy as np
 import torch
 
-from act.rsci.checkpoints import sha256
-from rsci.data.cache_config import InputCacheConfig
-from rsci.data.raw_input_cache import (
+from act.rhsci.checkpoints import sha256
+from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.raw_input_cache import (
     SCHEMA,
     RawInputCache,
     cache_identity,
@@ -20,7 +20,7 @@ from rsci.data.raw_input_cache import (
 
 class CacheTests(unittest.TestCase):
     def test_shared_frame_cache_copies_before_augmentation(self):
-        from rsci.data.input_cache import InputCache
+        from rhsci.data.input_cache import InputCache
 
         cache = InputCache(self.cache, self.dataset)
         expected = self.pixels[[1, 0, 1]].transpose(0, 2, 3, 1).copy()
@@ -31,10 +31,10 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(cache.arrays["0"].mode, "r")
 
     def test_shared_cache_authenticates_guardian_bytes(self):
-        from rsci.data.input_cache import cache_identity as shared_identity
+        from rhsci.data.input_cache import cache_identity as shared_identity
 
-        with patch.dict(os.environ, {"RSCI_INPUT_CACHE": str(self.cache), "WORLD_SIZE": "1"}):
-            with patch("rsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixed"):
+        with patch.dict(os.environ, {"RHSCI_INPUT_CACHE": str(self.cache), "WORLD_SIZE": "1"}):
+            with patch("rhsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixed"):
                 shared_identity(self.dataset, config=InputCacheConfig(self.cache))
                 with (self.directory / "rgb.npy").open("r+b") as stream:
                     stream.seek(-1, 2)
@@ -88,7 +88,7 @@ class CacheTests(unittest.TestCase):
             },
         )
         self.write_manifest()
-        self.env = patch.dict(os.environ, {"RSCI_ACT_SPACE_CACHE": str(self.cache)})
+        self.env = patch.dict(os.environ, {"RHSCI_ACT_SPACE_CACHE": str(self.cache)})
         self.env.start()
 
     def write_manifest(self):
@@ -167,17 +167,17 @@ class CacheTests(unittest.TestCase):
             RawInputCache(self.cache, self.dataset)
 
     def test_disabled_config_ignores_legacy_environment(self):
-        from rsci.data.input_cache import cache_identity as shared_identity
+        from rhsci.data.input_cache import cache_identity as shared_identity
 
-        with patch.dict(os.environ, {"RSCI_INPUT_CACHE": "/nonexistent", "WORLD_SIZE": "8"}):
+        with patch.dict(os.environ, {"RHSCI_INPUT_CACHE": "/nonexistent", "WORLD_SIZE": "8"}):
             self.assertIsNone(shared_identity(self.dataset))
             self.assertIsNone(cache_identity(self.dataset, "fixed"))
 
     def test_verification_role_independent_of_world_size(self):
-        from rsci.data.input_cache import cache_identity as shared_identity
+        from rhsci.data.input_cache import cache_identity as shared_identity
 
         with patch.dict(os.environ, {"WORLD_SIZE": "8"}):
-            with patch("rsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixed"):
+            with patch("rhsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixed"):
                 full = shared_identity(self.dataset, config=InputCacheConfig(self.cache))
                 metadata = shared_identity(
                     self.dataset, config=InputCacheConfig(self.cache, "metadata")

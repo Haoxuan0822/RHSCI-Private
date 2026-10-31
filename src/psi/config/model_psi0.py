@@ -35,7 +35,7 @@ class Psi0ModelConfig(ModelConfig):
     rsci_encoder_input_size: int | tuple[int, int] = (196, 350)
 
     @model_validator(mode="after")
-    def validate_rsci(self):
+    def validate_rhsci(self):
         if not self.rsci_use_reader and self.rsci_variant in (None, "STATE", "NO-STATE"):
             raise ValueError("Disabling the Reader requires an RHSCI Query variant")
         if self.state_measurement_noise_std_rad > 0 and (self.rsci_variant != "STATE" or self.use_obs != "add_token"):

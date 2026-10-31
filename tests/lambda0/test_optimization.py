@@ -13,17 +13,17 @@ import torch
 from test_integration import inputs, tiny, vlm_inputs
 from torch import nn
 
-from lambda0.rsci.optimization import (
+from lambda0.rhsci.optimization import (
     effective_arguments,
     native_arguments,
     optimizer_report,
 )
-from lambda0.rsci.runtime import RSCITrainingBackend
+from lambda0.rhsci.runtime import RHSCITrainingBackend
 
 
 class OptimizationTests(unittest.TestCase):
     def test_custom_bundle_paths_and_training_budget(self):
-        from lambda0.rsci.train import build_argument_parser, build_training_config
+        from lambda0.rhsci.train import build_argument_parser, build_training_config
 
         args = build_argument_parser().parse_args(
             [
@@ -57,8 +57,8 @@ class OptimizationTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_all_four_actual_recipes_against_official_profile_and_parser(self):
-        from lambda0.rsci.contracts import UPSTREAM
-        from lambda0.rsci.train import build_argument_parser, build_training_config
+        from lambda0.rhsci.contracts import UPSTREAM
+        from lambda0.rhsci.train import build_argument_parser, build_training_config
         from lambda0.training import engine
         from lambda0.training.runner import resolve_experiment
 
@@ -94,7 +94,7 @@ class OptimizationTests(unittest.TestCase):
                         "0,1,2,3",
                     ]
                 )
-                metadata = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
+                metadata = os.environ.get("RHSCI_TEST_LAMBDA0_BUNDLE")
                 if metadata:
                     args.bundle = Path(metadata).resolve().parent
                 config = build_training_config(args)
@@ -209,7 +209,7 @@ class OptimizationTests(unittest.TestCase):
             for model in (native, adapted):
                 engine.configure_trainable_action_spaces(model, [3])
             reference_optimizer = engine.build_optimizer(native, args)
-            backend = RSCITrainingBackend(engine, variant, {})
+            backend = RHSCITrainingBackend(engine, variant, {})
             actual_optimizer = backend.build_optimizer(adapted, args)
             reference_report = optimizer_report(native, reference_optimizer)
             self.assertEqual(reference_report, optimizer_report(adapted, actual_optimizer))

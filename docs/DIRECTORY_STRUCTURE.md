@@ -1,6 +1,6 @@
 # Repository structure
 
-RHSCI follows Psi0's native package layout. Each model's RHSCI implementation is inside its own package; `src/rsci` contains only shared tools. See the [migration record](NATIVE_PACKAGE_LAYOUT_20261031.md) before using old module names or run contracts.
+RHSCI follows Psi0's native package layout. Each model's RHSCI implementation is inside its own package; `src/rhsci` contains only shared tools. See the [migration record](NATIVE_PACKAGE_LAYOUT_20261031.md) before using old module names or run contracts.
 
 ```text
 RHSCI-Private/
@@ -19,18 +19,18 @@ RHSCI-Private/
 │   └── deepspeed/                   # Distributed launch configurations
 ├── src/
 │   ├── psi/                         # Ψ0 models, config, data, trainers and deployment
-│   │   └── rsci/                    # Ψ0 query/model/trainer extensions and experiment entry
+│   │   └── rhsci/                   # Ψ0 query/model/trainer extensions and experiment entry
 │   ├── openpi/                      # Native π0.5
-│   │   └── rsci/                    # π0.5 model/data/processing/training/serving
+│   │   └── rhsci/                   # π0.5 model/data/processing/training/serving
 │   ├── gr00t/                       # Native GR00T Python package
-│   │   └── rsci/                    # GR00T data/training/serving integration
+│   │   └── rhsci/                   # GR00T data/training/serving integration
 │   ├── human_plan/                  # Native EgoVLA Python package
-│   │   └── rsci/                    # EgoVLA model/processing/training/serving
+│   │   └── rhsci/                   # EgoVLA model/processing/training/serving
 │   ├── lambda0/                     # Native λ₀ Python package
-│   │   └── rsci/                    # λ₀ model/bundles/backend/training/serving
+│   │   └── rhsci/                   # λ₀ model/bundles/backend/training/serving
 │   ├── act/                         # Native ACT
-│   │   └── rsci/                    # ACT model/data/training/serving, without Reader
-│   ├── rsci/                        # Cross-model utilities only
+│   │   └── rhsci/                   # ACT model/data/training/serving, without Reader
+│   ├── rhsci/                       # Cross-model utilities only
 │   │   ├── data/                    # ARDY, state noise, raw uint8 caches and frame tools
 │   │   ├── runtime/                 # Artifacts, complete checkpoints, resume, numerics and processes
 │   │   ├── inference/               # Shared HTTP entry, checkpoint discovery, history and noise
@@ -44,11 +44,11 @@ RHSCI-Private/
 └── licenses/                        # Shared license texts; native components retain their licenses
 ```
 
-The `rsci/` subdirectory within a native package is that model's research extension. It uses the adjacent original model and data implementation; there is no second parallel model tree under `src/rsci`. Algorithms and checkpoint formats remain specific to each model.
+The `rhsci/` subdirectory within a native package is that model's research extension. It uses the adjacent original model and data implementation; there is no second parallel model tree under `src/rhsci`. Algorithms and checkpoint formats remain specific to each model.
 
 ## Package depth (2026-11-01)
 
-All six model packages now share the import root `src`: `psi`, `openpi`, `gr00t`, `human_plan`, `lambda0`, `act`. Their extensions consistently live at `src/<package>/rsci`. Python imports and checkpoint parameter names remain unchanged; filesystem paths and editable-package discovery were updated. No symlink or duplicate compatibility package is used.
+All six model packages now share the import root `src`: `psi`, `openpi`, `gr00t`, `human_plan`, `lambda0`, `act`. Their extensions consistently live at `src/<package>/rhsci`. The flat-layout change preserved imports; the subsequent naming correction uses `<package>.rhsci` and shared `rhsci`, while checkpoint parameter names remain unchanged; filesystem paths and editable-package discovery were updated. No symlink or duplicate compatibility package is used.
 
 The former extra levels came from copied upstream project roots, not extra network layers: `gr00t/gr00t` was project/package; `egovla/human_plan` was repository/package; `openlambda/lambda0/lambda0` was repository/distribution/package. The Python package roots have been flattened. `src/egovla` retains VILA and its project setup/tools; `src/openlambda` retains collection/alignment tools, assets and native experiment configs. These directories are upstream resources, not additional model import roots. Only VILA still needs its independent `llava` import root at `src/egovla/VILA`.
 
@@ -60,12 +60,12 @@ Run shell launchers from the repository root in the corresponding environment. `
 
 | Model | Package-local extension | Training launcher | Serving entry |
 | --- | --- | --- | --- |
-| [Ψ0](../baselines/psi0/README.md) | `psi.rsci` | `scripts/train/psi0.sh` | `scripts/deploy/serve_psi0_simple.sh` → `psi.deploy.psi0_serve_simple` |
-| [π0.5](../baselines/pi05/README.md) | `openpi.rsci` | `scripts/train/pi05.sh` | Shared `rsci.inference.http_server --backbone pi05` → `openpi.rsci.serve` |
-| [GR00T](../baselines/gr00t/README.md) | `gr00t.rsci` | `scripts/train/gr00t.sh` | Shared HTTP entry `--backbone gr00t` → `gr00t.rsci.serve` |
-| [EgoVLA](../baselines/egovla/README.md) | `human_plan.rsci` | `scripts/train/egovla.sh` | `python -m human_plan.rsci.serve` |
-| [λ₀](../baselines/lambda0/README.md) | `lambda0.rsci` | `scripts/train/lambda0.sh` | `baselines/lambda0/Lambda0_Serve.sh` → `lambda0.rsci.serve` |
-| [ACT](../baselines/act/README.md) | `act.rsci` | `scripts/train/act_rsci.sh` | `python -m act.rsci.serve` |
+| [Ψ0](../baselines/psi0/README.md) | `psi.rhsci` | `scripts/train/psi0.sh` | `scripts/deploy/serve_psi0_simple.sh` → `psi.deploy.psi0_serve_simple` |
+| [π0.5](../baselines/pi05/README.md) | `openpi.rhsci` | `scripts/train/pi05.sh` | Shared `rhsci.inference.http_server --backbone pi05` → `openpi.rhsci.serve` |
+| [GR00T](../baselines/gr00t/README.md) | `gr00t.rhsci` | `scripts/train/gr00t.sh` | Shared HTTP entry `--backbone gr00t` → `gr00t.rhsci.serve` |
+| [EgoVLA](../baselines/egovla/README.md) | `human_plan.rhsci` | `scripts/train/egovla.sh` | `python -m human_plan.rhsci.serve` |
+| [λ₀](../baselines/lambda0/README.md) | `lambda0.rhsci` | `scripts/train/lambda0.sh` | `baselines/lambda0/Lambda0_Serve.sh` → `lambda0.rhsci.serve` |
+| [ACT](../baselines/act/README.md) | `act.rhsci` | `scripts/train/act_rhsci.sh` | `python -m act.rhsci.serve` |
 
 Other native launchers remain `act.sh`, `dp.sh`, `internvla-m1.sh`, `h-rdt.sh`, `dreamzero.sh`, `beingh05.sh` under `scripts/train`. Native source availability does not imply an implemented RHSCI or SIMPLE adapter.
 
@@ -103,3 +103,9 @@ Official SIMPLE stays external at `$PSI_RUNTIME_ROOT/external/SIMPLE-official-b7
 See [Training](TRAINING.md), [Inference](INFERENCE.md), [Sources](SOURCES.md) and [Development](ARCHITECTURE.md) for model-specific commands and validation limits.
 
 Source hashes and exact environment versions are no longer runtime gates. Inference only needs its model files and processing configuration; see [runtime check policy](RUNTIME_CHECKS_20261031.md).
+
+## RHSCI naming correction (2026-11-01)
+
+Current package directories, imports, public classes and function names use `rhsci` / `RHSCI`. ACT's RHSCI launcher is `scripts/train/act_rhsci.sh`; the shared baseline planner accepts `--mode rhsci`. Existing checkpoint tensor/config keys and artifact names keep their saved spelling. Environment lookup prefers the corresponding `RHSCI` name and falls back to its old `RSCI` name without changing the caller's environment. Historical source records retain their original names.
+
+Validation in this checkout: Ψ0 43, π0.5 37, GR00T 32 and ACT 29 CPU tests passed; 40 shared tests passed, including checkpoint/HTTP/official-client checks and environment fallback. All six module and six shell `--help` entries passed. The λ₀ source audit and its two regression tests passed. EgoVLA passed 28 of 29 tests; its SigLIP test remains blocked by missing `flash_attn`. The λ₀ suite ran three lightweight tests successfully; three model test modules could not import `Qwen3_5Config` from the available Transformers 4.53.2. No environment installation, full-size GPU training, old production checkpoint reload or simulation rollout was performed.

@@ -20,10 +20,10 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 for arg in "$@"; do
   case "$arg" in
     --help|-h|--check|--check-data|--dry-run|--register-assets)
-      exec "$egovla_python" -m human_plan.rsci.train "$@" ;;
+      exec "$egovla_python" -m human_plan.rhsci.train "$@" ;;
     --worker|--guardian)
       echo "--worker/--guardian仅供内部使用" >&2; exit 2 ;;
   esac
 done
 
-exec "$egovla_python" -m human_plan.rsci.launch "$@"
+exec "$egovla_python" -m human_plan.rhsci.launch "$@"

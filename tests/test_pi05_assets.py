@@ -10,7 +10,7 @@ import sentencepiece
 import torch
 from safetensors.torch import save_file
 
-from openpi.rsci.prepare_assets import register_assets, transformers_overlay
+from openpi.rhsci.prepare_assets import register_assets, transformers_overlay
 
 
 class AssetRegistration(unittest.TestCase):

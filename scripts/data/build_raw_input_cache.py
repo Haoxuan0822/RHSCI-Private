@@ -12,12 +12,12 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from act.rsci.data import IMAGE, ACTDataset
-from act.rsci.train import build_argument_parser, resolve_training_paths
-from rsci.data.ardy_sidecar import dataset_content_fingerprint
-from rsci.data.cache_config import InputCacheConfig
-from rsci.data.raw_input_cache import SCHEMA, cache_identity
-from rsci.runtime.artifacts import atomic_json, sha256
+from act.rhsci.data import IMAGE, ACTDataset
+from act.rhsci.train import build_argument_parser, resolve_training_paths
+from rhsci.data.ardy_sidecar import dataset_content_fingerprint
+from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.raw_input_cache import SCHEMA, cache_identity
+from rhsci.runtime.artifacts import atomic_json, sha256
 
 CODE = Path(__file__).resolve().parents[2]
 

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from lambda0.rsci import contracts
+from lambda0.rhsci import contracts
 
 
 class SourceManifestTests(unittest.TestCase):

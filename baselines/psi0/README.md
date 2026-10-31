@@ -1,6 +1,6 @@
 # PSI0
 
-Native model: `src/psi`. RHSCI adapter: `src/psi/rsci`.
+Native model: `src/psi`. RHSCI adapter: `src/psi/rhsci`.
 
 ## Installation
 

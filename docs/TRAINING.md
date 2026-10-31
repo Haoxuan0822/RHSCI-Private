@@ -8,7 +8,7 @@ RHSCI adapters currently consume the SIMPLE G1 schema with 36-dimensional action
 
 Follow [SIMPLE data preparation](DATA_PREPARATION.md) for the processed 50 Hz schema, `scripts/data/prepare_simple_stats.py` for both normalization files, and the pinned ARDY teacher/sidecar commands. `scripts/data/raw_to_lerobot_v2.py` is an upstream real-robot converter, not a SIMPLE replay converter. The retained sidecar builder verifies the original XMovePick task and its reference latent; it does not certify arbitrary tasks. λ₀ additionally requires a prepared bundle, shown below. Existing datasets and sidecars are listed in [Hugging Face assets](ASSETS.md).
 
-If native configurations contain `/opt/rsci` or `/opt/rsci-data` defaults, preview local path replacement with `python3 tools/configure_paths.py --data-root /absolute/path/to/rsci-data`, then repeat with `--apply`. Keep data outside the checkout. Restore defaults with `python3 tools/configure_paths.py --reset --apply` before committing. Configure `.env` separately as described in the [PSI0 guide](../baselines/psi0/README.md#installation).
+If native configurations contain `/opt/rhsci` or `/opt/rsci-data` defaults, preview local path replacement with `python3 tools/configure_paths.py --data-root /absolute/path/to/rsci-data`, then repeat with `--apply`. Keep data outside the checkout. Restore defaults with `python3 tools/configure_paths.py --reset --apply` before committing. Configure `.env` separately as described in the [PSI0 guide](../baselines/psi0/README.md#installation).
 
 ## Common launcher
 
@@ -32,12 +32,12 @@ This native GR00T example uses NVIDIA N1.6 initialization and explicitly selects
 
 `--gpus` sets visible devices; otherwise the launcher inherits `CUDA_VISIBLE_DEVICES`. Process count defaults to the selected GPU count, or one. Native multi-node runs also accept `--nnodes`, `--node-rank`, `--master-addr` and `--master-port`; launch the same job on each node with a distinct rank. Relative native trainer arguments are interpreted from the working directory shown by dry-run. Pass absolute data, model and output paths.
 
-The lightweight wrappers `act.sh`, `dp.sh`, `internvla-m1.sh`, `h-rdt.sh`, `dreamzero.sh` and `beingh05.sh` select native backbones through this common launcher. `act_rsci.sh` and the other adapted backbones' wrappers directly select RHSCI training. All eleven models can also be selected through `baseline.py`.
+The lightweight wrappers `act.sh`, `dp.sh`, `internvla-m1.sh`, `h-rdt.sh`, `dreamzero.sh` and `beingh05.sh` select native backbones through this common launcher. `act_rhsci.sh` and the other adapted backbones' wrappers directly select RHSCI training. All eleven models can also be selected through `baseline.py`.
 
 ## RHSCI adapters
 
 ```bash
-python3 scripts/train/baseline.py --backbone pi05 --mode rsci \
+python3 scripts/train/baseline.py --backbone pi05 --mode rhsci \
   --python /path/to/pi05-rsci-env/bin/python --gpus 0,1 -- \
   --task my_task --model VGQ-AE \
   --dataset /datasets/my_task --sidecar /labels/my_task \
@@ -49,7 +49,7 @@ Remove `--check-data` after preflight to train. π0.5, GR00T and EgoVLA accept `
 
 PSI0 takes the exact repo ID through `--task`, its parent directory through `--data-root`, labels through `--sidecar-root`, and initialization paths through `--vlm-path` / `--ae-path`. It also accepts `--output-dir` and `--max-steps`. It uses the environment's NCCL by default; `--nccl-library` selects an explicitly validated alternate runtime.
 
-π0.5 and GR00T also use the environment's NCCL by default. Their optional `--nccl-library` or `RSCI_NCCL_LIBRARY` selects a library checked by `scripts/with_nccl_runtime.py`; `RSCI_NCCL_VERSION` sets its expected version (default `2.31.2`). No local NCCL installation path is required by default.
+π0.5 and GR00T also use the environment's NCCL by default. Their optional `--nccl-library` or `RHSCI_NCCL_LIBRARY` selects a library checked by `scripts/with_nccl_runtime.py`; `RHSCI_NCCL_VERSION` sets its expected version (default `2.31.2`). No local NCCL installation path is required by default.
 
 For λ₀, prepare the bundle first:
 
@@ -59,7 +59,7 @@ PSI_RUNTIME_ROOT=/external/runtime LAMBDA0_PYTHON=/path/to/lambda0-env/bin/pytho
   --task my_task --dataset /datasets/my_task --sidecar /labels/my_task \
   --output /bundles/my_task
 
-python3 scripts/train/baseline.py --backbone lambda0 --mode rsci \
+python3 scripts/train/baseline.py --backbone lambda0 --mode rhsci \
   --python /path/to/lambda0-env/bin/python --gpus 0 -- \
   --task my_task --variant VGQ-AE \
   --dataset /datasets/my_task --sidecar /labels/my_task \
@@ -100,7 +100,7 @@ PSI0 checkpoint recovery restores the saved sample order and consumed-batch posi
 
 ## ACT and Diffusion Policy
 
-ACT also supports RHSCI STATE, NO-STATE and EGQ-AE through `scripts/train/act_rsci.sh`, or `--backbone act --mode rsci` in the common launcher. Supply explicit `--dataset`, `--sidecar` (EGQ-AE), `--output-dir` and external `--torch-home` containing ImageNet ResNet18 weights. See [ACT](../baselines/act/README.md) for preflight, full-checkpoint recovery and video-cache behavior. The commands below select upstream native pipelines.
+ACT also supports RHSCI STATE, NO-STATE and EGQ-AE through `scripts/train/act_rhsci.sh`, or `--backbone act --mode rhsci` in the common launcher. Supply explicit `--dataset`, `--sidecar` (EGQ-AE), `--output-dir` and external `--torch-home` containing ImageNet ResNet18 weights. See [ACT](../baselines/act/README.md) for preflight, full-checkpoint recovery and video-cache behavior. The commands below select upstream native pipelines.
 
 The JSON argument lists retain upstream SIMPLE G1 model/normalization defaults, without task names, GPU assignments or machine paths. Copy and edit them for other robot schemas or optimization budgets. They are consumed directly, without shell evaluation.
 

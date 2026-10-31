@@ -16,8 +16,8 @@ from torch.utils.data import Dataset
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "scripts/train")]
-from psi.rsci import train as launch_rsci
-from psi.rsci.trainer import RSCIFinetuneTrainer
+from psi.rhsci import train as launch_rsci
+from psi.rhsci.trainer import RHSCIFinetuneTrainer
 from psi.trainers.trainer import Trainer
 
 
@@ -40,7 +40,7 @@ def tiny_forward(self, model, batch, *args, **kwargs):
     return {"loss": loss}
 
 
-class TinyTrainer(RSCIFinetuneTrainer):
+class TinyTrainer(RHSCIFinetuneTrainer):
     forward_and_loss = tiny_forward
 
 

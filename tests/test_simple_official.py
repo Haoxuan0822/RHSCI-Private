@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from check_simple import check
 
-from rsci.inference.history_client import CausalRgbHistory
+from rhsci.inference.history_client import CausalRgbHistory
 
 
 @unittest.skipUnless(os.environ.get("SIMPLE_HOME"), "设置 SIMPLE_HOME 指向官方固定源码")
@@ -35,7 +35,7 @@ class OfficialProtocolTests(unittest.TestCase):
         from fastapi.testclient import TestClient
 
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.inference.http_server import create_app
+        from rhsci.inference.http_server import create_app
 
         received = []
         frame = np.full((3, 4, 3), 7, dtype=np.uint8)

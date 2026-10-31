@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import json
 import torch
-from rsci.runtime.flow_sampling import step_action_scheduler
+from rhsci.runtime.flow_sampling import step_action_scheduler
 import wandb
 import pickle
 import numpy as np

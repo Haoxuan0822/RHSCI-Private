@@ -8,8 +8,8 @@ from pathlib import Path
 import torch
 from safetensors.torch import save_file
 
-from act.rsci import checkpoints as act
-from human_plan.rsci import checkpoints as ego
+from act.rhsci import checkpoints as act
+from human_plan.rhsci import checkpoints as ego
 
 
 class HFStateTests(unittest.TestCase):

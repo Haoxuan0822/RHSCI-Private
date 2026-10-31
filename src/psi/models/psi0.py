@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union, Dict, Any
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Self
 import torch
-from rsci.runtime.flow_sampling import step_action_scheduler
+from rhsci.runtime.flow_sampling import step_action_scheduler
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -28,7 +28,7 @@ from transformers import Qwen3VLForConditionalGeneration, AutoConfig, AutoProces
 from qwen_vl_utils import process_vision_info
 
 from psi.utils import initialize_overwatch, count_parameters
-from psi.rsci.model import RSCIPolicyMixin
+from psi.rhsci.model import RHSCIPolicyMixin
 
 # from InternVLA.model.modules.action_model.DiT_modules.models import DiT
 # from InternVLA.model.modules.projector.QFormer import CrossAttentionBlock
@@ -1552,7 +1552,7 @@ class HumanFoundationModel(nn.Module):
         ...
 
 
-class Psi0Model(RSCIPolicyMixin, nn.Module):
+class Psi0Model(RHSCIPolicyMixin, nn.Module):
 
     def train(self, mode=True):
         super().train(mode)
@@ -1606,7 +1606,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
         overwatch.info(f"Total VLM Backbone parameters: {total_params:,}")
 
 
-        self._init_rsci(model_cfg, restore_from_state_dict)
+        self._init_rhsci(model_cfg, restore_from_state_dict)
 
 
     # load pretrained vlm+action head, and all the modules needed for predict_action
@@ -1621,7 +1621,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
             raise ValueError(f"Checkpoint file {file_path} does not exist.")
         state_dict = load_file(file_path, device="cpu")
         if launch_config.model.rsci_variant:
-            return cls._restore_rsci(state_dict, launch_config.model, device)
+            return cls._restore_rhsci(state_dict, launch_config.model, device)
 
         # init empty vlm backbone from config only (skip loading base pretrained weights)
         vlm_config = AutoConfig.from_pretrained(QWEN3VL_VARIANT)
@@ -1740,7 +1740,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
         if self.rsci_spec is not None:
             if traj2ds is not None:
                 raise ValueError("RHSCI accepts RGB and instruction only (STATE baseline additionally uses state)")
-            return self._rsci_forward(input_ids, attention_mask, pixel_values, image_grid_thw,
+            return self._rhsci_forward(input_ids, attention_mask, pixel_values, image_grid_thw,
                 action_samples, states, timestep, compute_rsci_aux=compute_rsci_aux,
                 history_vlm_inputs=history_vlm_inputs, history_rgb_images=history_rgb_images,
                 history_valid=history_valid, vlm_hidden_states=vlm_hidden_states, return_dict=return_dict)
@@ -1853,7 +1853,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
             vlm_hidden_states = vlm_hidden_states.unsqueeze(1) # shape (B, 1, seq_len, D_h) (16, 1, 80, 2048)
 
 
-            vlm_hidden_states, batch_attention_mask = self._rsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
+            vlm_hidden_states, batch_attention_mask = self._rhsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
 
             # generate action from noise
             action_samples = torch.randn(
@@ -1977,7 +1977,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
             vlm_hidden_states = vlm_hidden_states.unsqueeze(1) # shape (B, 1, seq_len, D_h) (16, 1, 80, 2048)
 
 
-            vlm_hidden_states, batch_attention_mask = self._rsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
+            vlm_hidden_states, batch_attention_mask = self._rhsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
 
             # generate action from noise
             action_samples = torch.randn(
@@ -2118,7 +2118,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
                 vlm_hidden_states = vlm_hidden_states.unsqueeze(1) # shape (B, 1, seq_len, D_h) (16, 1, 80, 2048)
 
 
-                vlm_hidden_states, batch_attention_mask = self._rsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
+                vlm_hidden_states, batch_attention_mask = self._rhsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
 
                 # generate action from noise
                 action_samples = torch.randn(
@@ -2306,7 +2306,7 @@ class Psi0Model(RSCIPolicyMixin, nn.Module):
                 vlm_hidden_states = vlm_hidden_states.unsqueeze(1) # shape (B, 1, seq_len, D_h) (16, 1, 80, 2048)
 
 
-                vlm_hidden_states, batch_attention_mask = self._rsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
+                vlm_hidden_states, batch_attention_mask = self._rhsci_inference_features(vlm_hidden_states, batch_attention_mask, kwargs)
 
                 # generate action from noise
                 action_samples = torch.randn(

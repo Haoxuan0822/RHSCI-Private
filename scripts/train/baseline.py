@@ -33,7 +33,7 @@ def build_argument_parser():
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     argument_parser.add_argument("--backbone", choices=BACKBONES, required=True)
-    argument_parser.add_argument("--mode", choices=("native", "rsci"), default="native")
+    argument_parser.add_argument("--mode", choices=("native", "rhsci", "rsci"), default="native")
     argument_parser.add_argument(
         "--python", default=sys.executable, help="Interpreter in the selected baseline environment"
     )
@@ -103,7 +103,7 @@ def build_launch_plan(args):
         env["CUDA_VISIBLE_DEVICES"] = args.gpus
     source_paths = [ROOT / "src"]
     cwd = ROOT
-    if args.mode == "rsci":
+    if args.mode in ("rhsci", "rsci"):
         if args.backbone not in ADAPTED:
             raise ValueError(f"{args.backbone} has no RHSCI adapter; use --mode native")
         if (
@@ -119,8 +119,8 @@ def build_launch_plan(args):
             )
         variable = dict(
             psi0="PSI0_PYTHON",
-            pi05="PI05_RSCI_PYTHON",
-            gr00t="GROOT_RSCI_PYTHON",
+            pi05="PI05_RHSCI_PYTHON",
+            gr00t="GROOT_RHSCI_PYTHON",
             egovla="EGOVLA_PYTHON",
             lambda0="LAMBDA0_PYTHON",
             act="ACT_PYTHON",
@@ -128,7 +128,7 @@ def build_launch_plan(args):
         env[variable] = args.python
         if args.gpus is not None:
             forwarded = ["--gpus", args.gpus, *forwarded]
-        script = "act_rsci" if args.backbone == "act" else args.backbone
+        script = "act_rhsci" if args.backbone == "act" else args.backbone
         command = ["bash", str(ROOT / f"scripts/train/{script}.sh"), *forwarded]
     else:
         backbone = args.backbone
@@ -142,7 +142,7 @@ def build_launch_plan(args):
             if backbone in allowed and args.config not in allowed[backbone]:
                 raise ValueError(f"{backbone} requires one of {allowed[backbone]}")
             entry = [str(ROOT / "scripts/train.py"), args.config]
-            env["PSI_RSCI_TRAIN"] = "1"
+            env["PSI_RHSCI_TRAIN"] = "1"
         elif backbone == "pi05":
             if not args.config:
                 raise ValueError("--config must select an openpi.training.config entry")

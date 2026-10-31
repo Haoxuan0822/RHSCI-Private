@@ -548,9 +548,9 @@
       "source_path": "gr00t/model/gr00t_n1.py"
     },
     "model/gr00t_n1d6/gr00t_n1d6.py": {
-      "sha256": "8e0d9b54e60b2211e01edb75504f08d4b8f9f4b5ac8f1419cd38572f26b2004c",
+      "sha256": "02ae3a3cf079027cf0e55ceec3a24dc651a0f9d085a95f3ee7af432d2f11a8fd",
       "psi0_git_blob": "d55818d9f015efd7343afaf6e8d9c5d1a82221f7",
-      "status": "modified-from-psi0",
+      "status": "rhsci-maintained",
       "source_path": "gr00t/model/gr00t_n1d6/gr00t_n1d6.py"
     },
     "model/gr00t_n1d6/image_augmentations.py": {
@@ -565,8 +565,8 @@
       "status": "modified-from-psi0",
       "source_path": "gr00t/model/gr00t_n1d6/processing_gr00t_n1d6.py"
     },
-    "model/gr00t_n1d6/rsci_query.py": {
-      "sha256": "60b82349e55b036d39021ab506a75cef233c11b872dd197ad1e09185d7ff635f",
+    "model/gr00t_n1d6/rhsci_query.py": {
+      "sha256": "58162b96898f16e868c4f9ba14801214b68125902a5f4bf1fbe78499828fb6c3",
       "psi0_git_blob": null,
       "status": "rhsci-maintained",
       "source_path": "gr00t/model/gr00t_n1d6/rsci_query.py"
@@ -762,75 +762,75 @@
       "psi0_git_blob": "0f2c5b58eb0c37f07996a2e8ff81a0bfc6e40671",
       "status": "rhsci-maintained"
     },
-    "rsci/__init__.py": {
+    "rhsci/__init__.py": {
       "sha256": "31622e57af0617833d2e660633cabfdb9d1443c835834861f32e95db2911de1b",
       "status": "rhsci-extension-relocated",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/__init__.py",
       "source_path": "gr00t/rsci/__init__.py"
     },
-    "rsci/checkpoints.py": {
-      "sha256": "73bb7f813e2acb7bb5330b0f47e0279dd508016d7514f7365cff4fc41480a0b2",
+    "rhsci/checkpoints.py": {
+      "sha256": "a216252cfce818dbe611795875b2bcbc2b1a6a8d9a31f5523a358d4ab577765d",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/checkpoints.py",
       "source_path": "gr00t/rsci/checkpoints.py"
     },
-    "rsci/config.py": {
-      "sha256": "7047f7c3113d3ec56d00a88937b9842d708316f70ddaebf34f80460b5a3ba026",
-      "status": "rhsci-extension-maintained",
+    "rhsci/config.py": {
+      "sha256": "3e3b7cdb4bc7b2de1d853c37b9857225320a13678c021c2f035c88b06107eca0",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/config.py",
       "source_path": "gr00t/rsci/config.py"
     },
-    "rsci/contract.py": {
-      "sha256": "b2e50f237736feadd6612e1e81e65d5d0732c565b4939b96706e60524851fdfa",
+    "rhsci/contract.py": {
+      "sha256": "1c66b3b9bfc944a27d3b906dec4e9532788ea34779a7c0563a23a539348e65f8",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/contract.py",
       "source_path": "gr00t/rsci/contract.py"
     },
-    "rsci/data.py": {
-      "sha256": "b62d65ee413cda63bd5d23a08039b076cd16c28223078dc3ef073268740dfe79",
+    "rhsci/data.py": {
+      "sha256": "1e174c8d26716ff097e5ec4da4c158b7848e34a094b5205d1e69352ec86c844f",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/data.py",
       "source_path": "gr00t/rsci/data.py"
     },
-    "rsci/guardian.py": {
-      "sha256": "ad4750be6b43e658a38c79fc94b9e8fc8ce1553aeb01e85c98737924fbf7cce4",
-      "status": "rhsci-extension-maintained",
+    "rhsci/guardian.py": {
+      "sha256": "2560b0785dab6ec091b80289cab67ac9375380686d5d39922d59b073e66fc1d3",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/guardian.py",
       "source_path": "gr00t/rsci/guardian.py"
     },
-    "rsci/memory.py": {
+    "rhsci/memory.py": {
       "sha256": "3bd602a88ea1143eed5adbe4d17f5b266a6385f644dfd49c08bc4a5338ceb8c7",
       "status": "rhsci-extension-relocated",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/memory.py",
       "source_path": "gr00t/rsci/memory.py"
     },
-    "rsci/preflight.py": {
-      "sha256": "cdde74e89f7cea46c4984a63dd1a5d381dfcc0bc94619065bf17538140746f11",
-      "status": "rhsci-extension-maintained",
+    "rhsci/preflight.py": {
+      "sha256": "3fb5cfb921aabdf3ae02f154364d180ba28860ff7e59377fdf22d11ab47548a5",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/preflight.py",
       "source_path": "gr00t/rsci/preflight.py"
     },
-    "rsci/serve.py": {
-      "sha256": "d79743383f19e459eacf633f00302f368ee2a2bbd0ca9d84f63a6c20935059f5",
-      "status": "rhsci-extension-relocated",
+    "rhsci/serve.py": {
+      "sha256": "aa43185a0bf83665e1aef92b2d8c3b17d93039dc60cb48d68d5798e4668b51fe",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/serve.py",
       "source_path": "gr00t/rsci/serve.py"
     },
-    "rsci/train.py": {
-      "sha256": "ae5205e0c34e90fbcc67a2760dfc0160f343835c0fd9f0cb3e2d37f2b8def5e6",
-      "status": "rhsci-extension-maintained",
+    "rhsci/train.py": {
+      "sha256": "62bcda3f1a153297e5f370e2d7acd50f2918e46bcec4905928c3e9fa63de9761",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/train.py",
       "source_path": "gr00t/rsci/train.py"
     },
-    "rsci/trainer.py": {
-      "sha256": "d97d2b16ba0039f45bda45276d36c1ee14dd67a81d82e215dd9327e765a6349e",
-      "status": "rhsci-extension-maintained",
+    "rhsci/trainer.py": {
+      "sha256": "99bf34310b40cbe3e7097effee0c80651ed895a5806e2012ae95c259e6dd662c",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/trainer.py",
       "source_path": "gr00t/rsci/trainer.py"
     },
-    "rsci/worker.py": {
-      "sha256": "13b33ddfc64c7bf3cf180526881259c398c23a1128bda1c9de8c447ae845f37b",
-      "status": "rhsci-extension-maintained",
+    "rhsci/worker.py": {
+      "sha256": "0ea704d8911dc189d3ccb9561307c9f7b62d01b6b200f44aed88e7fb5da854bf",
+      "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/worker.py",
       "source_path": "gr00t/rsci/worker.py"
     },

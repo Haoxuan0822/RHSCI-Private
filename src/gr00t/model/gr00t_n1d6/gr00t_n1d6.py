@@ -90,7 +90,7 @@ class Gr00tN1d6ActionHead(nn.Module):
         )
         self.num_timestep_buckets = config.num_timestep_buckets
         if config.rsci_variant == "VGQ-AE":
-            from .rsci_query import VisualStateQuery
+            from .rhsci_query import VisualStateQuery
             self.rsci_query = VisualStateQuery(config.backbone_embedding_dim,
                                                config.input_embedding_dim, config.hidden_size)
         self.set_trainable_parameters(
@@ -748,7 +748,7 @@ class Gr00tN1d6(PreTrainedModel):
         )
 
     def _init_weights(self, module):
-        from .rsci_query import VisualStateQuery
+        from .rhsci_query import VisualStateQuery
         if isinstance(module, VisualStateQuery):
             module.reset_parameters()
         else:
@@ -804,7 +804,7 @@ class Gr00tN1d6(PreTrainedModel):
         # 原动作路径只收到当前帧；copy避免vlln原地修改当前特征导致辅助分支重复归一化。
         action_outputs = self.action_head(BatchFeature(dict(backbone_outputs)), action_inputs)
         if self.config.rsci_variant == "VGQ-AE":
-            from .rsci_query import masked_ardy_loss
+            from .rhsci_query import masked_ardy_loss
             if "rsci_history" not in inputs:
                 raise ValueError("VGQ-AE training forward requires three historical VLM inputs")
             frames = []

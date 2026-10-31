@@ -12,8 +12,8 @@ from accelerate import Accelerator
 from safetensors.torch import save_file
 from torch.utils.data import DataLoader, TensorDataset
 
-from psi.rsci.checkpoints import checkpoint_ok
-from psi.rsci.trainer import DataProgress, EpochRandomSampler, finite_guard
+from psi.rhsci.checkpoints import checkpoint_ok
+from psi.rhsci.trainer import DataProgress, EpochRandomSampler, finite_guard
 
 
 def distributed_failure_worker(rank, rendezvous, output):

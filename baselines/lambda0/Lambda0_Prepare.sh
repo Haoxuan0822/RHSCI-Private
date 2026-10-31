@@ -6,4 +6,4 @@ lambda_runtime=${PSI_RUNTIME_ROOT:-/opt/rsci-data}
 lambda_python=${LAMBDA0_PYTHON:-$lambda_runtime/.venv-lambda0-rsci/bin/python}
 export PYTHONPATH="$lambda_dir:$lambda_code/src${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
-exec "$lambda_python" -m lambda0.rsci.prepare "$@"
+exec "$lambda_python" -m lambda0.rhsci.prepare "$@"

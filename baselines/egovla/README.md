@@ -1,6 +1,6 @@
 # EgoVLA
 
-Backbone package: `src/human_plan`; VILA dependency: `src/egovla/VILA`. Adapter: `src/human_plan/rsci` (`human_plan.rsci`).
+Backbone package: `src/human_plan`; VILA dependency: `src/egovla/VILA`. Adapter: `src/human_plan/rhsci` (`human_plan.rhsci`).
 Entry: `bash scripts/train/egovla.sh --help`.
 
 The adapter uses the SIMPLE 36D four-layer action decoder. VGQ-AE adds training-only Reader/query supervision; STATE uses the native state path. VLM training defaults to full finetuning. VGQ-AE inference does not use training history or auxiliary queries.
@@ -16,7 +16,7 @@ python3.11 -m venv /opt/rsci-data/.venv-egovla-rsci
 source /opt/rsci-data/.venv-egovla-rsci/bin/activate
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
-python -m pip install -r baselines/egovla/requirements-rsci.txt
+python -m pip install -r baselines/egovla/requirements-rhsci.txt
 python -m pip install 'https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x86_64.whl#sha256=cd1a45ebfc1731a13e55ad68e0c9ad92390ddfffba306f9222be67c6d5a805af'
 export PYTHONPATH="$PWD/src:$PWD/src/egovla/VILA${PYTHONPATH:+:$PYTHONPATH}"
 export EGOVLA_PYTHON="$VIRTUAL_ENV/bin/python"
@@ -30,12 +30,12 @@ The FlashAttention wheel above matches CPython 3.11, Linux x86_64, Torch 2.7 and
 Prepare the fixed SIMPLE base VLM separately:
 
 ```bash
-python -m human_plan.rsci.prepare_assets --runtime-root /opt/rsci-data
+python -m human_plan.rhsci.prepare_assets --runtime-root /opt/rsci-data
 ```
 
 This downloads and verifies the base VLM and registers its `RSCI_ASSETS.json`; it does not start training. For already downloaded base assets, use the training entry's `--register-assets` with `--checkpoint` and your task/data arguments. Registration is optional for an existing native base-model directory. Use `--check` for explicit model/processor and asset-hash checks; ordinary startup uses file inventory/size and native loading.
 
-`--dry-run` and `--check-data` are available before training. Pass `--task`, `--dataset`, `--sidecar`, `--checkpoint`, `--output-dir`, batch/GPU settings, and either `--max-steps` or `--num-train-epochs`; see [the training guide](../../docs/TRAINING.md). It uses the environment's NCCL by default; set `RSCI_NCCL_LIBRARY` only for a validated alternate runtime.
+`--dry-run` and `--check-data` are available before training. Pass `--task`, `--dataset`, `--sidecar`, `--checkpoint`, `--output-dir`, batch/GPU settings, and either `--max-steps` or `--num-train-epochs`; see [the training guide](../../docs/TRAINING.md). It uses the environment's NCCL by default; set `RHSCI_NCCL_LIBRARY` only for a validated alternate runtime.
 
 ## SIMPLE 115-epoch preset
 
@@ -56,9 +56,9 @@ This selects 115 epochs and enforces global batch 512. The budget is epochs × c
 
 The 115-epoch preset also defaults `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` and `NCCL_SHM_DISABLE=0` before importing Torch or starting workers. Explicit environment values take precedence. SDPA, gradient checkpointing and DDP gradient bucket views remain enabled by the existing recipe. Without the preset, no allocator setting is injected.
 
-Setting `RSCI_NCCL_LIBRARY=/absolute/path/to/libnccl.so` preloads that library before torchrun and its workers start. The launcher checks the mapped library and its actual runtime version. EgoVLA expects `2.27.3` by default for this override; set `RSCI_NCCL_VERSION` explicitly for another verified version. With no override, it uses the environment's NCCL. This option does not change batch size, gradient reduction or model settings.
+Setting `RHSCI_NCCL_LIBRARY=/absolute/path/to/libnccl.so` preloads that library before torchrun and its workers start. The launcher checks the mapped library and its actual runtime version. EgoVLA expects `2.27.3` by default for this override; set `RHSCI_NCCL_VERSION` explicitly for another verified version. With no override, it uses the environment's NCCL. This option does not change batch size, gradient reduction or model settings.
 
-Serving uses `python -m human_plan.rsci.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
+Serving uses `python -m human_plan.rhsci.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
 
 
 ## 2026-10-30 PSI0-RAW integration

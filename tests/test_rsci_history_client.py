@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from rsci.inference.history_client import CausalRgbHistory, install
+from rhsci.inference.history_client import CausalRgbHistory, install
 
 
 class HistoryTests(unittest.TestCase):

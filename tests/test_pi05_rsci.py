@@ -11,14 +11,14 @@ from torch import nn
 from transformers import GemmaConfig
 from transformers.models.gemma.modeling_gemma import GemmaModel
 
-from openpi.rsci.checkpoints import (
+from openpi.rhsci.checkpoints import (
     atomic_json,
     checkpoint_ok,
     complete_checkpoint,
     prune_rolling,
 )
-from openpi.rsci.model import Pi05RSCI
-from openpi.rsci.processing import Processor
+from openpi.rhsci.model import Pi05RHSCI
+from openpi.rhsci.processing import Processor
 
 
 def ddp_worker(rank, rendezvous):
@@ -52,8 +52,8 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
     import torch.distributed as dist
     from transformers import TrainingArguments
 
-    from openpi.rsci.processing import collate
-    from openpi.rsci.train import build_checkpoint_callback, create_trainer_class
+    from openpi.rhsci.processing import collate
+    from openpi.rhsci.train import build_checkpoint_callback, create_trainer_class
 
     # CPU 多 rank 默认设备 cpu:0 无法由 torch2.7 恢复；仅测试显式选择标准 cpu。
     os.environ.update(
@@ -115,7 +115,7 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
 def nonfinite_ddp_worker(rank, rendezvous, output):
     import torch.distributed as dist
 
-    from rsci.runtime.numerics import require_finite
+    from rhsci.runtime.numerics import require_finite
 
     torch.set_num_threads(1)
     dist.init_process_group("gloo", init_method="file://" + rendezvous, rank=rank, world_size=2)
@@ -169,7 +169,7 @@ class TinyBackbone(nn.Module):
 
 def fixture(variant="VGQ-AE"):
     torch.manual_seed(3)
-    model = Pi05RSCI(variant, TinyBackbone(), vlm_width=64, ae_width=32, compile_inference=False)
+    model = Pi05RHSCI(variant, TinyBackbone(), vlm_width=64, ae_width=32, compile_inference=False)
     batch = dict(
         images=torch.randn(2, 4, 3, 2, 2),
         tokens=torch.tensor([[1, 2, 0], [1, 2, 3]]),
@@ -229,7 +229,7 @@ class ModelTests(unittest.TestCase):
         from torch.nn import functional as F
 
         from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
-        from openpi.rsci.model import time_embedding
+        from openpi.rhsci.model import time_embedding
 
         model, batch = fixture()
         model.eval()
@@ -419,8 +419,8 @@ class CheckpointTests(unittest.TestCase):
     def test_real_trainer_save_and_resume(self):
         from transformers import TrainingArguments
 
-        from openpi.rsci.processing import collate
-        from openpi.rsci.train import build_checkpoint_callback, create_trainer_class
+        from openpi.rhsci.processing import collate
+        from openpi.rhsci.train import build_checkpoint_callback, create_trainer_class
 
         Trainer = create_trainer_class()
         model, batch = fixture()
@@ -498,7 +498,7 @@ class NumericalTests(unittest.TestCase):
     def test_one_bad_rank_stops_all_ranks(self):
         import torch.multiprocessing as mp
 
-        from rsci.runtime.numerics import FAILURE, reject_numerical_failure
+        from rhsci.runtime.numerics import FAILURE, reject_numerical_failure
 
         with tempfile.TemporaryDirectory() as directory:
             mp.spawn(
@@ -515,8 +515,8 @@ class NumericalTests(unittest.TestCase):
     def test_production_trainer_rejects_loss_and_backward_overflow_before_update(self):
         from transformers import TrainingArguments
 
-        from openpi.rsci.train import create_trainer_class
-        from rsci.runtime.numerics import FAILURE
+        from openpi.rhsci.train import create_trainer_class
+        from rhsci.runtime.numerics import FAILURE
 
         class InfiniteBackward(torch.autograd.Function):
             @staticmethod
@@ -568,7 +568,7 @@ class NumericalTests(unittest.TestCase):
 
 class QueueTests(unittest.TestCase):
     def test_preflight_rejects_other_tasks_stale_run_and_zero_restart(self):
-        from openpi.rsci.train import build_argument_parser, validate_run
+        from openpi.rhsci.train import build_argument_parser, validate_run
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

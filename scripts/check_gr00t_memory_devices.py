@@ -31,10 +31,9 @@ def require_idle_devices(gpus=None):
 
 def require_fresh_output():
     import argparse
-    import os
     from pathlib import Path
 
-    from gr00t.rsci.train import build_argument_parser, resolve_training_paths
+    from gr00t.rhsci.train import build_argument_parser, resolve_training_paths
 
     probe = argparse.ArgumentParser(add_help=False)
     probe.add_argument("--steps", type=int, default=6)

@@ -13,7 +13,7 @@ HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 "$PSI0_PYTHON" scripts/data/download.py 
 HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 "$PSI0_PYTHON" scripts/data/download.py \
   --repo-id USC-PSI-Lab/psi-model --repo-type model \
   --remote-dir psi0/postpre.1by1.pad36.2601131206.ckpt.he30k --local-dir "$PSI_AE"
-HF_HUB_OFFLINE=0 "$GROOT_RSCI_PYTHON" -c 'import os; from huggingface_hub import snapshot_download; snapshot_download(repo_id="nvidia/GR00T-N1.6-3B", local_dir=os.environ["GROOT_BASE"])'
+HF_HUB_OFFLINE=0 "$GROOT_RHSCI_PYTHON" -c 'import os; from huggingface_hub import snapshot_download; snapshot_download(repo_id="nvidia/GR00T-N1.6-3B", local_dir=os.environ["GROOT_BASE"])'
 ```
 
 Accept any access terms and authenticate with Hugging Face if required. These are initialization weights, not RHSCI-trained policies or ARDY labels. Launchers use offline loading after preparation.
@@ -44,7 +44,7 @@ Generate statistics **before** building sidecars: ARDY's dataset fingerprint cov
 
 ## Prepare the pinned ARDY teacher
 
-The following uses the [official ARDY source](https://github.com/nv-tlabs/ardy/tree/693f74d13b3d04a0a22ce127ee79c929dd89756b) and the model revision in `src/rsci/data/ardy_teacher_artifacts.py`. Use a separate environment: that source's Transformers dependencies differ from PSI0 and GR00T. CUDA builds must match your driver and GPU.
+The following uses the [official ARDY source](https://github.com/nv-tlabs/ardy/tree/693f74d13b3d04a0a22ce127ee79c929dd89756b) and the model revision in `src/rhsci/data/ardy_teacher_artifacts.py`. Use a separate environment: that source's Transformers dependencies differ from PSI0 and GR00T. CUDA builds must match your driver and GPU.
 
 ```bash
 export ARDY_SOURCE="$PSI_RUNTIME_ROOT/third_party/ardy"

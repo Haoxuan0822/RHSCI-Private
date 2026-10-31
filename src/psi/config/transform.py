@@ -15,7 +15,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
-from rsci.data.state_noise import TrainingStateNoise, add_measurement_noise
+from rhsci.data.state_noise import TrainingStateNoise, add_measurement_noise
 from torchvision.transforms import v2
 from psi.config.augmentation import *
 from psi.utils import get_asset_dir, pt_to_pil, resolve_path, pad_to_len

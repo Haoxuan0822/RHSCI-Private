@@ -17,16 +17,16 @@ import numpy as np
 import torch
 from torch import nn
 
-from human_plan.rsci.checkpoints import (
+from human_plan.rhsci.checkpoints import (
     atomic_json,
     checkpoint_ok,
     load_trainables,
     prune,
     publish,
 )
-from human_plan.rsci.model import EgoVLARSCI, decode_latents, masked_ardy_loss
-from human_plan.rsci.processing import Collator, Processor
-from human_plan.rsci.train import (
+from human_plan.rhsci.model import EgoVLARHSCI, decode_latents, masked_ardy_loss
+from human_plan.rhsci.processing import Collator, Processor
+from human_plan.rhsci.train import (
     CODE,
     assets,
     build_argument_parser,
@@ -166,7 +166,7 @@ class TinyTokenizer:
 class ModelTests(unittest.TestCase):
     def setUp(self):
         torch.manual_seed(5)
-        self.model = EgoVLARSCI(Backbone(), vlm_training="frozen")
+        self.model = EgoVLARHSCI(Backbone(), vlm_training="frozen")
         self.batch = batch()
 
     def test_official_decoder_exact_outputs_and_gradients(self):
@@ -286,7 +286,7 @@ class ModelTests(unittest.TestCase):
 class FullVLMTests(unittest.TestCase):
     def test_checkpointed_four_frame_losses_and_gradients_match(self):
         torch.manual_seed(13)
-        reference = EgoVLARSCI(Backbone()).train()
+        reference = EgoVLARHSCI(Backbone()).train()
         recomputed = copy.deepcopy(reference)
         recomputed.gradient_checkpointing_enable()
         self.assertTrue(recomputed.backbone.llm.model.is_gradient_checkpointing)
@@ -339,7 +339,7 @@ class FullVLMTests(unittest.TestCase):
     def test_both_losses_update_vision_projector_and_language(self):
         for branch in ("action", "ardy"):
             torch.manual_seed(7)
-            model = EgoVLARSCI(Backbone()).eval()
+            model = EgoVLARHSCI(Backbone()).eval()
             inputs = batch()
             images = inputs["images"].requires_grad_()
             current = model.encode(
@@ -380,7 +380,7 @@ class FullVLMTests(unittest.TestCase):
                 self.assertIsNone(model.decoder.output_projection[0].weight.grad)
 
     def test_native_vlm_precision_mode_and_explicit_frozen_output(self):
-        model = EgoVLARSCI(Backbone().bfloat16())
+        model = EgoVLARHSCI(Backbone().bfloat16())
         self.assertEqual(next(model.backbone.llm.parameters()).dtype, torch.bfloat16)
         self.assertEqual(next(model.backbone.vision.parameters()).dtype, torch.bfloat16)
         self.assertTrue(
@@ -423,7 +423,7 @@ class FullVLMTests(unittest.TestCase):
 
 class OfficialStateTests(unittest.TestCase):
     def test_checkpoint_preserves_state_projection_and_rejects_other_variant(self):
-        model = EgoVLARSCI(Backbone(), variant="STATE")
+        model = EgoVLARHSCI(Backbone(), variant="STATE")
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp)
             create_trainer_class()(
@@ -444,7 +444,7 @@ class OfficialStateTests(unittest.TestCase):
                 ),
                 launch_contract={},
             )._save(path)
-            restored = EgoVLARSCI(Backbone(), variant="STATE")
+            restored = EgoVLARHSCI(Backbone(), variant="STATE")
             load_trainables(restored, path)
             for name, parameter in model.named_parameters():
                 if parameter.requires_grad:
@@ -452,11 +452,11 @@ class OfficialStateTests(unittest.TestCase):
                         dict(restored.named_parameters())[name], parameter, rtol=0, atol=0
                     )
             with self.assertRaises(ValueError):
-                load_trainables(EgoVLARSCI(Backbone()), path)
+                load_trainables(EgoVLARHSCI(Backbone()), path)
 
     def test_native_state_decoder_loss_and_state_gradient(self):
         torch.manual_seed(9)
-        model = EgoVLARSCI(Backbone(), variant="STATE").eval()
+        model = EgoVLARHSCI(Backbone(), variant="STATE").eval()
         sample = batch()
         images = sample["images"][:, -1:]
         states = torch.randn(2, 32, requires_grad=True)
@@ -641,9 +641,9 @@ class ProcessorTests(unittest.TestCase):
         self.assertTrue((collated["labels"][~collated["attention_mask"]] == -100).all())
 
     def test_simple_inference_ignores_state_and_preserves_numpy_protocol(self):
-        from human_plan.rsci.serve import decode_numpy, encode_numpy, predict
+        from human_plan.rhsci.serve import decode_numpy, encode_numpy, predict
 
-        model = EgoVLARSCI(Backbone()).eval()
+        model = EgoVLARHSCI(Backbone()).eval()
         image = np.full((12, 20, 3), 50, dtype=np.uint8)
         payload = dict(image=dict(rgb_head_stereo_left=image), instruction="lift")
         expected = predict(model, self.processor, payload)
@@ -654,7 +654,7 @@ class ProcessorTests(unittest.TestCase):
         np.testing.assert_array_equal(decode_numpy(encode_numpy(actual)), expected)
 
     def test_state_processor_and_server_require_actual_state(self):
-        from human_plan.rsci.serve import predict
+        from human_plan.rhsci.serve import predict
 
         image = np.full((12, 20, 3), 50, dtype=np.uint8)
         state = np.arange(32, dtype=np.float32) / 32
@@ -670,7 +670,7 @@ class ProcessorTests(unittest.TestCase):
             set(item), {"images", "input_ids", "labels", "actions", "action_mask", "states"}
         )
         torch.testing.assert_close(item["states"], torch.from_numpy(state))
-        model = EgoVLARSCI(Backbone(), variant="STATE").eval()
+        model = EgoVLARHSCI(Backbone(), variant="STATE").eval()
         payload = dict(
             image=dict(rgb_head_stereo_left=image), instruction="lift", state=dict(states=state)
         )
@@ -682,7 +682,7 @@ class ProcessorTests(unittest.TestCase):
 
 
 class RecipeAndCheckpointTests(unittest.TestCase):
-    @patch("human_plan.rsci.checkpoints.prune", lambda *args: None)
+    @patch("human_plan.rhsci.checkpoints.prune", lambda *args: None)
     def test_resume_mid_later_epochs_with_accumulation(self):
         from torch.utils.data import Dataset
         from transformers import set_seed
@@ -729,7 +729,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                 ]
             )
             set_seed(23)
-            initial, dataset = EgoVLARSCI(Backbone()), Indexed()
+            initial, dataset = EgoVLARHSCI(Backbone()), Indexed()
             arguments = build_training_arguments(
                 args, dict(output=Path(root) / "continuous"), cpu=True
             )
@@ -782,7 +782,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
         from torch.utils.data import DataLoader, TensorDataset
         from transformers import Trainer
 
-        from rsci.runtime.hf_resume import epoch_safe_training_loop, skip_preserving_epoch
+        from rhsci.runtime.hf_resume import epoch_safe_training_loop, skip_preserving_epoch
 
         native = Trainer._inner_training_loop
         repaired = epoch_safe_training_loop(Trainer)
@@ -923,7 +923,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             paths["output"] = Path(root)
             parameters = build_training_arguments(args, paths, cpu=True)
             trainer = create_trainer_class()(
-                model=EgoVLARSCI(Backbone()), args=parameters, launch_contract={}
+                model=EgoVLARHSCI(Backbone()), args=parameters, launch_contract={}
             )
             trainer.create_optimizer_and_scheduler(40000)
             self.assertEqual(trainer.optimizer.defaults["betas"], (0.9, 0.999))
@@ -934,7 +934,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             self.assertEqual(parameters.weight_decay, 0.0)
             self.assertEqual(parameters.gradient_accumulation_steps, 4)
 
-    @patch("human_plan.rsci.checkpoints.prune", lambda *args: None)
+    @patch("human_plan.rhsci.checkpoints.prune", lambda *args: None)
     def test_hf_full_resume_model_adam_rng_and_step(self):
         from torch.utils.data import Dataset
         from transformers import set_seed
@@ -973,7 +973,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             )
             paths = dict(output=Path(root))
             set_seed(11)
-            initial = EgoVLARSCI(Backbone())
+            initial = EgoVLARHSCI(Backbone())
             dataset = Fixed()
             arguments = build_training_arguments(args, paths, cpu=True)
             arguments.save_steps = 1
@@ -1005,7 +1005,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                     torch.testing.assert_close(parameter, expected[name], rtol=0, atol=0)
             self.assertTrue(checkpoint_ok(Path(root) / "checkpoint-2", 1, digest, verify=True))
             with patch(
-                "human_plan.rsci.checkpoints.validate_numerics",
+                "human_plan.rhsci.checkpoints.validate_numerics",
                 side_effect=FloatingPointError("fixture"),
             ):
                 self.assertFalse(checkpoint_ok(Path(root) / "checkpoint-2", 1, digest, verify=True))

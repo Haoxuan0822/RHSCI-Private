@@ -20,10 +20,10 @@ from transformers.models.qwen3_vl.modeling_qwen3_vl import Qwen3VLTextModel
 from psi.config.model_psi0 import Psi0ModelConfig
 from psi.config.transform import SimpleRepackTransform
 from psi.models.psi0 import ActionTransformerModel, Psi0Model
-from psi.rsci.model import VARIANTS, RSCISpec, masked_auxiliary_loss
+from psi.rhsci.model import VARIANTS, RHSCISpec, masked_auxiliary_loss
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/train"))
-from psi.rsci import train as launch_rsci
+from psi.rhsci import train as launch_rsci
 
 
 class SmallVLM(nn.Module):
@@ -100,7 +100,7 @@ def policy(variant, mode="frozen", vlm=None, gradient_checkpointing=False, use_r
 
     with (
         patch("psi.models.psi0.ActionTransformerModel", side_effect=small_header),
-        patch("psi.rsci.rgb_encoder.DINOv2RGBAdapter", SmallDINO),
+        patch("psi.rhsci.rgb_encoder.DINOv2RGBAdapter", SmallDINO),
     ):
         model = Psi0Model(cfg, vlm if vlm is not None else SmallVLM())
     return cfg, model
@@ -153,7 +153,7 @@ def ddp_worker(rank, rendezvous):
         torch.distributed.destroy_process_group()
 
 
-class RSCITests(unittest.TestCase):
+class RHSCITests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         torch.set_num_threads(1)
@@ -176,7 +176,7 @@ class RSCITests(unittest.TestCase):
                             if p.requires_grad
                         )
                     )
-                    if RSCISpec(variant).query:
+                    if RHSCISpec(variant).query:
                         auxiliary = masked_auxiliary_loss(
                             output.ardy_prediction, value["ardy_target"], value["ardy_valid"]
                         )
@@ -211,13 +211,13 @@ class RSCITests(unittest.TestCase):
             value["states"].fill_(float("nan"))
             second = model(**inputs(value))
             torch.testing.assert_close(first.action, second.action, rtol=0, atol=0)
-            if not RSCISpec(variant).forward_latent:
+            if not RHSCISpec(variant).forward_latent:
                 inference = inputs(value, False)
                 for key in ("history_vlm_inputs", "history_rgb_images", "history_valid"):
                     inference.pop(key)
                 with patch.object(
                     model,
-                    "_rsci_query_latent",
+                    "_rhsci_query_latent",
                     side_effect=AssertionError("inference must skip Query"),
                 ):
                     torch.testing.assert_close(
@@ -240,8 +240,8 @@ class RSCITests(unittest.TestCase):
         second = model(**inputs(value, False)).action
         self.assertGreater((first - second).abs().max().item(), 1e-7)
         hidden = model.vlm_model(**vl_inputs()).hidden_states[-1]
-        with patch.object(model, "_rsci_query_latent", wraps=model._rsci_query_latent) as query:
-            appended, mask = model._rsci_inference_features(hidden, value["attention_mask"], value)
+        with patch.object(model, "_rhsci_query_latent", wraps=model._rhsci_query_latent) as query:
+            appended, mask = model._rhsci_inference_features(hidden, value["attention_mask"], value)
             self.assertEqual(query.call_count, 1)
             self.assertEqual(appended.shape[1], hidden.shape[1] + 1)
             self.assertEqual(mask.shape[1], hidden.shape[1] + 1)
@@ -274,7 +274,7 @@ class RSCITests(unittest.TestCase):
             repack = SimpleRepackTransform(rsci_variant=variant, action_chunk_size=2)
             timestamps = repack.delta_timestamps(50)
             self.assertNotIn("observation.depth.egocentric", timestamps)
-            if RSCISpec(variant).query:
+            if RHSCISpec(variant).query:
                 self.assertEqual(
                     timestamps["observation.images.egocentric"], [-0.12, -0.08, -0.04, 0]
                 )
@@ -319,7 +319,7 @@ class RSCITests(unittest.TestCase):
                 self.assertFalse(hasattr(cfg.model, "use_depth"))
                 self.assertIsNone(cfg.log.report_to)
         with self.assertRaises(ValueError):
-            RSCISpec("EGQ-AE*")
+            RHSCISpec("EGQ-AE*")
 
     def test_custom_training_budget_and_environment_nccl(self):
         args = launch_rsci.build_argument_parser().parse_args(
@@ -438,7 +438,7 @@ class RSCITests(unittest.TestCase):
                 patch("transformers.AutoProcessor.from_pretrained", return_value=object()),
                 patch("psi.models.psi0.ActionTransformerModel", side_effect=small_header),
             ):
-                restored = Psi0Model._restore_rsci(load_file(path), cfg, "cpu")
+                restored = Psi0Model._restore_rhsci(load_file(path), cfg, "cpu")
             with torch.no_grad(), torch.autocast("cpu", dtype=torch.bfloat16):
                 torch.testing.assert_close(
                     model(**inputs(value)).action, restored(**inputs(value)).action, rtol=0, atol=0
@@ -503,15 +503,15 @@ class RSCITests(unittest.TestCase):
             rsci_history_valid=np.array([False, False, True, True]),
             rsci_frame_offsets=np.array([-6, -4, -2, 0]),
         )
-        history = model.rsci_history_from_request(condition, "test", None, frames[-1])
+        history = model.rhsci_history_from_request(condition, "test", None, frames[-1])
         self.assertEqual(history["history_rgb_images"].shape, (1, 4, 3, 4, 6))
         with self.assertRaisesRegex(ValueError, "must equal"):
-            model.rsci_history_from_request(condition, "test", None, np.ones_like(frames[-1]))
+            model.rhsci_history_from_request(condition, "test", None, np.ones_like(frames[-1]))
         condition["rsci_frame_offsets"] = np.array([-3, -2, -1, 0])
         with self.assertRaisesRegex(ValueError, "offsets"):
-            model.rsci_history_from_request(condition, "test", None, frames[-1])
+            model.rhsci_history_from_request(condition, "test", None, frames[-1])
         model = policy("EGQ-AE")[1]
-        self.assertEqual(model.rsci_history_from_request({}, "test", None), {})
+        self.assertEqual(model.rhsci_history_from_request({}, "test", None), {})
 
     def test_public_prediction_and_training_rtc_keep_star_once(self):
         from diffusers.schedulers.scheduling_flow_match_euler_discrete import (
@@ -542,7 +542,7 @@ class RSCITests(unittest.TestCase):
             }
             for rtc in (False, True):
                 with patch.object(
-                    model, "_rsci_query_latent", wraps=model._rsci_query_latent
+                    model, "_rhsci_query_latent", wraps=model._rhsci_query_latent
                 ) as query:
                     args = dict(
                         observations=[[Image.new("RGB", (32, 32))]],

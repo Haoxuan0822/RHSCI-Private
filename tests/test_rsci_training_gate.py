@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from psi.config.model_psi0 import Psi0ModelConfig
-from psi.rsci import train
+from psi.rhsci import train
 
 
 class TrainingGateTests(unittest.TestCase):

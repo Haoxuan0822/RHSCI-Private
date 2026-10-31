@@ -1,17 +1,34 @@
 """验证兼容源码编辑可恢复，但数据/模型/优化器配方变化仍会被识别。"""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from rsci.runtime.contracts import reuse_run_contract
+from rhsci.runtime.contracts import reuse_run_contract
 
 
 class RunContractTests(unittest.TestCase):
+    def test_rhsci_environment_names_preserve_legacy_launch_settings(self):
+        """旧启动环境仍可读取；新名称优先，且读取过程不修改调用者环境。"""
+        from rhsci.runtime.environment import get_env
+
+        with patch.dict(os.environ, {"RSCI_INPUT_CACHE": "/legacy"}, clear=True):
+            before = dict(os.environ)
+            self.assertEqual(get_env("RHSCI_INPUT_CACHE"), "/legacy")
+            self.assertEqual(dict(os.environ), before)
+            os.environ["RHSCI_INPUT_CACHE"] = "/current"
+            self.assertEqual(get_env("RHSCI_INPUT_CACHE"), "/current")
+            self.assertEqual(get_env("RSCI_INPUT_CACHE"), "/current")
+            os.environ["RHSCI_INPUT_CACHE"] = ""
+            self.assertEqual(get_env("RHSCI_INPUT_CACHE"), "")
+            self.assertEqual(get_env("CUDA_VISIBLE_DEVICES", "0"), "0")
+
     def test_native_assets_do_not_require_private_receipts(self):
-        from human_plan.rsci.preflight import assets
-        from lambda0.rsci.assets import verify_assets
+        from human_plan.rhsci.preflight import assets
+        from lambda0.rhsci.assets import verify_assets
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

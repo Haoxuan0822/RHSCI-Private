@@ -1,13 +1,13 @@
 # GR00T
 
-Implementation: `src/gr00t/rsci`, alongside the native GR00T model.
+Implementation: `src/gr00t/rhsci`, alongside the native GR00T model.
 Entry: `bash scripts/train/gr00t.sh --help`.
 
 This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00t/LICENSE) limits the work and derivatives to non-commercial research and imposes other use restrictions. The current upstream main branch's license does not replace these terms. See [Third-party notices](../../THIRD_PARTY_NOTICES.md).
 
 The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE and VGQ-AE.
 
-The separate environment requires [requirements.txt](requirements.txt) and the native GR00T dependencies. `GROOT_RSCI_PYTHON` overrides the interpreter; the default is `$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python`.
+The separate environment requires [requirements.txt](requirements.txt) and the native GR00T dependencies. `GROOT_RHSCI_PYTHON` overrides the interpreter; the default is `$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python`.
 
 See the [end-to-end README example](../../README.md#getting-started) for the isolated installation recipe and a box-hugging VGQ-AE run, followed by its matching HTTP server and SIMPLE evaluation commands. The example pins PyTorch 2.7.0, Transformers 4.51.3 and FlashAttention 2.7.4.post1, uses `top4` tuning with global batch 24 and trains for 20000 updates. Its service loads `checkpoint-20000` and returns 16 actions per request.
 

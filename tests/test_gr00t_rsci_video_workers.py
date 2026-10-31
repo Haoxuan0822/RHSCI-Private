@@ -17,7 +17,7 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from gr00t.rsci.data import SimpleRSCIDataset
+from gr00t.rhsci.data import SimpleRHSCIDataset
 
 
 def image_hash(sample):
@@ -103,7 +103,7 @@ class VideoWorkerTests(unittest.TestCase):
         for variant in ("NO-STATE", "VGQ-AE"):
             with self.subTest(variant=variant):
                 # 只测RGB缓存；VGQ的正式教师校验另有独立测试，不伪造标签。
-                dataset = SimpleRSCIDataset(self.root, "NO-STATE")
+                dataset = SimpleRHSCIDataset(self.root, "NO-STATE")
                 dataset.variant = variant
                 reference = {i: image_hash(dataset.raw_sample(i)) for i in range(len(dataset))}
                 # 与生产preflight相同：父进程先读取0/6，再fork worker。
@@ -123,7 +123,7 @@ class VideoWorkerTests(unittest.TestCase):
                 self.assertEqual(observed, 512)
 
     def test_pickle_discards_handles_and_rebuilds_correct_frames(self):
-        dataset = SimpleRSCIDataset(self.root, "NO-STATE")
+        dataset = SimpleRHSCIDataset(self.root, "NO-STATE")
         expected = image_hash(dataset.raw_sample(6))
         restored = pickle.loads(pickle.dumps(dataset))
         self.assertFalse(restored._decoders)
@@ -131,7 +131,7 @@ class VideoWorkerTests(unittest.TestCase):
         self.assertEqual(image_hash(restored.raw_sample(6)), expected)
 
     def test_decode_error_reports_exact_sample_and_preserves_cause(self):
-        dataset = SimpleRSCIDataset(self.root, "NO-STATE")
+        dataset = SimpleRHSCIDataset(self.root, "NO-STATE")
         dataset.raw_sample(0)
         original = RuntimeError("injected decoder failure")
         with patch.object(type(dataset._decoders[0]), "get_frames_at", side_effect=original):

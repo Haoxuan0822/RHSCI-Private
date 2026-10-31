@@ -11,10 +11,10 @@ import torch.multiprocessing as mp
 from safetensors.torch import save_file
 from torch.nn.parallel import DistributedDataParallel
 
-from gr00t.rsci import checkpoints as gr00t
-from openpi.rsci import checkpoints as pi05
-from rsci.data.sampling import EpochRandomSampler, EpochSampler
-from rsci.runtime.losses import masked_ardy_loss, masked_auxiliary_loss
+from gr00t.rhsci import checkpoints as gr00t
+from openpi.rhsci import checkpoints as pi05
+from rhsci.data.sampling import EpochRandomSampler, EpochSampler
+from rhsci.runtime.losses import masked_ardy_loss, masked_auxiliary_loss
 
 
 def loss_worker(rank, rendezvous):

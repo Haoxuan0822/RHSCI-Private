@@ -16,10 +16,10 @@ from torch import nn
 from lambda0.models.action_expert import LayerwiseActionExpert
 from lambda0.models.heterogeneous_action_space import HeterogeneousActionSpace
 from lambda0.models.modeling_lambda0 import Lambda0
-from lambda0.rsci.data import ResumableLoader, local_rng
-from lambda0.rsci.model import Lambda0RSCI, masked_ardy_loss
-from lambda0.rsci.runtime import (
-    RSCITrainingBackend,
+from lambda0.rhsci.data import ResumableLoader, local_rng
+from lambda0.rhsci.model import Lambda0RHSCI, masked_ardy_loss
+from lambda0.rhsci.runtime import (
+    RHSCITrainingBackend,
     checkpoint_receipt,
     verify_checkpoint,
 )
@@ -37,7 +37,7 @@ class TinyVLM(nn.Module):
 
 
 def tiny(variant="STATE"):
-    model = Lambda0RSCI.__new__(Lambda0RSCI)
+    model = Lambda0RHSCI.__new__(Lambda0RHSCI)
     nn.Module.__init__(model)
     model.config = SimpleNamespace(
         vlm_hidden_size=16,
@@ -95,7 +95,7 @@ class IntegrationTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_backend_loading_is_explicit_and_does_not_change_native_engine(self):
-        from lambda0.rsci.optimization import native_arguments
+        from lambda0.rhsci.optimization import native_arguments
         from lambda0.training import engine
 
         operations = (
@@ -108,7 +108,7 @@ class IntegrationTests(unittest.TestCase):
         )
         original = {name: getattr(engine, name) for name in operations}
         backends = [
-            RSCITrainingBackend(engine, variant, {"variant": variant})
+            RHSCITrainingBackend(engine, variant, {"variant": variant})
             for variant in ("STATE", "VGQ-AE")
         ]
         for backend in backends:
@@ -119,13 +119,13 @@ class IntegrationTests(unittest.TestCase):
             args.reset_action_space_ids = []
             model = tiny("STATE")
             with (
-                patch.object(Lambda0RSCI, "from_pretrained_or_vlm", return_value=model) as load,
+                patch.object(Lambda0RHSCI, "from_pretrained_or_vlm", return_value=model) as load,
                 patch.object(engine.Lambda0Processor, "from_pretrained", return_value=object()),
             ):
                 actual, _ = backend.load_model_and_processor(args)
             load.assert_called_once()
             self.assertIs(actual, model)
-            self.assertIs(type(actual), Lambda0RSCI)
+            self.assertIs(type(actual), Lambda0RHSCI)
             self.assertEqual(actual.config.rsci_variant, backend.variant)
             self.assertEqual(actual.config.rsci_contract, backend.contract)
             if backend.variant == "VGQ-AE":
@@ -139,7 +139,7 @@ class IntegrationTests(unittest.TestCase):
         from fastapi.testclient import TestClient
 
         from lambda0.inference import server
-        from lambda0.rsci.contracts import SAFE_NORMALIZATION
+        from lambda0.rhsci.contracts import SAFE_NORMALIZATION
 
         model = tiny("STATE").eval()
         spec = model.action_space.specs[3]
@@ -232,9 +232,9 @@ class IntegrationTests(unittest.TestCase):
         from lambda0.data.normalization import DatasetNormalizer
         from lambda0.inference.server import build_app, decode_numpy_envelope, encode_numpy_envelope
 
-        location = os.environ.get("RSCI_TEST_LAMBDA0_STATS")
+        location = os.environ.get("RHSCI_TEST_LAMBDA0_STATS")
         if not location:
-            self.skipTest("Set RSCI_TEST_LAMBDA0_STATS to a released normalization JSON")
+            self.skipTest("Set RHSCI_TEST_LAMBDA0_STATS to a released normalization JSON")
         stats = Path(location)
         if not stats.is_file():
             self.skipTest("Local normalization assets are not installed")
@@ -291,12 +291,12 @@ class IntegrationTests(unittest.TestCase):
 
     def test_action_window_and_paired_augmentation_at_episode_edges(self):
         from lambda0.data.dataset import InfiniteDataReader
-        from lambda0.rsci.contracts import RUNTIME
-        from lambda0.rsci.data import RSCIPsiSimpleHandler, SafePsiSimpleHandler
+        from lambda0.rhsci.contracts import RUNTIME
+        from lambda0.rhsci.data import RHSCIPsiSimpleHandler, SafePsiSimpleHandler
 
-        location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
+        location = os.environ.get("RHSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
-            self.skipTest("Set RSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
+            self.skipTest("Set RHSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
         bundle = Path(location)
         if not bundle.is_dir():
             self.skipTest("Local benchmark assets are not installed")
@@ -304,7 +304,7 @@ class IntegrationTests(unittest.TestCase):
             str(bundle), data_root=str(RUNTIME / "data"), training=True, image_max_pixels=4096
         )
         meta = next(iter(reader.metas.values()))
-        native, adapted = SafePsiSimpleHandler(meta, 1), RSCIPsiSimpleHandler(meta, 1)
+        native, adapted = SafePsiSimpleHandler(meta, 1), RHSCIPsiSimpleHandler(meta, 1)
         item = meta["datalist"][0]
         _, raw_actions, _, _ = native._load_episode(item)
         for index in (0, 6, item["length"] - 1):
@@ -348,7 +348,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(parameter.any())
 
     def test_guardian_does_not_restart_from_zero_or_numeric_failure(self):
-        from lambda0.rsci.launch import run_training_guardian
+        from lambda0.rhsci.launch import run_training_guardian
 
         for message, expected in (
             (b"worker crashed", "No verified complete checkpoint"),
@@ -361,13 +361,13 @@ class IntegrationTests(unittest.TestCase):
                     kwargs["stdout"].write(message)
                     return process
 
-                with patch("lambda0.rsci.launch.subprocess.Popen", side_effect=spawn) as mock:
+                with patch("lambda0.rhsci.launch.subprocess.Popen", side_effect=spawn) as mock:
                     with self.assertRaisesRegex(RuntimeError, expected):
                         run_training_guardian(SimpleNamespace(gpus="0"), [], Path(root))
                     self.assertEqual(mock.call_count, 1)
 
     def test_serving_rejects_foreign_processor_and_statistics(self):
-        from lambda0.rsci import serve
+        from lambda0.rhsci import serve
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -406,7 +406,7 @@ class IntegrationTests(unittest.TestCase):
         )
 
     def test_launcher_coordination_is_not_a_checkpoint_or_training_run(self):
-        from lambda0.rsci.train import validate_output_directory
+        from lambda0.rhsci.train import validate_output_directory
 
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)
@@ -444,11 +444,11 @@ class IntegrationTests(unittest.TestCase):
 
     def test_real_data_prefetch_resume_and_rng_independence(self):
         from lambda0.data.dataset import InfiniteDataReader
-        from lambda0.rsci.contracts import RUNTIME
+        from lambda0.rhsci.contracts import RUNTIME
 
-        location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
+        location = os.environ.get("RHSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
-            self.skipTest("Set RSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
+            self.skipTest("Set RHSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
         bundle = Path(location)
         if not bundle.is_dir():
             self.skipTest("Local benchmark assets are not installed")
@@ -462,7 +462,7 @@ class IntegrationTests(unittest.TestCase):
                 image_max_pixels=4096,
             )
             for meta in reader.metas.values():
-                meta["handler"] = "lambda0.rsci.data:RSCIPsiSimpleHandler"
+                meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
             return ResumableLoader(reader, 2, workers)
 
         running = loader(2)
@@ -501,12 +501,12 @@ class IntegrationTests(unittest.TestCase):
         from accelerate import Accelerator
 
         from lambda0.data.dataset import InfiniteDataReader
-        from lambda0.rsci.contracts import RUNTIME
+        from lambda0.rhsci.contracts import RUNTIME
         from lambda0.training import engine
 
-        location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
+        location = os.environ.get("RHSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
-            self.skipTest("Set RSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
+            self.skipTest("Set RHSCI_TEST_LAMBDA0_BUNDLE to a prepared train bundle")
         bundle = Path(location)
         if not bundle.is_dir():
             self.skipTest("Local benchmark assets are not installed")
@@ -518,7 +518,7 @@ class IntegrationTests(unittest.TestCase):
             image_max_pixels=4096,
         )
         for meta in reader.metas.values():
-            meta["handler"] = "lambda0.rsci.data:SafePsiSimpleHandler"
+            meta["handler"] = "lambda0.rhsci.data:SafePsiSimpleHandler"
         loader = ResumableLoader(reader, 1, 0)
         for _ in range(3):
             next(iter(loader))
@@ -558,7 +558,7 @@ class IntegrationTests(unittest.TestCase):
             with torch.no_grad():
                 next(model.parameters()).add_(7)
             restored = engine.load_training_checkpoint(accelerator, checkpoint, args)
-            from lambda0.rsci.runtime import verify_restored_state
+            from lambda0.rhsci.runtime import verify_restored_state
 
             verify_restored_state(accelerator)
             self.assertEqual(restored, 3)
@@ -593,7 +593,7 @@ class IntegrationTests(unittest.TestCase):
         )
         original = engine.build_optimizer
         reference = original(reference_model, args)
-        backend = RSCITrainingBackend(engine, "VGQ-AE", {})
+        backend = RHSCITrainingBackend(engine, "VGQ-AE", {})
         actual = backend.build_optimizer(reference_model, args)
         self.assertEqual(reference.defaults, actual.defaults)
         for step in (0, 1000, 20000, 39999):

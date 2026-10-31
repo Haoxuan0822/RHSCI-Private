@@ -9,7 +9,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from act.rsci.model import masked_ardy_loss
+from act.rhsci.model import masked_ardy_loss
 
 
 class Scale(torch.nn.Module):
@@ -56,7 +56,7 @@ class DistributedAndService(unittest.TestCase):
 
         from fastapi.testclient import TestClient
 
-        from act.rsci.serve import create_app
+        from act.rhsci.serve import create_app
         from psi.deploy.helpers import RequestMessage, ResponseMessage
 
         class FakePolicy:

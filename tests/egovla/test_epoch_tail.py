@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from transformers import set_seed
 
-from human_plan.rsci.train import (
+from human_plan.rhsci.train import (
     build_argument_parser,
     build_training_arguments,
     create_trainer_class,
@@ -30,7 +30,7 @@ class TinyPolicy(nn.Module):
 
 
 class EpochTailTests(unittest.TestCase):
-    @patch("human_plan.rsci.checkpoints.prune", lambda *a: None)
+    @patch("human_plan.rhsci.checkpoints.prune", lambda *a: None)
     def test_native_epoch_tail_and_mid_epoch_resume(self):
         torch.set_num_threads(1)
 

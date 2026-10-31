@@ -39,7 +39,7 @@ psi = ["assets/*"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["rsci*", "psi*", "openpi*", "fast*", "lerobot_patch*", "act*", "dp*"]
+include = ["rhsci*", "psi*", "openpi*", "fast*", "lerobot_patch*", "act*", "dp*"]
 
 [tool.uv.sources]
 psi = { path = ".", editable = true }

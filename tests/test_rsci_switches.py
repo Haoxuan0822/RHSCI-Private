@@ -10,12 +10,12 @@ from test_rsci import inputs, policy, sample
 
 from psi.config.transform import ActionStateTransform
 from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
-from psi.rsci.model import RSCIQuery, RSCISpec, masked_auxiliary_loss
-from psi.rsci.train import build_argument_parser, build_training_contract, resolve_training_plan
+from psi.rhsci.model import RHSCIQuery, RHSCISpec, masked_auxiliary_loss
+from psi.rhsci.train import build_argument_parser, build_training_contract, resolve_training_plan
 from psi.trainers.finetune import FinetuneTrainer
-from rsci.data.ardy_future import ardy_target_at_offset, supervision_counts
-from rsci.data.ardy_sidecar import ArdySidecarReader
-from rsci.data.state_noise import InferenceStateNoise, TrainingStateNoise, add_measurement_noise
+from rhsci.data.ardy_future import ardy_target_at_offset, supervision_counts
+from rhsci.data.ardy_sidecar import ArdySidecarReader
+from rhsci.data.state_noise import InferenceStateNoise, TrainingStateNoise, add_measurement_noise
 
 
 def reader():
@@ -41,7 +41,7 @@ class ReaderSwitchTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_full_token_memory_preserves_masks_and_has_no_reader_parameters(self):
-        query = RSCIQuery(RSCISpec("VGQ-AE"), 8, 8, 2, use_reader=False)
+        query = RHSCIQuery(RHSCISpec("VGQ-AE"), 8, 8, 2, use_reader=False)
         frames = [torch.randn(2, count, 8, requires_grad=True) for count in (3, 4, 2, 5)]
         masks = [torch.ones(2, frame.shape[1], dtype=torch.bool) for frame in frames]
         masks[-1][1, -2:] = False
@@ -73,8 +73,8 @@ class ReaderSwitchTests(unittest.TestCase):
                 self.assertGreater(model.action_header.rsci.state_query.grad.abs().sum().item(), 0)
 
     def test_reader_checkpoint_cannot_silently_load_into_no_reader(self):
-        with_reader = RSCIQuery(RSCISpec("VGQ-AE"), 8, 8, 2)
-        without = RSCIQuery(RSCISpec("VGQ-AE"), 8, 8, 2, use_reader=False)
+        with_reader = RHSCIQuery(RHSCISpec("VGQ-AE"), 8, 8, 2)
+        without = RHSCIQuery(RHSCISpec("VGQ-AE"), 8, 8, 2, use_reader=False)
         self.assertEqual(with_reader.schema_version.item(), 1)
         self.assertEqual(without.schema_version.item(), 2)
         with self.assertRaises(RuntimeError):

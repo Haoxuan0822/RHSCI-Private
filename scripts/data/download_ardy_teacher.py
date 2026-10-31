@@ -11,7 +11,7 @@ from typing import Callable, Mapping
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from rsci.data.ardy_teacher_artifacts import (
+from rhsci.data.ardy_teacher_artifacts import (
     ARDY_G1_H52_ARTIFACTS,
     ARDY_MODEL_REPO,
     ARDY_MODEL_REVISION,

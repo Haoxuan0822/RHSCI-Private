@@ -18,7 +18,7 @@ cli = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cli)
 from types import SimpleNamespace
 
-from rsci.paths import dataset_paths, with_nccl, worker_arguments
+from rhsci.paths import dataset_paths, with_nccl, worker_arguments
 
 
 class TrainingCLITests(unittest.TestCase):
@@ -53,7 +53,7 @@ class TrainingCLITests(unittest.TestCase):
                 "--backbone",
                 backbone,
                 "--mode",
-                "rsci",
+                "rhsci",
                 "--python",
                 "/tmp/my python",
                 "--gpus",
@@ -98,7 +98,9 @@ class TrainingCLITests(unittest.TestCase):
         self.assertFalse((cwd / "configs/rng_state.pkl").exists())
         with self.assertRaisesRegex(ValueError, "no RHSCI adapter"):
             cli.build_launch_plan(
-                cli.build_argument_parser().parse_args(["--backbone", "beingh05", "--mode", "rsci"])
+                cli.build_argument_parser().parse_args(
+                    ["--backbone", "beingh05", "--mode", "rhsci"]
+                )
             )
 
     def test_native_exec_preserves_cwd_environment_and_spaces(self):
@@ -146,7 +148,7 @@ class TrainingCLITests(unittest.TestCase):
             ["--nproc-per-node", "0"],
             ["--gpus", "1", "--nproc-per-node", "2"],
             ["--nnodes", "2", "--node-rank", "2"],
-            ["--mode", "rsci"],
+            ["--mode", "rhsci"],
             ["--master-port", "22"],
         ):
             with self.subTest(flags=flags), self.assertRaises(ValueError):
@@ -199,7 +201,7 @@ class TrainingCLITests(unittest.TestCase):
             self.assertEqual(dataset_paths(args)["dataset"], args.dataset)
 
     def test_environment_nccl_default_and_explicit_override(self):
-        with patch.dict(os.environ, RSCI_NCCL_LIBRARY="", RSCI_NCCL_VERSION="2.31.2"):
+        with patch.dict(os.environ, RHSCI_NCCL_LIBRARY="", RHSCI_NCCL_VERSION="2.31.2"):
             command = ["python", "-m", "torch.distributed.run", "train.py"]
             self.assertEqual(with_nccl(command), command)
             wrapped = with_nccl(command, "/runtime/libnccl.so.2")
@@ -230,9 +232,9 @@ class TrainingCLITests(unittest.TestCase):
                 ),
             ]
             environment = {**os.environ, "PYTHONPATH": folder, "PYTHONDONTWRITEBYTECODE": "1"}
-            with patch.dict(os.environ, RSCI_NCCL_LIBRARY=str(library)):
+            with patch.dict(os.environ, RHSCI_NCCL_LIBRARY=str(library)):
                 with patch.dict(os.environ):
-                    os.environ.pop("RSCI_NCCL_VERSION", None)
+                    os.environ.pop("RHSCI_NCCL_VERSION", None)
                     command = with_nccl(child, expected_version="2.27.3")
             result = subprocess.run(command, env=environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)

@@ -11,7 +11,11 @@ import torch
 from transformers import Trainer, TrainingArguments
 
 from gr00t.configs.training.training_config import TrainingConfig
-from gr00t.rsci.train import build_argument_parser, build_training_arguments, resolve_training_paths
+from gr00t.rhsci.train import (
+    build_argument_parser,
+    build_training_arguments,
+    resolve_training_paths,
+)
 
 
 class OfficialOptimizationTests(unittest.TestCase):
@@ -33,7 +37,7 @@ class OfficialOptimizationTests(unittest.TestCase):
         paths = resolve_training_paths(cli)
         self.assertEqual(paths["dataset"], Path("/datasets/custom"))
         self.assertEqual(paths["output"], Path("/runs/custom"))
-        from rsci.paths import worker_arguments
+        from rhsci.paths import worker_arguments
 
         forwarded = worker_arguments(cli, build_argument_parser())
         self.assertIn("--dataset", forwarded)

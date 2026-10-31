@@ -15,8 +15,8 @@ import torch.multiprocessing as mp
 from test_gr00t_rsci import batch, model
 from transformers import Trainer, TrainerCallback, TrainingArguments
 
-from gr00t.rsci import checkpoints
-from gr00t.rsci.memory import (
+from gr00t.rhsci import checkpoints
+from gr00t.rhsci.memory import (
     ShardedOptimizerTrainerMixin,
     enable_dit_recomputation,
     unwrap_zero,

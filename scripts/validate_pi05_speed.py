@@ -60,10 +60,10 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     import torch
 
-    from openpi.rsci.checkpoints import atomic_json
-    from openpi.rsci.model import Pi05RSCI
-    from openpi.rsci.processing import collate
-    from openpi.rsci.train import (
+    from openpi.rhsci.checkpoints import atomic_json
+    from openpi.rhsci.model import Pi05RHSCI
+    from openpi.rhsci.processing import collate
+    from openpi.rhsci.train import (
         build_argument_parser,
         resolve_training_paths,
         run_training_preflight,
@@ -117,7 +117,7 @@ def main():
         for profile in ("reference", "query", "history", "both"):
             torch.manual_seed(292285)
             torch.cuda.manual_seed_all(292285)
-            model = Pi05RSCI(compile_inference=False, execution=profile)
+            model = Pi05RHSCI(compile_inference=False, execution=profile)
             model.load_initial(paths["checkpoint"])
             model.cuda().train()
             parameters = {n: p for n, p in model.named_parameters() if p.requires_grad}

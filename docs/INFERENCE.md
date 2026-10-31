@@ -16,7 +16,7 @@ Use the official SIMPLE evaluation program with the task, assets and simulator s
 
 Starred RHSCI variants consume RGB at offsets `[-6, -4, -2, 0]` on the 50 Hz training clock. Record every control step, including steps between policy requests, and reset history at each episode boundary. The last history frame must equal the current request RGB. Invalid frames at episode start are padded and masked.
 
-`src/rsci/inference/history_client.py` provides `CausalRgbHistory` and `install()`. Call `install()` in the simulator process before constructing the SIMPLE PSI0 agent; it wraps `Psi0DecoupledWbcAgent` and `HttpActionClient` in memory. For another client, attach `CausalRgbHistory.condition()` to the request condition after recording the current RGB. Nonstarred variants do not require this history input during inference.
+`src/rhsci/inference/history_client.py` provides `CausalRgbHistory` and `install()`. Call `install()` in the simulator process before constructing the SIMPLE PSI0 agent; it wraps `Psi0DecoupledWbcAgent` and `HttpActionClient` in memory. For another client, attach `CausalRgbHistory.condition()` to the request condition after recording the current RGB. Nonstarred variants do not require this history input during inference.
 
 Keep model source, normalization statistics, control frequency and simulator settings fixed when comparing results. CPU regression checks do not validate simulator rollouts or GPU training.
 
@@ -27,14 +27,14 @@ Both RHSCI adapters expose SIMPLE HTTP `POST /act` and `GET /health` through a c
 Discover complete checkpoints under an explicit run directory:
 
 ```bash
-PYTHONPATH=src /path/to/pi05-env/bin/python -m rsci.inference.http_server \
+PYTHONPATH=src /path/to/pi05-env/bin/python -m rhsci.inference.http_server \
   --backbone pi05 --discover /runs/pi05
 ```
 
 Serve π0.5 with the training dataset's normalization statistics and matching tokenizer:
 
 ```bash
-PYTHONPATH=src /path/to/pi05-env/bin/python -m rsci.inference.http_server \
+PYTHONPATH=src /path/to/pi05-env/bin/python -m rhsci.inference.http_server \
   --backbone pi05 --run-dir /runs/pi05/my_task \
   --dataset /datasets/my_task --tokenizer /models/paligemma_tokenizer.model \
   --device cuda:0 --host 127.0.0.1 --port 5555
@@ -43,7 +43,7 @@ PYTHONPATH=src /path/to/pi05-env/bin/python -m rsci.inference.http_server \
 Serve GR00T using the model and processor saved in its checkpoint:
 
 ```bash
-PYTHONPATH=src /path/to/gr00t-env/bin/python -m rsci.inference.http_server \
+PYTHONPATH=src /path/to/gr00t-env/bin/python -m rhsci.inference.http_server \
   --backbone gr00t --run-dir /runs/gr00t/my_task \
   --device cuda:0 --host 127.0.0.1 --port 5555
 ```
@@ -75,7 +75,7 @@ PSI0 and π0.5 STATE serving accept `--state-inference-measurement-noise-std-rad
 For PSI0, add those options to `scripts/deploy/serve_psi0_simple.sh`. For π0.5:
 
 ```bash
-PYTHONPATH=src /path/to/pi05-env/bin/python -m rsci.inference.http_server \
+PYTHONPATH=src /path/to/pi05-env/bin/python -m rhsci.inference.http_server \
   --backbone pi05 --run-dir /runs/pi05/my_state_task \
   --dataset /datasets/my_state_task --tokenizer /models/paligemma_tokenizer.model \
   --device cuda:0 --port 5555 \
@@ -92,7 +92,7 @@ Run in the EgoVLA environment with the native VILA source on the import path:
 
 ```bash
 PYTHONPATH=src:src/egovla/VILA \
-  /path/to/egovla-env/bin/python -m human_plan.rsci.serve \
+  /path/to/egovla-env/bin/python -m human_plan.rhsci.serve \
   --checkpoint /runs/egovla/my_task/checkpoint-10120 --port 8011
 ```
 
@@ -107,7 +107,7 @@ Use `baselines/lambda0/Lambda0_Serve.sh` in the pinned λ₀ environment. Supply
 Use the ACT environment, including the serving dependencies, with an RHSCI model checkpoint:
 
 ```bash
-PYTHONPATH=src /path/to/act-env/bin/python -m act.rsci.serve \
+PYTHONPATH=src /path/to/act-env/bin/python -m act.rhsci.serve \
   --checkpoint /runs/act/my_task/checkpoint-40000 --device cuda:0 --port 8126
 ```
 

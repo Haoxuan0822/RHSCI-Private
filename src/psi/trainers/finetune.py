@@ -3,7 +3,7 @@ import os #
 import math
 import json
 import torch
-from rsci.runtime.flow_sampling import step_action_scheduler
+from rhsci.runtime.flow_sampling import step_action_scheduler
 import wandb
 import pickle
 import numpy as np
@@ -47,7 +47,7 @@ from .trainer import Trainer, worker_init_fn
 from psi.utils import flatten, shorten, move_to_device, rmse, seed_everything
 
 from psi.models.psi0 import Psi0Model
-from rsci.runtime.profiling import StageTimer
+from rhsci.runtime.profiling import StageTimer
 
 
 class FinetuneTrainer(Trainer):
@@ -179,7 +179,7 @@ class FinetuneTrainer(Trainer):
 
                 allowed_missing = [
                     key for key in missing_keys  # 检查旧 checkpoint 没有提供的每个参数名。
-                    if self.model_cfg.rsci_variant and key.startswith("rsci.")
+                    if self.model_cfg.rsci_variant and key.startswith("rhsci.")
                 ]
                 invalid_missing = sorted(set(missing_keys) - set(allowed_missing))  # 其余缺失参数均属于旧模型加载异常。
                 if invalid_missing or unexpected_keys:
@@ -546,7 +546,7 @@ class FinetuneTrainer(Trainer):
         vlm_hidden_states = context["vlm_hidden_states"]
         vlm_mask = repacked_batch["attention_mask"]
         if getattr(eval_model, "rsci_spec", None) is not None:
-            vlm_hidden_states, vlm_mask = eval_model._rsci_inference_features(vlm_hidden_states, vlm_mask, repacked_batch)
+            vlm_hidden_states, vlm_mask = eval_model._rhsci_inference_features(vlm_hidden_states, vlm_mask, repacked_batch)
         for timestep in self.noise_scheduler.timesteps:
             batched_timestep = timestep.expand(bsz).to(self.device)
 
@@ -766,7 +766,7 @@ class FinetuneTrainer(Trainer):
 
 
         if self.model_cfg.rsci_variant not in (None, "STATE", "NO-STATE"):
-            from psi.rsci.model import masked_auxiliary_loss
+            from psi.rhsci.model import masked_auxiliary_loss
             if model_output.ardy_prediction is None or "ardy_target" not in batch or "ardy_valid" not in batch:
                 raise ValueError("RHSCI Query requires prediction and formal labels")
             auxiliary = masked_auxiliary_loss(model_output.ardy_prediction, batch["ardy_target"], batch["ardy_valid"])
