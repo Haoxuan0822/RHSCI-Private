@@ -1,7 +1,6 @@
 """真实官方 AE/flow/processor/数据边界的 CPU 验收，不代表 CUDA 长跑。"""
 
 import copy
-import json
 import os
 import tempfile
 import types
@@ -364,11 +363,9 @@ class IntegrationTests(unittest.TestCase):
                         run_training_guardian(SimpleNamespace(gpus="0"), [], Path(root))
                     self.assertEqual(mock.call_count, 1)
 
-    def test_serving_rejects_foreign_processor_statistics_and_source(self):
+    def test_serving_rejects_foreign_processor_and_statistics(self):
         from lambda0.rsci import serve
-        from lambda0.rsci.contracts import sha256
 
-        source = Path(serve.__file__).resolve().parent
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             for name in ("config.json", "state.json", "training_config.json"):
@@ -377,11 +374,7 @@ class IntegrationTests(unittest.TestCase):
             stats = root / "data_bundle/stats/test.json"
             stats.parent.mkdir(parents=True)
             stats.write_text("{}")
-            provenance = dict(
-                source={p.name: sha256(p) for p in sorted(source.glob("*.py"))},
-                upstream_patch=sha256(serve.CODE / "baselines/lambda0/upstream.patch"),
-            )
-            (root / "rsci_run.json").write_text(json.dumps(provenance))
+            (root / "model.safetensors").write_bytes(b"model weights fixture")
             checkpoint_receipt(root, {})
             external = root.parent / (root.name + "-wrong.json")
             try:
@@ -392,12 +385,6 @@ class IntegrationTests(unittest.TestCase):
                         serve.main()
                 with patch("sys.argv", argv):
                     with self.assertRaisesRegex(ValueError, "statistics"):
-                        serve.main()
-                provenance["source"] = {}
-                (root / "rsci_run.json").write_text(json.dumps(provenance))
-                checkpoint_receipt(root, {})
-                with patch("sys.argv", argv):
-                    with self.assertRaisesRegex(ValueError, "source"):
                         serve.main()
             finally:
                 external.unlink(missing_ok=True)

@@ -23,7 +23,7 @@ def asset_files(root):
     return result
 
 
-def assets(root, register=False, verify=True):
+def assets(root, register=False, verify=False):
     root = Path(root).resolve()
     manifest_path = root / "RSCI_ASSETS.json"
     if register:
@@ -51,8 +51,26 @@ def assets(root, register=False, verify=True):
             ),
         )
     if not manifest_path.is_file():
-        raise FileNotFoundError(
-            f"EgoVLA assets not prepared: {manifest_path}; no automatic download"
+        # 原生模型目录无需先写 RHSCI 收据；只读取配置并记录现有权重位置。
+        configuration = {}
+        for name in (
+            "config.json",
+            "llm/config.json",
+            "vision_tower/config.json",
+            "mm_projector/config.json",
+        ):
+            configuration[name] = json.loads((root / name).read_text())
+        weights = sorted(
+            path
+            for path in root.rglob("*")
+            if path.suffix in (".safetensors", ".bin") and path.is_file()
+        )
+        if not weights:
+            raise FileNotFoundError(f"No pretrained tensor files: {root}")
+        return dict(
+            schema="egovla-native-local-v1",
+            config=configuration,
+            weights={path.relative_to(root).as_posix(): path.stat().st_size for path in weights},
         )
     manifest = json.loads(manifest_path.read_text())
     if manifest.get("schema") != "egovla-base-local-v1":

@@ -1,11 +1,11 @@
 """pi05: 启动身份与源码契约。"""
 
 import hashlib
-import importlib.metadata
 import json
 
 from rsci.data.state_noise import STATE_NOISE_LOCATION
-from rsci.paths import CODE_ROOT
+from rsci.paths import CODE_ROOT as CODE_ROOT
+from rsci.runtime.contracts import reuse_run_contract
 
 from .checkpoints import sha256
 
@@ -13,29 +13,12 @@ from .checkpoints import sha256
 
 
 def build_training_contract(args, paths):
-    """根据已解析参数、数据与源码生成恢复身份；调用方据此拒绝不兼容续训。返回 (契约字典, SHA256)。"""
+    """根据模型、数据与配方生成恢复身份；源码编辑和依赖版本不作为恢复门槛。返回 (契约字典, SHA256)。"""
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
     from rsci.data.input_cache import cache_identity
 
     from .augmentation import AUGMENTATION_VERSION
 
-    code = CODE_ROOT
-    sources = list((code / "src/openpi/rsci").glob("*.py"))
-    sources += list((code / "src/openpi/models_pytorch/transformers_replace").rglob("*.py"))
-    sources += [
-        code / "src/openpi/models_pytorch/gemma_pytorch.py",
-        code / "src/rsci/data/ardy_sidecar.py",
-        code / "src/openpi/models_pytorch/preprocessing_pytorch.py",
-    ]
-    sources += [
-        code / "src/rsci/data/loader_cleanup.py",
-        code / "scripts/with_nccl_runtime.py",
-        code / "scripts/train/pi05.sh",
-        code / "src/rsci/paths.py",
-    ]
-    sources += sorted((code / "src/rsci/runtime").glob("*.py"))
-    sources += sorted((code / "src/rsci/data").glob("*.py"))
-    sources = sorted(set(sources))
     identity = dict(
         schema=2,
         model=args.model,
@@ -63,18 +46,12 @@ def build_training_contract(args, paths):
         dataset=dataset_content_fingerprint(paths["dataset"]),
         input_cache=cache_identity(paths["dataset"], config=paths["input_cache"]),
         initialization=str(paths["checkpoint"].resolve()),
-        initialization_stat={
-            key: getattr((paths["checkpoint"] / "model.safetensors").stat(), key)
-            for key in ("st_size", "st_mtime_ns", "st_ctime_ns")
-        },
-        asset_manifest=sha256(paths["checkpoint"] / "RSCI_ASSETS.json"),
+        asset_manifest=sha256(paths["checkpoint"] / "RSCI_ASSETS.json")
+        if (paths["checkpoint"] / "RSCI_ASSETS.json").is_file()
+        else None,
         tokenizer=sha256(paths["tokenizer"]),
-        code={str(p.relative_to(code)): sha256(p) for p in sources},
-        dependencies={
-            key: importlib.metadata.version(key)
-            for key in ("torch", "transformers", "accelerate", "torchcodec", "sentencepiece")
-        },
     )
     if args.model == "VGQ-AE":
         identity["sidecar"] = sha256(paths["sidecar"] / "manifest.json")
+    identity = reuse_run_contract(identity, paths["output"])
     return identity, hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()

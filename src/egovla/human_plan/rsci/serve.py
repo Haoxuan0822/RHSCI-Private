@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .checkpoints import checkpoint_ok, load_trainables
+from .checkpoints import load_trainables
 
 
 def decode_numpy(value):
@@ -133,8 +133,8 @@ def make_handler(model, processor):
 def main():
     import torch
 
-    from .checkpoints import sha256
-    from .contract import CODE, compute_contract_digest
+    from rsci.inference.weights import validate_inference_weights
+
     from .native import load_native
     from .preflight import assets
 
@@ -145,11 +145,7 @@ def main():
     args = p.parse_args()
     checkpoint = args.checkpoint.resolve()
     value = json.loads((checkpoint / "launch_contract.json").read_text())
-    if not checkpoint_ok(checkpoint, value["world"], compute_contract_digest(value), verify=True):
-        raise ValueError("Incomplete/corrupt EgoVLA checkpoint")
-    for name, digest in value["code"].items():
-        if sha256(CODE / name) != digest:
-            raise ValueError(f"Serving source differs from trained model: {name}")
+    validate_inference_weights(checkpoint)
     base = Path(value["initialization"])
     if assets(base) != value["assets"]:
         raise ValueError("Frozen pretrained assets changed")

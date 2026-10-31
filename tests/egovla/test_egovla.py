@@ -900,8 +900,9 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             payload = bytearray(path.read_bytes())
             payload[-1] ^= 1
             path.write_bytes(payload)
+            self.assertEqual(assets(root)["schema"], "egovla-base-local-v1")
             with self.assertRaisesRegex(ValueError, "SHA mismatch"):
-                assets(root)
+                assets(root, verify=True)
 
     def test_official_recipe_and_actual_constant_schedule(self):
         with tempfile.TemporaryDirectory() as root:

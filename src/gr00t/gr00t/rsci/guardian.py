@@ -39,7 +39,7 @@ def run_training_guardian(args, paths, digest):
         reject_numerical_failure(output)
         _, current_digest = build_training_contract(args, paths)
         if current_digest != digest:
-            raise ValueError("Source/data/environment changed; refusing recovery")
+            raise ValueError("Training configuration/data changed; refusing recovery")
         resume = (
             args.resume
             if attempt == 0 and args.resume

@@ -20,7 +20,7 @@ Native packages such as `psi`, `openpi`, `gr00t`, `egovla` and `openlambda` reta
 
 PSI0 integrates through `RSCIFinetuneTrainer` and native trainer hooks. λ₀ integrates through `RSCITrainingBackend` and explicit server arguments. ACT and EgoVLA share sampler-epoch recovery through `runtime/hf_resume.py`; its compatibility check stays local to each derived Trainer. ACT's bounded decoder/frame cache stays in its adapter because it depends on its native LeRobot pipeline. Being-H0.5 retains official code under `src/beingh05` and uses only the native common launcher. The external SIMPLE client integration is an opt-in wrapper; see [Inference](INFERENCE.md).
 
-ACT and EgoVLA share complete HF checkpoint gates through `runtime/hf_full_state.py`, while their adapter modules retain separate schemas and model loading. Other adapters retain their native checkpoint implementations. Checkpoint contracts validate source, configuration and data identities before resuming. Use a new output directory when changing those contracts.
+ACT and EgoVLA share complete HF checkpoint gates through `runtime/hf_full_state.py`, while their adapter modules retain separate schemas and model loading. Other adapters retain their native checkpoint implementations. Checkpoint contracts compare model, data and training configuration before resuming. Source hashes and exact dependency versions are audit records, not runtime compatibility gates. Saved compatible identities are reused without rewriting old checkpoint receipts. Inference validates model files independently of optimizer/RNG state; see [runtime check policy](RUNTIME_CHECKS_20261031.md).
 
 ## Development
 

@@ -11,9 +11,9 @@ from PIL import Image
 
 from act.models.act import ACTConfig
 from psi.deploy.helpers import RequestMessage, ResponseMessage
+from rsci.inference.weights import validate_inference_weights
 
-from .checkpoints import checkpoint_ok, load_model_state, sha256
-from .contract import CODE, compute_contract_digest
+from .checkpoints import load_model_state
 from .data import Processor
 from .model import RSCIACT
 
@@ -22,13 +22,7 @@ class Policy:
     def __init__(self, checkpoint, device="cuda:0"):
         checkpoint = Path(checkpoint)
         contract = json.loads((checkpoint / "launch_contract.json").read_text())
-        if not checkpoint_ok(
-            checkpoint, contract["world"], compute_contract_digest(contract), verify=True
-        ):
-            raise ValueError("Incomplete/numerically invalid ACT checkpoint")
-        for name, digest in contract["code"].items():
-            if sha256(CODE / name) != digest:
-                raise ValueError(f"Checkpoint source version differs: {name}")
+        validate_inference_weights(checkpoint)
         saved = json.loads((checkpoint / "rsci_config.json").read_text())
         config = ACTConfig(**{**saved["act"], "pretrained_backbone_weights": None})
         self.model = RSCIACT(saved["variant"], config)

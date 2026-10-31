@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from rsci.paths import dataset_paths
 
-from .contracts import RUNTIME, sha256, verify_upstream
+from .contracts import RUNTIME, sha256
 
 
 def safe_bundle(output, data_root=None):
@@ -68,7 +68,6 @@ def main(argv=None):
     parser.add_argument("--runtime-root", type=Path, default=RUNTIME)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
-    verify_upstream()
     paths = dataset_paths(
         SimpleNamespace(task=args.task, dataset=args.dataset, sidecar=args.sidecar, model="VGQ-AE")
     )

@@ -5,14 +5,11 @@ import json
 import sys
 from pathlib import Path
 
-from .contracts import CODE, sha256, verify_upstream
+from .contracts import sha256
 
 
 def main():
-    verify_upstream()
-    from .environment import verify_environment
 
-    verify_environment()
     if "--help" in sys.argv or "-h" in sys.argv:
         from lambda0.inference import server
 
@@ -26,18 +23,9 @@ def main():
     if known.processor is not None and known.processor.resolve() != known.model.resolve():
         raise ValueError("Serving processor must be the checkpoint-bound processor")
     root = known.model.parent if known.model.name == "ema" else known.model
-    receipt = json.loads((root / "rsci_complete.json").read_text())
-    from .runtime import verify_checkpoint
+    from rsci.inference.weights import validate_inference_weights
 
-    verify_checkpoint(root, receipt["contract"])
-    provenance = json.loads((root / "rsci_run.json").read_text())
-    source = Path(__file__).resolve().parent
-    actual_source = {path.name: sha256(path) for path in sorted(source.glob("*.py"))}
-    if (
-        actual_source != provenance["source"]
-        or sha256(CODE / "baselines/lambda0/upstream.patch") != provenance["upstream_patch"]
-    ):
-        raise ValueError("Serving source differs from checkpoint training source")
+    validate_inference_weights(known.model, config="config.json")
     expected = root / "data_bundle/stats" / known.normalization.name
     if not expected.is_file() or sha256(expected) != sha256(known.normalization):
         raise ValueError("Serving statistics differ from checkpoint-bound statistics")

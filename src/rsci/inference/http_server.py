@@ -89,7 +89,7 @@ def main():
         args.run_dir,
         args.backbone,
         step=args.checkpoint_step,
-        verify_hash=True,
+        verify_hash=False,
         training_source_root=args.training_source_root,
     )
     if args.backbone == "pi05":

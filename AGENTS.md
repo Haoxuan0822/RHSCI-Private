@@ -1,26 +1,15 @@
 # RHSCI-Private 协作规则
 
-本仓库为独立普通目录，当前分支 main；不创建工作树。修改前核对 status/HEAD，保留已有修改。
+- 修改前查看 Git 状态并保留已有改动；默认在当前检出目录工作。
+- 按任务查阅 [README](README.md)、[架构](docs/ARCHITECTURE.md)及对应 `baselines/<model>/README.md`，无需每次重复读取全部历史记录。
+- 模型扩展放在各自原生包的 `rsci/` 下；`src/rsci` 放跨模型公共工具。沿用对应骨干的处理器、算法和配方；ACT 使用 EGQ-AE，无 Reader。
+- 函数用明确的动作与对象命名，同类职责保持一致；关键逻辑用中文说明输入、返回值及副作用。目录与命名见[指南](docs/DIRECTORY_STRUCTURE.md)。
+- 数据、权重、环境和训练输出放在检出目录外。此机器默认数据根 `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`，权重与日志为同根 `checkpoints`；显式路径优先。
+- 缓存保存原始 RGB/小张量。续训核对模型、数据、配方和完整训练状态；源码摘要、注释、重命名和依赖精确版本不作为启动门槛。旧收据可保留作记录。
+- 推理加载配置、处理器/归一化及模型权重，不要求优化器、调度器、RNG、训练源码快照或完整训练标记。资产清单与全量 SHA 审计用于显式核验。
+- 保留数值异常报错、模型键/维度校验、进程锁和新断点写完后再轮换旧点的保护。正式训练、完整评测和数据清理按用户授权执行；不操作 PSI0-RAW 的活动训练、进程或断点。
+- 验证覆盖实际修改及相关调用，报告环境限制；无需为普通改动重复全量检查。源码清单、来源与许可证用于交接，更新涉及的条目即可。
+- 文档直接维护对应指南及入口；跨仓库规则变更只同步适用范围，不复制运行流水。
+- 仅本地提交本轮改动。用户明确要求 **不自动推送远端**；只有收到推送指令才执行远端发布。
 
-- 先读 [README](README.md)、[架构](docs/ARCHITECTURE.md)、对应 baselines 指南；涉及本次合入时读 [2026-10-30 整理记录](docs/PSI0_RAW_INTEGRATION_20261030.md)。后者记录本轮来源、差异、验收和兼容性，不代表 GPU 验收。
-- 本机数据默认 `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`；权重、checkpoint 和日志默认同根 `checkpoints`。通用代码仍使用显式 dataset/output 参数，不硬编码本机路径；环境和缓存放代码目录之外。
-- 按 Psi0 原有包名组织：模型专属扩展就近放入 psi.rsci、openpi.rsci、gr00t.rsci、human_plan.rsci、lambda0.rsci、act.rsci；src/rsci 只放跨模型公共数据、运行和推理工具。入口放 scripts/train、scripts/data，不再创建 rsci/backbones 或旧导入别名，不复制历史活动控制器。各包真实路径见 docs/DIRECTORY_STRUCTURE.md。
-- 用户2026-10-30要求仓库保持干净：当前源码树只保留有效版本，不留旧版 SIMPLE 副本、备份目录或废弃接入配置；历史版本由 Git 记录追溯，迁移来源文档不作为旧代码副本。
-- 训练、恢复、推理使用对应骨干原生处理器和配方；ACT 无 Reader，EGQ-AE 不改称 VGQ-AE。π0.5 与 EgoVLA 的 Transformers 环境分离。
-- 缓存仅保存原始 uint8 RGB/小张量；不保存增强或可训练特征。Guardian 验完整 SHA，worker 验清单/stat。完整断点含模型、优化器、调度器、RNG 和消费位置；契约变更拒绝原目录续训，不绕过校验或无点重训。
-- 40k 训练保留 10k/20k/30k/40k 完整点，之间每 1k 滚动保存；新点验证后才能轮换旧滚动点。不长读活动滚动点，不操作 PSI0-RAW 训练、进程、契约或 checkpoint。
-- 启动训练、完整评测、删除、移动或清理数据须有明确授权；整理源码不构成这些操作的授权。必要 CPU 检查可执行，实际覆盖与未验证范围分别报告。
-- 关键新增逻辑写中文注释；文档登记到本文件及 README，常设规则变更同步工作区 AGENTS。新增来源应记录固定版本和逐文件 SHA，保留组件许可证。
-- 用户2026-10-31要求提高可读性与命名清晰度：函数名使用动词和具体对象，如 build_training_contract、run_training_worker；同一职责跨模型保持一致。关键函数说明输入、返回值及副作用；长预检放入 preflight，不堆在 CLI。框架约定方法、CLI 参数和 checkpoint 字段沿用原接口。参见目录指南的函数命名与阅读顺序。
-- 用户2026-10-30明确要求：RHSCI-Private 不自动提交到远端。只有用户明确要求推送时才执行 git push 或其他远端代码发布；此前的自动 commit/push 规则在本仓库的远端推送部分不再适用。网络恢复、验证完成或存在未推送提交均不构成推送授权。
-- 经验证后仅提交本轮代码、配置、测试及文档；先检查 status 和 LFS。GitHub 不放权重、数据、环境或训练输出。权重使用公开 model ds1x/RHSCI/checkpoint，训练/评测数据使用 dataset ds1x/RHSCI 的 train-data/eval-data；发布前后核范围、类型、可见性、revision、大小和 SHA，保留原件。
-
-2026-10-30 文档登记：main，[PSI0-RAW 整理记录](docs/PSI0_RAW_INTEGRATION_20261030.md)与[来源清单](docs/PSI0_RAW_INTEGRATION_20261030.json)；修改/迁移本批训练恢复和缓存前必读。CPU 验证范围见记录，CUDA/闭环及跨仓库 checkpoint 迁移未验。
-
-2026-10-30 文档登记：main，[训练职责整理](docs/TRAINING_STRUCTURE_20261030.md)；修改四骨干训练/恢复/缓存前必读。配方保留各骨干 config.py；入口只编排，公共 HF 门禁不混用 schema；缓存显式传参，环境默认仅在 CLI 解析。CPU 143 项通过，EgoVLA 1 项缺 FlashAttention 阻塞，CUDA/多卡/闭环待验；不自动推送远端。
-
-2026-10-30 文档登记：main，[官方 SIMPLE 替换](docs/SIMPLE_OFFICIAL_20261030.md)与[固定清单](configs/simple/official.json)；更新仿真依赖/引用评测前必读。默认官方 b75c6786（含 PR #29），外部源码及9子模块已落地，433文件SHA和14项CPU通过；环境/资产/GPU闭环待验，不携带历史本地仿真补丁，不自动推送。
-
-2026-10-31 文档登记：main，[按原生包聚合模型代码](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)；修改模型入口、源码契约、环境导入或引用旧模块路径前必读。替代2026-10-30记录中的旧目录布局；训练职责与配方继续保留，验证/环境限制见记录，不自动推送。
-
-2026-10-31 同文档新增可读性整理记录；[函数命名与阅读顺序](docs/DIRECTORY_STRUCTURE.md#function-names-and-reading-order)说明新内部接口。旧简写函数名已替换，调用和测试同步；CLI/配方不变，源码 SHA 变化仍拒绝旧目录续训。CPU 结果及既有依赖限制见记录，不自动推送。
+当前结构与历史来源：[原生包整理及可读性记录](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)、[初次整合](docs/PSI0_RAW_INTEGRATION_20261030.md)、[训练职责](docs/TRAINING_STRUCTURE_20261030.md)、[官方 SIMPLE](docs/SIMPLE_OFFICIAL_20261030.md)。历史记录描述当时行为，2026-10-31起运行校验以[精简记录](docs/RUNTIME_CHECKS_20261031.md)及现行使用指南为准；修改恢复、部署和资产检查前参考该记录。

@@ -1,4 +1,4 @@
-"""Stage-II 本地资产的完整官方文件集合与摘要验收，不自动下载。"""
+"""读取本地 λ₀ 初始化资产；完整摘要核验仅用于显式资产检查。"""
 
 import hashlib
 import json
@@ -6,38 +6,40 @@ from pathlib import Path
 
 from .contracts import sha256
 
-REVISION = "2878ebd4a236514f41215d2a4c4af05ca3dd177a"
 
-
-def verify_assets(root):
+def verify_assets(root, *, verify=False):
+    """记录配置及已有权重；可选来源收据不限制用户选择其他原生初始化目录。"""
     root = Path(root)
-    metadata = json.loads((root / "RSCI_HF_SOURCE.json").read_text())
-    if metadata["sha"] != REVISION or metadata["id"] != "lambda-humanoid/lambda0-midtrain-100k":
-        raise ValueError("Stage-II source identity mismatch")
-    expected = {row["rfilename"]: row for row in metadata["siblings"]}
-    actual = {
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.is_file()
-        and ".cache" not in path.relative_to(root).parts
-        and path.name not in ("RSCI_HF_SOURCE.json", "RSCI_ASSETS.json")
-    }
-    if actual != set(expected):
-        raise ValueError("Stage-II asset inventory mismatch")
+    config = json.loads((root / "config.json").read_text())
+    metadata_path = root / "RSCI_HF_SOURCE.json"
+    if not metadata_path.is_file():
+        weights = sorted(path for path in root.rglob("*.safetensors") if path.is_file())
+        if not weights:
+            raise FileNotFoundError(f"No model weights: {root}")
+        return dict(
+            config=config,
+            files={
+                path.relative_to(root).as_posix(): dict(bytes=path.stat().st_size)
+                for path in weights
+            },
+        )
+    metadata = json.loads(metadata_path.read_text())
     records = {}
-    for name, entry in expected.items():
+    for entry in metadata["siblings"]:
+        name = entry["rfilename"]
         file = root / name
-        if file.stat().st_size != entry["size"]:
-            raise ValueError(f"Stage-II size mismatch: {name}")
+        if not file.is_file() or file.stat().st_size != entry["size"]:
+            raise ValueError(f"Initialization file missing or size mismatch: {name}")
         if entry.get("lfs"):
-            digest = sha256(file)
-            if digest != entry["lfs"]["sha256"]:
-                raise ValueError(f"Stage-II LFS hash mismatch: {name}")
+            digest = entry["lfs"]["sha256"]
+            if verify and sha256(file) != digest:
+                raise ValueError(f"Initialization LFS hash mismatch: {name}")
         else:
             contents = file.read_bytes()
-            blob = hashlib.sha1(f"blob {len(contents)}\0".encode() + contents).hexdigest()
-            if blob != entry["blobId"]:
-                raise ValueError(f"Stage-II Git blob mismatch: {name}")
+            if verify:
+                blob = hashlib.sha1(f"blob {len(contents)}\0".encode() + contents).hexdigest()
+                if blob != entry["blobId"]:
+                    raise ValueError(f"Initialization Git blob mismatch: {name}")
             digest = hashlib.sha256(contents).hexdigest()
         records[name] = dict(bytes=file.stat().st_size, sha256=digest)
-    return dict(repo="lambda-humanoid/lambda0-midtrain-100k", revision=REVISION, files=records)
+    return dict(repo=metadata["id"], revision=metadata["sha"], files=records)

@@ -8,9 +8,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from rsci.paths import add_data_arguments, dataset_paths
+from rsci.runtime.contracts import reuse_run_contract
 
-from .contracts import CODE, CONTRACT, RUNTIME, UPSTREAM_COMMIT, sha256, verify_upstream
-from .environment import verify_environment
+from .contracts import CODE as CODE
+from .contracts import CONTRACT, RUNTIME, UPSTREAM_COMMIT, sha256
 
 
 def build_argument_parser():
@@ -52,9 +53,7 @@ def build_argument_parser():
 
 
 def build_training_config(args):
-    """校验源码、环境和 CLI 参数；返回供原生 λ₀ resolver 使用的训练配置。"""
-    verify_upstream()
-    verify_environment()
+    """校验 CLI 参数；返回供原生 λ₀ resolver 使用的训练配置。"""
     if Path(args.run_tag).name != args.run_tag or args.run_tag in ("", ".", ".."):
         raise ValueError("run-tag must be a plain directory name")
     gpus = args.gpus.split(",")
@@ -226,7 +225,7 @@ def execute_training(args, config):
     """将 RHSCI 配置接入原生 λ₀；按 CLI 模式执行只读检查或当前 worker 的训练。"""
     from .assets import verify_assets
 
-    asset_manifest = verify_assets(config["model"])
+    asset_manifest = verify_assets(config["model"], verify=args.check_model)
     from lambda0.training.runner import resolve_experiment
 
     cli = SimpleNamespace(
@@ -291,29 +290,21 @@ def execute_training(args, config):
 
     from .runtime import RSCITrainingBackend
 
-    # 绑定完整配方、数据统计和扩展源码，防止输出同名却加载不同实验。
+    # 绑定模型配方、数据统计和初始化，避免同名输出误接其他实验。
     stable = {key: value for key, value in config.items() if key != "resume"}
-    source = Path(__file__).resolve().parent
     signature = dict(
         contract=CONTRACT,
         upstream=UPSTREAM_COMMIT,
         variant=args.variant,
         config=stable,
         initialization=asset_manifest,
-        environment=verify_environment(),
         native_training=resolved["native_training"],
         bundle={
             p.relative_to(Path(config["data"])).as_posix(): sha256(p)
             for p in sorted(Path(config["data"]).rglob("*.json"))
         },
-        source={p.name: sha256(p) for p in sorted(source.glob("*.py"))},
-        shared_ardy_reader=sha256(CODE / "src/rsci/data/ardy_sidecar.py"),
-        shared_paths=sha256(CODE / "src/rsci/paths.py"),
-        shared_runtime={
-            p.name: sha256(p) for p in sorted((CODE / "src/rsci/runtime").glob("*.py"))
-        },
-        upstream_patch=sha256(CODE / "baselines/lambda0/upstream.patch"),
     )
+    signature = reuse_run_contract(signature, config["output"], "rsci_run.json")
     identity = hashlib.sha256(json.dumps(signature, sort_keys=True).encode()).hexdigest()
     contract = dict(schema=CONTRACT, identity=identity, variant=args.variant)
     backend = RSCITrainingBackend(engine, args.variant, contract)
@@ -399,7 +390,7 @@ def execute_training(args, config):
         provenance = Path(native_args.output_dir) / "rsci_run.json"
         if provenance.is_file() and json.loads(provenance.read_text()) != signature:
             raise ValueError(
-                "Existing run differs from current source/config/assets; choose another run-tag"
+                "Existing run differs from current config/assets; choose another run-tag"
             )
         provenance.write_text(json.dumps(signature, indent=2))
     engine.main(native_args, backend=backend)

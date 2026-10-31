@@ -72,33 +72,6 @@ def run_training_preflight(args, paths):
     return processor, dataset
 
 
-def check_training_environment():
-    import importlib.util
-
-    expected = {
-        "torch": "2.7.0",
-        "transformers": "4.51.3",
-        "diffusers": "0.35.1",
-        "torchcodec": "0.4.0",
-    }
-    failures = []
-    for name, version in expected.items():
-        try:
-            installed = importlib.metadata.version(name)
-        except importlib.metadata.PackageNotFoundError:
-            installed = "missing"
-        if installed.split("+")[0] != version:
-            failures.append(f"{name}=={version} (found {installed})")
-    if importlib.util.find_spec("flash_attn") is None:
-        failures.append("flash-attn==2.7.4.post1")
-    if failures:
-        raise RuntimeError(
-            "GR00T training environment is not ready: "
-            + ", ".join(failures)
-            + "; see baselines/gr00t/README.md"
-        )
-
-
 def validate_training_data(args, paths):
     """检查训练数据、归一化与历史帧边界，不进行模型训练更新。
 

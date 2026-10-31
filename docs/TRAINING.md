@@ -45,7 +45,7 @@ python3 scripts/train/baseline.py --backbone pi05 --mode rsci \
   --output-dir /runs/pi05/my_task --max-steps 40000 --check-data
 ```
 
-Remove `--check-data` after preflight to train. π0.5, GR00T and EgoVLA accept `--dataset`, `--sidecar`, `--checkpoint`, `--output-dir`, `--max-steps`, batch/worker settings, and a plain `--task` run identifier. Dataset paths are explicit and sizes come from metadata. Other robot schemas need corresponding adapters. π0.5 initialization also requires `RSCI_ASSETS.json` in the checkpoint directory to identify the expected weights and tokenizer. Resume checks validate source, data and model identities.
+Remove `--check-data` after preflight to train. π0.5, GR00T and EgoVLA accept `--dataset`, `--sidecar`, `--checkpoint`, `--output-dir`, `--max-steps`, batch/worker settings, and a plain `--task` run identifier. Dataset paths are explicit and sizes come from metadata. Other robot schemas need corresponding adapters. π0.5 accepts a native local initialization directory and tokenizer without `RSCI_ASSETS.json`. When a manifest is supplied, `--check` can audit its full hashes. Resume checks compare model, data and training configuration; source edits and compatible dependency updates do not invalidate a run.
 
 PSI0 takes the exact repo ID through `--task`, its parent directory through `--data-root`, labels through `--sidecar-root`, and initialization paths through `--vlm-path` / `--ae-path`. It also accepts `--output-dir` and `--max-steps`. It uses the environment's NCCL by default; `--nccl-library` selects an explicitly validated alternate runtime.
 
@@ -68,7 +68,7 @@ python3 scripts/train/baseline.py --backbone lambda0 --mode rsci \
   --max-steps 40000 --check-data
 ```
 
-λ₀ validates its environment lock and source manifest. Its inner `--dry-run` additionally validates local assets; the common launcher's outer `--dry-run` remains command-only.
+λ₀ uses its native dependency imports and model loader; the environment lock and source manifest are reproducibility references, not runtime version gates. Its inner `--dry-run` resolves local configuration and assets without a full weight hash scan; `--check-model` additionally checks asset hashes when a source receipt is available. The common launcher's outer `--dry-run` remains command-only.
 
 ## Experimental switches
 
@@ -175,3 +175,5 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 ## Explicit raw input caches
 
 ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables. See [training structure and compatibility](TRAINING_STRUCTURE_20261030.md).
+
+Runtime checks were simplified on 2026-10-31; see the [scope and reference comparison](RUNTIME_CHECKS_20261031.md). Complete optimizer/scheduler/RNG and numerical checks still apply to automatic training recovery.

@@ -47,7 +47,7 @@ def main():
     if args.check_data:
         check_data(paths, args.model)
         return
-    manifest = assets(paths["checkpoint"], register=args.register_assets, verify=not args.worker)
+    manifest = assets(paths["checkpoint"], register=args.register_assets, verify=args.check)
     if args.register_assets:
         print("EGOVLA_ASSETS_REGISTERED; no training started")
         return

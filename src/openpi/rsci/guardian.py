@@ -34,7 +34,7 @@ def run_training_guardian(args, paths, digest):
 
         reject_numerical_failure(paths["output"])
         if build_training_contract(args, paths)[1] != digest:
-            raise ValueError("Source/data/dependencies changed; refusing automatic resume")
+            raise ValueError("Training configuration/data changed; refusing automatic resume")
         resume = (
             args.resume
             if attempt == 0 and args.resume

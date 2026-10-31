@@ -42,6 +42,7 @@ class CheckpointTests(unittest.TestCase):
             )
             for name in names:
                 (checkpoint / name).write_text("fixture")
+            (checkpoint / "rsci_config.json").write_text("{}")
             (checkpoint / "trainer_state.json").write_text(json.dumps(dict(global_step=step)))
             files = {
                 name: dict(
@@ -78,20 +79,33 @@ class CheckpointTests(unittest.TestCase):
             self.assertEqual(len(rows["ready"]), 1)
             self.assertFalse(rows["rejected"])
 
-    def test_rejects_changed_sources_and_checkpoint_symlinks(self):
+    def test_source_edits_and_checkpoint_symlinks_do_not_block_inference(self):
         with tempfile.TemporaryDirectory() as folder:
             run = self.make_run(folder)
             contract = json.loads((run / "launch_contract.json").read_text())
-            contract["code"] = {"../outside": "invalid"}
+            contract["code"] = {"old/removed_training_script.py": "obsolete"}
             (run / "launch_contract.json").write_text(json.dumps(contract))
-            with self.assertRaisesRegex(ValueError, "source mismatch"):
-                inspect_run(run, "pi05")
-            self.assertEqual(len(discover(folder, "pi05")["rejected"]), 1)
+            checkpoint = run / "checkpoint-700"
+            checkpoint.rename(run / "exported-model")
+            checkpoint.symlink_to(run / "exported-model", target_is_directory=True)
+            self.assertEqual(inspect_run(run, "pi05")[1].name, "checkpoint-700")
+            self.assertFalse(discover(folder, "pi05")["rejected"])
+
+    def test_inference_does_not_require_training_state_or_completion_marker(self):
         with tempfile.TemporaryDirectory() as folder:
             run = self.make_run(folder)
             checkpoint = run / "checkpoint-700"
-            checkpoint.rename(run / "hidden")
-            checkpoint.symlink_to(run / "hidden", target_is_directory=True)
+            for name in (
+                "optimizer.pt",
+                "scheduler.pt",
+                "rng_state.pth",
+                "trainer_state.json",
+                "training_args.bin",
+                "RSCI_COMPLETE.json",
+            ):
+                (checkpoint / name).unlink()
+            self.assertEqual(inspect_run(run, "pi05")[1], checkpoint)
+            (checkpoint / "model.safetensors").unlink()
             self.assertEqual(inspect_run(run, "pi05")[1].name, "checkpoint-200")
 
     def test_historical_sources_are_verified_in_explicit_training_checkout(self):
@@ -109,8 +123,7 @@ class CheckpointTests(unittest.TestCase):
                 marker = json.loads(path.read_text())
                 marker["contract"] = digest
                 path.write_text(json.dumps(marker))
-            with self.assertRaisesRegex(ValueError, "source mismatch"):
-                inspect_run(run, "pi05")
+            self.assertEqual(inspect_run(run, "pi05")[1].name, "checkpoint-700")
             self.assertEqual(
                 inspect_run(run, "pi05", training_source_root=training)[1].name, "checkpoint-700"
             )

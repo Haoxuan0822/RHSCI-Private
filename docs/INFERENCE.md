@@ -48,9 +48,9 @@ PYTHONPATH=src /path/to/gr00t-env/bin/python -m rsci.inference.http_server \
   --device cuda:0 --host 127.0.0.1 --port 5555
 ```
 
-The run directory must contain `launch_contract.json` and complete checkpoints. By default, the server verifies source identities against this checkout. It selects the latest complete checkpoint; `--checkpoint-step N` selects one explicitly. Discovery checks completeness but leaves the full hash/numerical scan to server startup.
+The run directory contains `launch_contract.json` and model checkpoints. The server selects the latest checkpoint with configuration and nonempty weights; `--checkpoint-step N` selects one explicitly. Optimizer, scheduler, RNG, training completion markers and an identical training checkout are not required. Model loading still checks keys, shapes and the saved preprocessing settings.
 
-For an existing π0.5 run trained before the reorganization, add `--training-source-root /path/to/original/training-checkout` to serving or discovery. All recorded source hashes are checked against that explicit directory, including the original launcher scripts. The old contract and checkpoint markers remain unchanged. This inference-only compatibility path accepts schema-1 completion markers while retaining file, hash, numerical and strict weight checks; it does not authorize resuming training with changed sources. The processor restores the saved normalization version, including the early unprotected quantile recipe. Unknown preprocessing versions are rejected. No original training modules are imported or executed.
+Historical π0.5 checkpoints use the same model-only discovery path. `--training-source-root /path/to/original/training-checkout` remains an optional explicit source audit; it is not required for historical serving. Original training modules are not imported or executed. The processor restores the saved normalization version, including the early quantile recipe; unsupported preprocessing remains an error.
 
 PSI0 serving reads `run_config.json` using the configuration module recorded in `argv.txt`, without replaying obsolete training flags. Historical RHSCI sidecar and RGB-encoder field names are translated to their current names. Reader selection is checked against the checkpoint schema, which also identifies older full-token runs without a saved Reader flag. Removed depth/v5 architectures are rejected when enabled; their inactive settings do not recreate those branches.
 
@@ -96,22 +96,22 @@ PYTHONPATH=src:src/egovla:src/egovla/VILA \
   --checkpoint /runs/egovla/my_task/checkpoint-10120 --port 8011
 ```
 
-The service checks the complete checkpoint, source hashes and original base assets. Keep the base checkpoint at the initialization path saved in the run contract. `/act` consumes the current `rgb_head_stereo_left` image and instruction; STATE also requires finite 32D `state["states"]`. It returns 30 × 36 native physical actions. VGQ-AE inference does not use state, Reader, query supervision or training history. It does not expose the Ψ0/π0.5/GR00T request-seed option.
+The service checks model configuration/weights and the pretrained base assets needed by its trainable-only model. Source file hashes and optimizer/RNG files do not gate serving. Keep the base checkpoint at the initialization path saved in the run contract. `/act` consumes the current `rgb_head_stereo_left` image and instruction; STATE also requires finite 32D `state["states"]`. It returns 30 × 36 native physical actions. VGQ-AE inference does not use state, Reader, query supervision or training history. It does not expose the Ψ0/π0.5/GR00T request-seed option.
 
 ## λ₀
 
-Use `baselines/lambda0/Lambda0_Serve.sh` in the pinned λ₀ environment. Supply `--model` with a complete RHSCI checkpoint and `--normalization` with the matching file from its `data_bundle/stats` directory; `--processor`, if supplied, must point to the same model directory. `--model /path/to/checkpoint/ema` selects its EMA model. Run the wrapper with `--help` for native flow/RTC server options. The adapter validates the source, processor and normalization against the checkpoint before calling the native service.
+Use `baselines/lambda0/Lambda0_Serve.sh` in the pinned λ₀ environment. Supply `--model` with an RHSCI model directory and `--normalization` with the matching file from its `data_bundle/stats` directory; `--processor`, if supplied, must point to the same model directory. `--model /path/to/checkpoint/ema` selects its EMA model. Run the wrapper with `--help` for native flow/RTC server options. The adapter validates the model weights, processor and normalization before calling the native service; source snapshots, exact dependency versions and training state are not required.
 
 ## ACT
 
-Use the ACT environment, including the serving dependencies, with a complete RHSCI checkpoint:
+Use the ACT environment, including the serving dependencies, with an RHSCI model checkpoint:
 
 ```bash
 PYTHONPATH=src /path/to/act-env/bin/python -m act.rsci.serve \
   --checkpoint /runs/act/my_task/checkpoint-40000 --device cuda:0 --port 8126
 ```
 
-The service exposes `/health`, `/reset` and `/act`, using PSI0's `RequestMessage` / `ResponseMessage` serialization. Send one current uint8 RGB image. STATE requires `state["states"]` containing the 32 measured SIMPLE values; NO-STATE and EGQ-AE ignore state and need no history or ARDY labels. Responses contain the full 16 × 36 action chunk. The native latent-zero policy is deterministic in evaluation mode; no action-noise seed switch is needed. This entry validates checkpoint completeness, normalization and source identity. Being-H0.5 currently uses its native inference API and is not part of this HTTP protocol.
+The service exposes `/health`, `/reset` and `/act`, using PSI0's `RequestMessage` / `ResponseMessage` serialization. Send one current uint8 RGB image. STATE requires `state["states"]` containing the 32 measured SIMPLE values; NO-STATE and EGQ-AE ignore state and need no history or ARDY labels. Responses contain the full 16 × 36 action chunk. The native latent-zero policy is deterministic in evaluation mode; no action-noise seed switch is needed. This entry validates model weights/configuration and normalization; it does not require training state or identical source files. Being-H0.5 currently uses its native inference API and is not part of this HTTP protocol.
 
 ## Query ablations
 

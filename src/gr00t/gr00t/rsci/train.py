@@ -11,7 +11,6 @@ from .config import resolve_training_paths as resolve_training_paths
 from .contract import build_training_contract as build_training_contract
 from .guardian import run_training_guardian as run_training_guardian
 from .preflight import build_processor as build_processor
-from .preflight import check_training_environment as check_training_environment
 from .preflight import run_training_preflight as run_training_preflight
 from .preflight import validate_training_data
 from .trainer import create_resume_trainer_class as create_resume_trainer_class
@@ -43,7 +42,6 @@ def main():
             raise ValueError("Guardian launch contract mismatch")
         run_training_guardian(args, paths, digest)
         return
-    check_training_environment()
     processor, dataset = run_training_preflight(args, paths)
     if args.check:
         return

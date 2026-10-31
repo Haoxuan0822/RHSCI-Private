@@ -241,3 +241,5 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 2026-10-31: 模型专属扩展已按原生包聚合，`src/rsci` 只保留共用工具；[位置、入口和兼容性](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)。
 
 2026-10-31: 训练/恢复函数统一使用明确的动作名称，较长预检归入 `preflight.py`；参见[函数命名与阅读顺序](docs/DIRECTORY_STRUCTURE.md#function-names-and-reading-order)及[验证记录](docs/NATIVE_PACKAGE_LAYOUT_20261031.md#可读性与函数命名整理2026-10-31)。
+
+2026-10-31: [运行检查精简](docs/RUNTIME_CHECKS_20261031.md)：源码/依赖精确版本不再阻断恢复或推理，推理无需训练状态，原生资产目录无需专用收据。保留模型、数据与完整恢复检查；不自动推送远端。

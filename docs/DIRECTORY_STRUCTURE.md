@@ -62,7 +62,7 @@ Other native launchers remain `act.sh`, `dp.sh`, `internvla-m1.sh`, `h-rdt.sh`, 
 
 ## Within each model
 
-ACT, π0.5, GR00T and EgoVLA retain `config.py` (recipe/arguments), `preflight.py` (assets/data checks), `contract.py` (source/data/config identity), `train.py` (CLI), `worker.py` (assembly), `trainer.py` (Trainer behavior), `checkpoints.py`, and guardian/launch modules. Model and processing code is alongside those modules. Ψ0 keeps its native trainer hooks; λ₀ keeps its native backend integration. The [2026-10-30 responsibility map](TRAINING_STRUCTURE_20261030.md) describes those duties, with old paths retained as history.
+ACT, π0.5, GR00T and EgoVLA retain `config.py` (recipe/arguments), `preflight.py` (assets/data checks), `contract.py` (model/data/training configuration), `train.py` (CLI), `worker.py` (assembly), `trainer.py` (Trainer behavior), `checkpoints.py`, and guardian/launch modules. Model and processing code is alongside those modules. Ψ0 keeps its native trainer hooks; λ₀ keeps its native backend integration. The [2026-10-30 responsibility map](TRAINING_STRUCTURE_20261030.md) describes those duties, with old paths retained as history.
 
 ## Function names and reading order
 
@@ -73,7 +73,7 @@ Read `train.main` first, then follow the called functions to their owning module
 | `build_argument_parser` | Return the CLI parser, without loading a model or launching training |
 | `resolve_training_paths` | Validate arguments, fill defaults and return data/cache/output paths for ACT, π0.5, GR00T and EgoVLA |
 | `build_training_arguments` | Return the model's native trainer arguments; Ψ0 returns its native CLI argument list |
-| `build_training_contract` | Record source/data/recipe identity; π0.5 and GR00T also return its digest |
+| `build_training_contract` | Record model/data/recipe identity; π0.5 and GR00T also return its digest |
 | `compute_contract_digest` | Hash ACT/EgoVLA contract dictionaries for checkpoint validation |
 | `run_training_preflight` | Check assets and preprocessing in Ψ0, π0.5 and GR00T; return values are documented per model |
 | `create_trainer_class` | Lazily construct and return a Trainer subclass, without creating a model |
@@ -92,3 +92,5 @@ Datasets, ARDY labels, weights, checkpoints, logs and environments stay outside 
 Official SIMPLE stays external at `$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786`. Its source lock and verification tool remain in `configs/simple/official.json` and `tools/check_simple.py`. No SIMPLE files or dependencies were moved by this reorganization; environment/LFS/rollout limitations are in the [SIMPLE record](SIMPLE_OFFICIAL_20261030.md).
 
 See [Training](TRAINING.md), [Inference](INFERENCE.md), [Sources](SOURCES.md) and [Development](ARCHITECTURE.md) for model-specific commands and validation limits.
+
+Source hashes and exact environment versions are no longer runtime gates. Inference only needs its model files and processing configuration; see [runtime check policy](RUNTIME_CHECKS_20261031.md).

@@ -33,7 +33,7 @@ Prepare the fixed SIMPLE base VLM separately:
 python -m human_plan.rsci.prepare_assets --runtime-root /opt/rsci-data
 ```
 
-This downloads and verifies the base VLM and registers its `RSCI_ASSETS.json`; it does not start training. For already downloaded base assets, use the training entry's `--register-assets` with `--checkpoint` and your task/data arguments. Run `--check` with those same arguments before starting training.
+This downloads and verifies the base VLM and registers its `RSCI_ASSETS.json`; it does not start training. For already downloaded base assets, use the training entry's `--register-assets` with `--checkpoint` and your task/data arguments. Registration is optional for an existing native base-model directory. Use `--check` for explicit model/processor and asset-hash checks; ordinary startup uses file inventory/size and native loading.
 
 `--dry-run` and `--check-data` are available before training. Pass `--task`, `--dataset`, `--sidecar`, `--checkpoint`, `--output-dir`, batch/GPU settings, and either `--max-steps` or `--num-train-epochs`; see [the training guide](../../docs/TRAINING.md). It uses the environment's NCCL by default; set `RSCI_NCCL_LIBRARY` only for a validated alternate runtime.
 

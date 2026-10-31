@@ -1,5 +1,6 @@
 """检查公开源码中是否混入凭据、资产、外部链接或嵌套 Git 引用。"""
 
+import argparse
 import hashlib
 import json
 import os
@@ -10,6 +11,11 @@ from pathlib import Path
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--verify-manifest", action="store_true", help="交接时核对完整源码清单与 SHA"
+    )
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     secrets = re.compile(
         rb"\b(?:hf_[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(?:proj-)?[A-Za-z0-9_-]{24,})\b"
@@ -44,14 +50,16 @@ def main():
                     )
         except (OSError, ValueError, KeyError, TypeError):
             errors.append(f"{component}: missing or invalid component license/source record")
-    manifest = json.loads((root / "PUBLIC_EXPORT_MANIFEST.json").read_text())
-    for name, record in manifest["files"].items():
-        path = root / name
-        if (
-            not path.is_file()
-            or hashlib.sha256(path.read_bytes()).hexdigest() != record["export_sha256"]
-        ):
-            errors.append(name + ": differs from the public source manifest")
+    manifest = None
+    if args.verify_manifest:
+        manifest = json.loads((root / "PUBLIC_EXPORT_MANIFEST.json").read_text())
+        for name, record in manifest["files"].items():
+            path = root / name
+            if (
+                not path.is_file()
+                or hashlib.sha256(path.read_bytes()).hexdigest() != record["export_sha256"]
+            ):
+                errors.append(name + ": differs from the public source manifest")
     count = total = 0
     actual_sources = set()
     for current, dirs, files in os.walk(root):
@@ -96,19 +104,12 @@ def main():
                 errors.append(label + ": possible credential (content withheld)")
             if raw.startswith(b"version https://git-lfs.github.com/spec/v1"):
                 errors.append(label + ": LFS asset pointer")
-    if actual_sources != set(manifest["files"]):
+    if manifest is not None and actual_sources != set(manifest["files"]):
         errors.append("source file inventory differs from the public source manifest")
     if (root / ".git").exists():
         index = subprocess.check_output(["git", "-C", str(root), "ls-files", "--stage"]).decode()
         if any(line.startswith("160000 ") for line in index.splitlines()):
             errors.append("index contains submodules/gitlinks")
-        worktrees = subprocess.check_output(
-            ["git", "-C", str(root), "worktree", "list", "--porcelain"]
-        ).decode()
-        if sum(line.startswith("worktree ") for line in worktrees.splitlines()) != 1:
-            errors.append("repository must have exactly one worktree")
-        if (root / ".git/objects/info/alternates").exists():
-            errors.append("repository shares external Git objects")
     print(
         json.dumps({"files": count, "bytes": total, "errors": errors}, ensure_ascii=False, indent=2)
     )

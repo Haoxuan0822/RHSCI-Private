@@ -15,7 +15,8 @@ from pathlib import Path
 
 from psi.rsci.defaults import build_training_arguments
 from rsci.data.state_noise import validate_scale
-from rsci.paths import CODE_ROOT
+from rsci.paths import CODE_ROOT as CODE_ROOT
+from rsci.runtime.contracts import reuse_run_contract
 from rsci.runtime.processes import cleanup, process_table, remember_tree
 
 from .checkpoints import checkpoint_ok
@@ -201,47 +202,21 @@ def resolve_training_plan(args):
 
 
 def build_training_contract(cfg, ranks):
-    """根据已解析参数、数据与源码生成恢复身份；调用方据此拒绝不兼容续训。返回契约字典。"""
+    """根据模型、数据与配方生成恢复身份；源码编辑和依赖版本不作为恢复门槛。返回契约字典。"""
     data = cfg.model_dump(mode="json")
     train = dict(data["train"])
     for key in ("resume_from_checkpoint", "skip_resumed_steps"):
         train.pop(key, None)
-    # 源码也属于恢复契约，结构/数据/训练参数不同不得续接。
-    digest = hashlib.sha256()
-    for name in (
-        "src/psi/rsci/model.py",
-        "src/psi/models/psi0.py",
-        "src/psi/config/model_psi0.py",
-        "src/psi/config/transform.py",
-        "src/psi/config/data_lerobot.py",
-        "src/psi/trainers/finetune.py",
-        "src/psi/rsci/train.py",
-        "src/psi/data/lerobot/lerobot_ext.py",
-        "src/psi/trainers/trainer.py",
-        "scripts/train.py",
-        "src/psi/rsci/rgb_encoder.py",
-        "src/psi/trainers/qwen3vl_mixin.py",
-        "src/rsci/runtime/profiling.py",
-        "scripts/with_nccl_runtime.py",
-        "src/psi/rsci/defaults.py",
-        "src/rsci/runtime/processes.py",
-        "src/psi/rsci/trainer.py",
-        "src/psi/rsci/checkpoints.py",
-        "src/rsci/runtime/checkpoints.py",
-    ):
-        digest.update((CODE / name).read_bytes())
-    for directory in ("src/rsci/runtime", "src/rsci/data"):
-        for path in sorted((CODE / directory).glob("*.py")):
-            digest.update(path.relative_to(CODE).as_posix().encode())
-            digest.update(path.read_bytes())
-    return dict(
-        schema=1,
-        model=data["model"],
-        data=data["data"],
-        train=train,
-        seed=data["seed"],
-        world_size=ranks,
-        source_sha256=digest.hexdigest(),
+    return reuse_run_contract(
+        dict(
+            schema=1,
+            model=data["model"],
+            data=data["data"],
+            train=train,
+            seed=data["seed"],
+            world_size=ranks,
+        ),
+        cfg.train.output_dir,
     )
 
 
@@ -341,7 +316,7 @@ def run_training_guardian(args, cfg, command, output, ranks):
             identity_path.read_text()
         ) != build_training_contract(cfg, ranks):
             raise ValueError(
-                "RHSCI source/parameters changed during training; refusing recovery with a different contract"
+                "RHSCI training configuration changed; refusing recovery with a different recipe"
             )
         resume = args.resume if attempt == 0 and args.resume else latest_checkpoint(output, ranks)
         runs_exist = (
