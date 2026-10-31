@@ -7,12 +7,13 @@ from rsci.data.cache_config import cache_arguments
 from rsci.paths import with_nccl
 
 from .checkpoints import atomic_json, checkpoint_ok, latest_checkpoint
-from .contract import contract
+from .contract import build_training_contract
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def guardian(args, paths, digest):
+def run_training_guardian(args, paths, digest):
+    """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     import signal
     import subprocess
     import time
@@ -32,7 +33,7 @@ def guardian(args, paths, digest):
         from rsci.runtime.numerics import reject_numerical_failure
 
         reject_numerical_failure(paths["output"])
-        if contract(args, paths)[1] != digest:
+        if build_training_contract(args, paths)[1] != digest:
             raise ValueError("Source/data/dependencies changed; refusing automatic resume")
         resume = (
             args.resume

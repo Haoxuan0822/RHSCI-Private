@@ -27,11 +27,11 @@ from human_plan.rsci.processing import Collator, Processor
 from human_plan.rsci.train import (
     CODE,
     assets,
-    completion_callback,
-    parser,
-    resolve,
-    trainer_type,
-    training_arguments,
+    build_argument_parser,
+    build_checkpoint_callback,
+    build_training_arguments,
+    create_trainer_class,
+    resolve_training_paths,
 )
 from torch import nn
 
@@ -389,10 +389,10 @@ class FullVLMTests(unittest.TestCase):
         self.assertTrue(model.backbone.vision.training)
         model.eval()
         self.assertFalse(model.backbone.llm.training)
-        full = parser().parse_args(
+        full = build_argument_parser().parse_args(
             ["--dataset", "/datasets/test", "--sidecar", "/labels/test", "--task", "hug"]
         )
-        frozen = parser().parse_args(
+        frozen = build_argument_parser().parse_args(
             [
                 "--dataset",
                 "/datasets/test",
@@ -405,12 +405,18 @@ class FullVLMTests(unittest.TestCase):
             ]
         )
         self.assertEqual(full.vlm_training, "full")
-        self.assertNotEqual(resolve(full)["output"], resolve(frozen)["output"])
+        self.assertNotEqual(
+            resolve_training_paths(full)["output"], resolve_training_paths(frozen)["output"]
+        )
         self.assertTrue(
-            training_arguments(full, resolve(full), cpu=True).ddp_find_unused_parameters
+            build_training_arguments(
+                full, resolve_training_paths(full), cpu=True
+            ).ddp_find_unused_parameters
         )
         self.assertFalse(
-            training_arguments(frozen, resolve(frozen), cpu=True).ddp_find_unused_parameters
+            build_training_arguments(
+                frozen, resolve_training_paths(frozen), cpu=True
+            ).ddp_find_unused_parameters
         )
 
 
@@ -419,10 +425,10 @@ class OfficialStateTests(unittest.TestCase):
         model = EgoVLARSCI(Backbone(), variant="STATE")
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp)
-            trainer_type()(
+            create_trainer_class()(
                 model=model,
-                args=training_arguments(
-                    parser().parse_args(
+                args=build_training_arguments(
+                    build_argument_parser().parse_args(
                         [
                             "--dataset",
                             "/datasets/test",
@@ -496,7 +502,7 @@ class OfficialStateTests(unittest.TestCase):
             )
 
     def test_custom_dataset_and_training_budget(self):
-        args = parser().parse_args(
+        args = build_argument_parser().parse_args(
             [
                 "--task",
                 "custom",
@@ -510,10 +516,10 @@ class OfficialStateTests(unittest.TestCase):
                 "2000",
             ]
         )
-        paths = resolve(args)
+        paths = resolve_training_paths(args)
         self.assertEqual(paths["dataset"], Path("/datasets/custom"))
         self.assertEqual(paths["output"], Path("/runs/custom"))
-        self.assertEqual(training_arguments(args, paths, cpu=True).max_steps, 2000)
+        self.assertEqual(build_training_arguments(args, paths, cpu=True).max_steps, 2000)
 
     def test_epoch_budget_and_shared_recipe(self):
         # 45046有效窗口；8卡×16得到352 microbatch/epoch，累计4 -> 88更新/epoch。
@@ -529,7 +535,7 @@ class OfficialStateTests(unittest.TestCase):
                 os.environ.pop("NCCL_SHM_DISABLE", None)
                 recipes = []
                 for variant in ("VGQ-AE", "STATE"):
-                    args = parser().parse_args(
+                    args = build_argument_parser().parse_args(
                         [
                             "--dataset",
                             str(meta.parent),
@@ -549,13 +555,13 @@ class OfficialStateTests(unittest.TestCase):
                             "4",
                         ]
                     )
-                    paths = resolve(args)
+                    paths = resolve_training_paths(args)
                     self.assertEqual(
                         os.environ["PYTORCH_CUDA_ALLOC_CONF"], "expandable_segments:True"
                     )
                     self.assertEqual(os.environ["NCCL_SHM_DISABLE"], "0")
                     self.assertEqual(args.max_steps, 10120)
-                    actual = training_arguments(args, paths, cpu=True)
+                    actual = build_training_arguments(args, paths, cpu=True)
                     self.assertEqual(actual.max_steps, -1)
                     self.assertEqual(actual.num_train_epochs, 115)
                     recipes.append(
@@ -570,7 +576,7 @@ class OfficialStateTests(unittest.TestCase):
                 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
                 os.environ["NCCL_SHM_DISABLE"] = "1"
                 args.max_steps = None
-                resolve(args)
+                resolve_training_paths(args)
                 self.assertEqual(os.environ["PYTORCH_CUDA_ALLOC_CONF"], "max_split_size_mb:128")
                 self.assertEqual(os.environ["NCCL_SHM_DISABLE"], "1")
 
@@ -582,7 +588,7 @@ class OfficialStateTests(unittest.TestCase):
             ["--gpus", "0,1,2,3,4,5,6,7", "--vlm-training", "frozen"],
         ):
             with self.subTest(overrides=overrides), self.assertRaises(ValueError):
-                resolve(parser().parse_args(base + overrides))
+                resolve_training_paths(build_argument_parser().parse_args(base + overrides))
 
 
 class ProcessorTests(unittest.TestCase):
@@ -693,7 +699,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                 sample["ardy_target"] += index * 0.11
                 return sample
 
-        class RecordingTrainer(trainer_type()):
+        class RecordingTrainer(create_trainer_class()):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.seen = []
@@ -703,7 +709,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                 return super().training_step(model, inputs, *args, **kwargs)
 
         with tempfile.TemporaryDirectory() as root:
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -723,7 +729,9 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             )
             set_seed(23)
             initial, dataset = EgoVLARSCI(Backbone()), Indexed()
-            arguments = training_arguments(args, dict(output=Path(root) / "continuous"), cpu=True)
+            arguments = build_training_arguments(
+                args, dict(output=Path(root) / "continuous"), cpu=True
+            )
             arguments.save_steps, arguments.disable_tqdm = 1, True
             continuous = RecordingTrainer(
                 model=copy.deepcopy(initial),
@@ -897,7 +905,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
 
     def test_official_recipe_and_actual_constant_schedule(self):
         with tempfile.TemporaryDirectory() as root:
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -909,10 +917,10 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                     "0",
                 ]
             )
-            paths = resolve(args)
+            paths = resolve_training_paths(args)
             paths["output"] = Path(root)
-            parameters = training_arguments(args, paths, cpu=True)
-            trainer = trainer_type()(
+            parameters = build_training_arguments(args, paths, cpu=True)
+            trainer = create_trainer_class()(
                 model=EgoVLARSCI(Backbone()), args=parameters, launch_contract={}
             )
             trainer.create_optimizer_and_scheduler(40000)
@@ -943,7 +951,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                 return sample
 
         with tempfile.TemporaryDirectory() as root:
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -965,16 +973,16 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             set_seed(11)
             initial = EgoVLARSCI(Backbone())
             dataset = Fixed()
-            arguments = training_arguments(args, paths, cpu=True)
+            arguments = build_training_arguments(args, paths, cpu=True)
             arguments.save_steps = 1
             arguments.disable_tqdm = True
             value, digest = {"test": True}, "fixture"
-            trainer = trainer_type()(
+            trainer = create_trainer_class()(
                 model=copy.deepcopy(initial),
                 args=arguments,
                 train_dataset=dataset,
                 launch_contract=value,
-                callbacks=[completion_callback(Path(root), 1, digest)],
+                callbacks=[build_checkpoint_callback(Path(root), 1, digest)],
             )
             trainer.train()
             expected = {
@@ -982,7 +990,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                 for name, parameter in trainer.model.named_parameters()
                 if parameter.requires_grad
             }
-            restored = trainer_type()(
+            restored = create_trainer_class()(
                 model=copy.deepcopy(initial),
                 args=arguments,
                 train_dataset=dataset,

@@ -9,7 +9,12 @@ import torch
 from torch.utils.data import Dataset
 
 from act.rsci.data import IMAGE, ACTDataset, Processor
-from act.rsci.train import parser, resolve, trainer_type, training_arguments
+from act.rsci.train import (
+    build_argument_parser,
+    build_training_arguments,
+    create_trainer_class,
+    resolve_training_paths,
+)
 
 
 def stats():
@@ -39,7 +44,7 @@ class Processing(unittest.TestCase):
 
     def test_explicit_data_paths_and_state_without_sidecar(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ):
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--task",
                     "custom",
@@ -53,14 +58,14 @@ class Processing(unittest.TestCase):
                     temp + "/torch",
                 ]
             )
-            paths = resolve(args)
+            paths = resolve_training_paths(args)
             self.assertEqual(paths["dataset"], Path(temp))
             self.assertIsNone(paths["sidecar"])
             self.assertEqual(paths["output"], Path(temp) / "run")
             self.assertEqual(os.environ["TORCH_HOME"], temp + "/torch")
             args.model = "EGQ-AE"
             with self.assertRaisesRegex(ValueError, "--sidecar"):
-                resolve(args)
+                resolve_training_paths(args)
 
     def test_current_native_exact_shared_history_augmentation_and_inference(self):
         processor = Processor(stats())
@@ -174,7 +179,7 @@ class Resume(unittest.TestCase):
                     control.should_save = True
                     control.should_training_stop = True
 
-        args = parser().parse_args(
+        args = build_argument_parser().parse_args(
             [
                 "--task",
                 "hug",
@@ -192,10 +197,10 @@ class Resume(unittest.TestCase):
 
             def build(name, callback=None):
                 set_seed(55)
-                arguments = training_arguments(args, {"output": Path(temp) / name}, cpu=True)
+                arguments = build_training_arguments(args, {"output": Path(temp) / name}, cpu=True)
                 arguments.eval_strategy = "no"
                 arguments.disable_tqdm = True
-                return trainer_type()(
+                return create_trainer_class()(
                     model=TinyModel(),
                     args=arguments,
                     train_dataset=Synthetic(),

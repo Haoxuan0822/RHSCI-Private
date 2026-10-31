@@ -8,10 +8,11 @@ import sys
 import time
 from pathlib import Path
 
-from .train import configuration, parser
+from .train import build_argument_parser, build_training_config
 
 
-def guardian(args, argv, output):
+def run_training_guardian(args, argv, output):
+    """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     with (output / "guardian.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for attempt in range(4):
@@ -87,11 +88,11 @@ def guardian(args, argv, output):
 
 def main():
     argv = [value for value in sys.argv[1:] if value != "--guardian"]
-    args = parser().parse_args(argv)
-    config = configuration(args)
+    args = build_argument_parser().parse_args(argv)
+    config = build_training_config(args)
     output = Path(config["output"])
     if "--guardian" in sys.argv:
-        guardian(args, argv, output)
+        run_training_guardian(args, argv, output)
         return
     checked = subprocess.run([sys.executable, "-m", "lambda0.rsci.train", *argv, "--dry-run"])
     if checked.returncode:

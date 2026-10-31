@@ -46,10 +46,10 @@ class TinyTrainer(RSCIFinetuneTrainer):
 
 class TrainerTests(unittest.TestCase):
     def setup_trainer(self, directory, resume=None):
-        args = launch_rsci.parser().parse_args(
+        args = launch_rsci.build_argument_parser().parse_args(
             ["--model", "VGQ-AE", "--task", "Test-v0", "--gpus", "0"]
         )
-        cfg = launch_rsci.resolved(args)[0]
+        cfg = launch_rsci.resolve_training_plan(args)[0]
         cfg.train.output_dir = directory
         cfg.train.mixed_precision = "no"
         cfg.train.gradient_accumulation_steps = 2

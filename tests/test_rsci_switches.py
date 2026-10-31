@@ -11,7 +11,7 @@ from test_rsci import inputs, policy, sample
 from psi.config.transform import ActionStateTransform
 from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
 from psi.rsci.model import RSCIQuery, RSCISpec, masked_auxiliary_loss
-from psi.rsci.train import contract, parser, resolved
+from psi.rsci.train import build_argument_parser, build_training_contract, resolve_training_plan
 from psi.trainers.finetune import FinetuneTrainer
 from rsci.data.ardy_future import ardy_target_at_offset, supervision_counts
 from rsci.data.ardy_sidecar import ArdySidecarReader
@@ -220,17 +220,19 @@ class RawStateNoiseTests(unittest.TestCase):
             ["--ardy-offset", "10"],
             ["--no-reader", "--ardy-offset", "10"],
         ):
-            cfg, command, output, ranks = resolved(parser().parse_args(base + extra))
+            cfg, command, output, ranks = resolve_training_plan(
+                build_argument_parser().parse_args(base + extra)
+            )
             self.assertEqual(cfg.model.rsci_use_reader, "--no-reader" not in extra)
             self.assertEqual(
                 cfg.data.rsci_ardy_offset_frames, 10 if "--ardy-offset" in extra else 0
             )
-            identities.append(contract(cfg, ranks))
+            identities.append(build_training_contract(cfg, ranks))
             outputs.append(output)
         self.assertEqual(len(set(outputs)), 4)
         self.assertEqual(len({str(value) for value in identities}), 4)
-        cfg, _, _, _ = resolved(
-            parser().parse_args(
+        cfg, _, _, _ = resolve_training_plan(
+            build_argument_parser().parse_args(
                 [
                     "--task",
                     "example",
@@ -248,7 +250,11 @@ class RawStateNoiseTests(unittest.TestCase):
             ["--state-measurement-noise-std-rad", "nan"],
         ):
             with self.assertRaises(ValueError):
-                resolved(parser().parse_args(["--task", "example", "--model", "STATE", *extra]))
+                resolve_training_plan(
+                    build_argument_parser().parse_args(
+                        ["--task", "example", "--model", "STATE", *extra]
+                    )
+                )
 
 
 if __name__ == "__main__":

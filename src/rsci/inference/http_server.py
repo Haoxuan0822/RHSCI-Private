@@ -12,6 +12,7 @@ from rsci.inference.state_noise import RequestStateNoise, add_arguments
 
 
 def create_app(server):
+    """为策略对象构造 HTTP 应用；请求处理沿用该策略的动作预测与异常检查。"""
     from fastapi import FastAPI, HTTPException
 
     app = FastAPI()
@@ -32,33 +33,36 @@ def create_app(server):
     return app
 
 
-def parser():
-    result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("--backbone", choices=BACKBONES, required=True)
-    source = result.add_mutually_exclusive_group(required=True)
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument("--backbone", choices=BACKBONES, required=True)
+    source = argument_parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--run-dir", type=Path)
     source.add_argument("--discover", type=Path, metavar="RUNS_ROOT")
-    result.add_argument("--checkpoint-step", type=int)
-    result.add_argument(
+    argument_parser.add_argument("--checkpoint-step", type=int)
+    argument_parser.add_argument(
         "--training-source-root",
         type=Path,
         help="π0.5: verify historical run source hashes against its original training checkout",
     )
-    result.add_argument("--dataset", type=Path, help="π0.5 training dataset for its processor")
-    result.add_argument("--tokenizer", type=Path, help="π0.5 training SentencePiece model")
-    result.add_argument("--device", default="cuda:0")
-    result.add_argument("--host", default="127.0.0.1")
-    result.add_argument("--port", type=int, default=5555)
-    add_arguments(result)
-    result.add_argument(
+    argument_parser.add_argument(
+        "--dataset", type=Path, help="π0.5 training dataset for its processor"
+    )
+    argument_parser.add_argument("--tokenizer", type=Path, help="π0.5 training SentencePiece model")
+    argument_parser.add_argument("--device", default="cuda:0")
+    argument_parser.add_argument("--host", default="127.0.0.1")
+    argument_parser.add_argument("--port", type=int, default=5555)
+    add_arguments(argument_parser)
+    argument_parser.add_argument(
         "--deterministic-eval", action=argparse.BooleanOptionalAction, default=False
     )
-    result.add_argument("--eval-seed", type=int, default=0)
-    return result
+    argument_parser.add_argument("--eval-seed", type=int, default=0)
+    return argument_parser
 
 
 def main():
-    cli = parser()
+    cli = build_argument_parser()
     args = cli.parse_args()
     if args.deterministic_eval:
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"

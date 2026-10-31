@@ -64,6 +64,27 @@ Other native launchers remain `act.sh`, `dp.sh`, `internvla-m1.sh`, `h-rdt.sh`, 
 
 ACT, π0.5, GR00T and EgoVLA retain `config.py` (recipe/arguments), `preflight.py` (assets/data checks), `contract.py` (source/data/config identity), `train.py` (CLI), `worker.py` (assembly), `trainer.py` (Trainer behavior), `checkpoints.py`, and guardian/launch modules. Model and processing code is alongside those modules. Ψ0 keeps its native trainer hooks; λ₀ keeps its native backend integration. The [2026-10-30 responsibility map](TRAINING_STRUCTURE_20261030.md) describes those duties, with old paths retained as history.
 
+## Function names and reading order
+
+Read `train.main` first, then follow the called functions to their owning modules. Names describe the action and its object; matching responsibilities use matching names across models.
+
+| Function | Responsibility and result |
+| --- | --- |
+| `build_argument_parser` | Return the CLI parser, without loading a model or launching training |
+| `resolve_training_paths` | Validate arguments, fill defaults and return data/cache/output paths for ACT, π0.5, GR00T and EgoVLA |
+| `build_training_arguments` | Return the model's native trainer arguments; Ψ0 returns its native CLI argument list |
+| `build_training_contract` | Record source/data/recipe identity; π0.5 and GR00T also return its digest |
+| `compute_contract_digest` | Hash ACT/EgoVLA contract dictionaries for checkpoint validation |
+| `run_training_preflight` | Check assets and preprocessing in Ψ0, π0.5 and GR00T; return values are documented per model |
+| `create_trainer_class` | Lazily construct and return a Trainer subclass, without creating a model |
+| `build_checkpoint_callback` | Return the callback that validates and publishes a complete checkpoint |
+| `run_training_worker` | Assemble the model/data/Trainer and execute one worker in ACT, π0.5, GR00T and EgoVLA |
+| `run_training_guardian` | Supervise workers and restore only verified complete checkpoints |
+
+Ψ0 uses `resolve_training_plan` because it returns config, command, output and rank count. λ₀ uses `build_training_config` and `execute_training` to connect its native resolver/backend. These differences reflect their actual return values and execution flow.
+
+GR00T's `validate_training_data` and EgoVLA's `validate_model_and_worker_preprocessing` live in `preflight.py`, so the CLI shows the execution sequence directly. Shared launch planning uses `build_launch_plan`; HTTP factories use `create_app`. Framework methods such as `forward`, `train` and Trainer hooks retain their required names. CLI flags and persisted checkpoint fields retain their existing names. Old abbreviated Python function names have no aliases; update custom imports when switching versions. The [dated record](NATIVE_PACKAGE_LAYOUT_20261031.md#可读性与函数命名整理2026-10-31) lists validation and compatibility limits.
+
 ## External resources
 
 Datasets, ARDY labels, weights, checkpoints, logs and environments stay outside the checkout. On this machine, data defaults to `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`, and weights/logs to its sibling `checkpoints`. Explicit CLI paths take precedence.

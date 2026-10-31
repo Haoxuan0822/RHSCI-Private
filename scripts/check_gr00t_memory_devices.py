@@ -34,13 +34,13 @@ def require_fresh_output():
     import os
     from pathlib import Path
 
-    from gr00t.rsci.train import parser, resolve
+    from gr00t.rsci.train import build_argument_parser, resolve_training_paths
 
     probe = argparse.ArgumentParser(add_help=False)
     probe.add_argument("--steps", type=int, default=6)
     _, rest = probe.parse_known_args()
-    args = parser().parse_args(rest)
-    resolve(args)
+    args = build_argument_parser().parse_args(rest)
+    resolve_training_paths(args)
     root = Path(os.environ.get("PSI_RUNTIME_ROOT", "/opt/rsci-data"))
     output = args.output_dir or root / "validation/gr00t" / args.run_tag / args.task / args.vlm
     # 在torchrun之前检查，避免八rank各自检查目录造成创建竞态。

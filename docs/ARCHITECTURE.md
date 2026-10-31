@@ -4,6 +4,8 @@ The project name is RHSCI. Shared utilities retain the `rsci` Python namespace, 
 
 Model-specific RHSCI extensions live inside their native packages. `src/rsci` contains shared utilities; importing its root does not load a backbone or optional dependencies. See [Repository structure](DIRECTORY_STRUCTURE.md) for the directory tree and per-backbone entry points.
 
+Use descriptive action names for maintained extension functions, consistently across models. The [function guide](DIRECTORY_STRUCTURE.md#function-names-and-reading-order) maps CLI parsing, path resolution, preflight, contracts, workers and guardians to their owning modules. Keep detailed preflight checks in `preflight.py` and state return values and side effects in critical function docstrings. Native framework method names, CLI options and persisted checkpoint keys follow their original interfaces.
+
 | Directory | Responsibility |
 | --- | --- |
 | `src/psi/rsci`, `src/openpi/rsci`, `src/gr00t/gr00t/rsci`, `src/egovla/human_plan/rsci`, `src/openlambda/lambda0/lambda0/rsci`, `src/act/rsci` | Model-specific integration, data, training, checkpoints and serving, colocated with each native implementation |

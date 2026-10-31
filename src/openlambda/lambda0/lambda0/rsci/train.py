@@ -13,40 +13,46 @@ from .contracts import CODE, CONTRACT, RUNTIME, UPSTREAM_COMMIT, sha256, verify_
 from .environment import verify_environment
 
 
-def parser():
-    result = argparse.ArgumentParser(description=__doc__)
-    add_data_arguments(result)
-    result.add_argument("--task", required=True)
-    result.add_argument("--bundle", type=Path, help="Prepared RHSCI lambda0 data bundle")
-    result.add_argument("--data-root", type=Path, help="Root used to resolve bundle metadata paths")
-    result.add_argument("--max-steps", type=int, default=40000)
-    result.add_argument("--seed", type=int, default=0)
-    result.add_argument("--variant", choices=("STATE", "VGQ-AE"), default="VGQ-AE")
-    result.add_argument("--runtime-root", type=Path, default=RUNTIME)
-    result.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    add_data_arguments(argument_parser)
+    argument_parser.add_argument("--task", required=True)
+    argument_parser.add_argument("--bundle", type=Path, help="Prepared RHSCI lambda0 data bundle")
+    argument_parser.add_argument(
+        "--data-root", type=Path, help="Root used to resolve bundle metadata paths"
+    )
+    argument_parser.add_argument("--max-steps", type=int, default=40000)
+    argument_parser.add_argument("--seed", type=int, default=0)
+    argument_parser.add_argument("--variant", choices=("STATE", "VGQ-AE"), default="VGQ-AE")
+    argument_parser.add_argument("--runtime-root", type=Path, default=RUNTIME)
+    argument_parser.add_argument(
         "--checkpoint", type=Path, help="本地官方 Stage-II raw checkpoint，不自动下载"
     )
-    result.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
-    result.add_argument("--batch-size", type=int, default=4)
-    result.add_argument("--global-batch-size", type=int, default=16)
-    result.add_argument("--num-workers", type=int, default=4)
-    result.add_argument("--run-tag", default="main")
-    result.add_argument("--resume", choices=("none", "auto"), default="auto")
-    result.add_argument("--check", action="store_true", help="只读配置与路径检查，不加载模型")
-    result.add_argument(
+    argument_parser.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
+    argument_parser.add_argument("--batch-size", type=int, default=4)
+    argument_parser.add_argument("--global-batch-size", type=int, default=16)
+    argument_parser.add_argument("--num-workers", type=int, default=4)
+    argument_parser.add_argument("--run-tag", default="main")
+    argument_parser.add_argument("--resume", choices=("none", "auto"), default="auto")
+    argument_parser.add_argument(
+        "--check", action="store_true", help="只读配置与路径检查，不加载模型"
+    )
+    argument_parser.add_argument(
         "--check-data", action="store_true", help="真实数据/官方归一化/四帧检查，不训练"
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--check-model", action="store_true", help="CPU严格加载真实Stage-II与处理器，不训练"
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--dry-run", action="store_true", help="官方完整解析并验证资产/数据，不训练"
     )
-    result.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
-    return result
+    argument_parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    return argument_parser
 
 
-def configuration(args):
+def build_training_config(args):
+    """校验源码、环境和 CLI 参数；返回供原生 λ₀ resolver 使用的训练配置。"""
     verify_upstream()
     verify_environment()
     if Path(args.run_tag).name != args.run_tag or args.run_tag in ("", ".", ".."):
@@ -98,7 +104,8 @@ def configuration(args):
     return config
 
 
-def data_check(args, config):
+def validate_training_data(args, config):
+    """检查训练数据、归一化与历史帧边界，不进行模型训练更新。"""
     import numpy as np
 
     from lambda0.data.bundle import verify_bundle
@@ -195,8 +202,10 @@ def data_check(args, config):
     )
 
 
-def guard_output(args, output):
-    """协调日志不代表训练状态；有训练痕迹却无完整断点时不得悄悄从零开始。"""
+def validate_output_directory(args, output):
+    """检查既有输出目录与 resume 选择，拒绝在无完整断点时静默从零开始。
+
+    协调日志不代表训练状态；有训练痕迹却无完整断点时不得悄悄从零开始。"""
     output = Path(output)
     if not output.exists():
         return
@@ -213,7 +222,8 @@ def guard_output(args, output):
         raise ValueError("Existing run has no verified complete checkpoint; choose a new run-tag")
 
 
-def run(args, config):
+def execute_training(args, config):
+    """将 RHSCI 配置接入原生 λ₀；按 CLI 模式执行只读检查或当前 worker 的训练。"""
     from .assets import verify_assets
 
     asset_manifest = verify_assets(config["model"])
@@ -239,7 +249,7 @@ def run(args, config):
     )
     # 官方 resolver 只接受文件配置；写在独立输出的同级，避免 nonempty-output 误判。
     if not args.check_model and int(os.environ.get("RANK", "0")) == 0:
-        guard_output(args, config["output"])
+        validate_output_directory(args, config["output"])
     # none的新训准入已由上面检查；原生auto允许守护器预建的协调日志。
     resolver_config = {**config, "resume": "auto"}
     location = Path(config["output"]).parent / f".{args.run_tag}.experiment.json"
@@ -396,8 +406,8 @@ def run(args, config):
 
 
 def main():
-    args = parser().parse_args()
-    config = configuration(args)
+    args = build_argument_parser().parse_args()
+    config = build_training_config(args)
     if args.check:
         print(
             json.dumps(
@@ -410,9 +420,9 @@ def main():
             )
         )
     elif args.check_data:
-        data_check(args, config)
+        validate_training_data(args, config)
     elif args.dry_run or args.worker or args.check_model:
-        run(args, config)
+        execute_training(args, config)
     else:
         raise SystemExit("Use scripts/train/lambda0.sh for the guarded training launcher")
 

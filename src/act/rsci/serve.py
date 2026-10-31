@@ -13,7 +13,7 @@ from act.models.act import ACTConfig
 from psi.deploy.helpers import RequestMessage, ResponseMessage
 
 from .checkpoints import checkpoint_ok, load_model_state, sha256
-from .contract import CODE, digest_contract
+from .contract import CODE, compute_contract_digest
 from .data import Processor
 from .model import RSCIACT
 
@@ -22,7 +22,9 @@ class Policy:
     def __init__(self, checkpoint, device="cuda:0"):
         checkpoint = Path(checkpoint)
         contract = json.loads((checkpoint / "launch_contract.json").read_text())
-        if not checkpoint_ok(checkpoint, contract["world"], digest_contract(contract), verify=True):
+        if not checkpoint_ok(
+            checkpoint, contract["world"], compute_contract_digest(contract), verify=True
+        ):
             raise ValueError("Incomplete/numerically invalid ACT checkpoint")
         for name, digest in contract["code"].items():
             if sha256(CODE / name) != digest:
@@ -61,7 +63,8 @@ class Policy:
         self.model.reset()
 
 
-def app_for(policy):
+def create_app(policy):
+    """为策略对象构造 HTTP 应用；请求处理沿用该策略的动作预测与异常检查。"""
     from fastapi import FastAPI, HTTPException
 
     app = FastAPI()
@@ -110,7 +113,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8126)
     args = parser.parse_args()
-    uvicorn.run(app_for(Policy(args.checkpoint, args.device)), host=args.host, port=args.port)
+    uvicorn.run(create_app(Policy(args.checkpoint, args.device)), host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

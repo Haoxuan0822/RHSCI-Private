@@ -55,3 +55,17 @@ CPU helper 继续排除分布式测试；没有验证全尺寸 CUDA、实际多�
 守护测试实际启动并终止自建的空闲子进程，保留其他任务。复验时发现旧测试 fixture 未传显式缓存配置且对 EgoVLA 入口重导出打补丁，而实际实现已在 guardian 模块；修正为完整 fixture 并 patch 实际 guardian，真实 SIGTERM 转发/回收通过，未改变生产守护行为。
 
 维护代码 Ruff 检查显式使用根配置：`ruff check --config ruff.toml .` 与 `ruff format --config ruff.toml --check .`，避免 GR00T 原生子项目配置覆盖公共规范；新位置已纳入根检查范围。完整源码清单、组件清单和文档链接在交付前核验。环境依赖缺口保留，不为让测试通过而修改现有训练环境。
+
+## 可读性与函数命名整理（2026-10-31）
+
+所属 RHSCI-Private/main，本次起点 `e0f5302c17846d9ec3bdd371604ef8cb32ffd586`。用户要求代码与函数名更易读；修改扩展训练/恢复入口、直接 Python 导入及推理应用工厂前必读。当前名称与阅读顺序见[目录指南](DIRECTORY_STRUCTURE.md#function-names-and-reading-order)。
+
+六个模型将泛化简称改为明确动作：`parser → build_argument_parser`，四个 HF 接入的 `resolve → resolve_training_paths`，`contract → build_training_contract`，`train → run_training_worker`，`guardian/guard → run_training_guardian`，`trainer_type/trainer_class → create_trainer_class`，断点回调统一 `build_checkpoint_callback`。Ψ0 的配置/命令组合使用 `resolve_training_plan`；λ₀ 使用 `build_training_config`、`validate_training_data`、`validate_output_directory`、`execute_training`。这些是函数重命名，模块名与 shell 启动入口保持。调用、直接导入、动态导入后的属性、mock 目标、嵌入的子进程代码均已同步，没有添加旧名称别名。
+
+55 个关键函数补充中文说明，写明返回对象、只读检查或实际训练等副作用；CLI 构建器的 `p/result` 改为 `argument_parser`。GR00T 的数据预检和 EgoVLA 的完整模型/spawn worker 一致性检查从 `train.main` 提取到 `preflight.py`，原检查内容与执行时机保留。EgoVLA `main` 从101行缩短为43行，GR00T 从111行缩短为80行。共享启动器使用 `build_launch_plan`，HTTP 参数构建使用 `build_argument_parser`，ACT HTTP 工厂使用 `create_app`。框架 `forward/train`、Trainer 钩子、checkpoint 字段与 CLI 参数没有重命名，官方 SIMPLE 与相邻原生模型实现没有改写。
+
+实际验证在上述同机、同独立环境及离线 CPU 范围完成：Ψ0 43、π0.5 37、GR00T 32、ACT 29 项通过；EgoVLA 29项中28通过，1项仍因缺 `flash_attn` 失败；λ₀ 2项轻量测试通过、3个模型测试模块仍因 Transformers 4.53.2 缺 `Qwen3_5Config` 无法导入。公共入口/守护/完整断点/HTTP/官方客户端31项通过，另外单独执行 ACT 原生序列化 HTTP 测试1项通过；各组存在重叠，不合并宣称唯一测试总数。六个实际模块和六个 shell 的 `--help` 均退出0。没有安装或下载依赖、启动正式训练、GPU/多卡或 SIMPLE 闭环。
+
+39个修改的源码/脚本文件进行 AST 对比：归一化函数/局部名称、文档字符串和导入，并将两段提取的预检代码放回原位置后，执行语句结构一致；导入和实际入口另由 CPU 测试及 `--help` 检查覆盖。这是重构核对，不等于全尺寸运行验证。维护范围161个文件 Ruff 检查/格式通过，组件与总清单 SHA 同步更新。
+
+直接导入旧 Python 简称的外部脚本需更新到当前名称。源码 SHA 因此改变，旧 run 仍须使用匹配 Git 版本恢复；不修改旧契约或绕过不兼容保护。本轮只本地提交，不推送；PSI0-RAW 的活动源码、配方、环境、进程与断点保持。

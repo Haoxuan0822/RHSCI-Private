@@ -6,8 +6,10 @@ from .config import simple_lr_multiplier
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def trainer_class():
-    """正式训练和 CPU 保存/恢复验证复用同一 Trainer，避免测试绕过生产封装。"""
+def create_trainer_class():
+    """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。
+
+    正式训练和 CPU 保存/恢复验证复用同一 Trainer，避免测试绕过生产封装。"""
     import torch
     import torch.distributed as dist
     from transformers import Trainer
@@ -96,8 +98,10 @@ def trainer_class():
     return RSCITrainer
 
 
-def complete_callback(output, world, digest):
-    """所有 rank 写完 RNG 后才发布完整标记；验证与生产共用回调。"""
+def build_checkpoint_callback(output, world, digest):
+    """返回完整断点回调；等待各 rank 写完状态后再验证并发布完整标记。
+
+    所有 rank 写完 RNG 后才发布完整标记；验证与生产共用回调。"""
     import torch.distributed as dist
     from transformers import TrainerCallback
 

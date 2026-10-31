@@ -105,3 +105,67 @@ def check_data(paths, variant="VGQ-AE"):
         flush=True,
     )
     return dataset
+
+
+def validate_model_and_worker_preprocessing(args, paths):
+    """加载本地模型，比较父进程与真实 spawn worker 的处理结果，不进行训练更新。"""
+    from .native import load_native
+    from .processing import Collator
+    from .trainer import configure_vlm_execution
+
+    model, processor = load_native(
+        paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model
+    )
+    configure_vlm_execution(model, args)
+    dataset = check_data(paths, args.model)
+    dataset.processor = processor
+    batch = Collator(processor.tokenizer.pad_token_id)([dataset[0], dataset[6]])
+    if batch["actions"].shape != (2, 30, 36):
+        raise ValueError("Invalid model batch")
+    # 主进程预处理通过不代表worker能用；真实spawn读取同样两帧，
+    # 核对模板、动作标签、RGB/ARDY全字段，且不运行任何训练更新。
+    import torch
+    from torch.utils.data import DataLoader, Subset
+
+    worker_loader = DataLoader(
+        Subset(dataset, [0, 6]),
+        batch_size=2,
+        num_workers=1,
+        multiprocessing_context="spawn",
+        timeout=120,
+        collate_fn=Collator(processor.tokenizer.pad_token_id),
+    )
+    (worker_batch,) = list(worker_loader)
+    if worker_batch.keys() != batch.keys():
+        raise ValueError("Worker preprocessing keys differ from parent")
+    for key in batch:
+        torch.testing.assert_close(
+            worker_batch[key],
+            batch[key],
+            rtol=0,
+            atol=0,
+            msg=f"Worker preprocessing mismatch: {key}",
+        )
+    print("EGOVLA_SPAWN_PROCESSOR_CHECK_OK; no training started", flush=True)
+    print(
+        "EGOVLA_PARAMETERS "
+        + json.dumps(
+            dict(
+                vlm_training=args.vlm_training,
+                total=sum(p.numel() for p in model.parameters()),
+                trainable=sum(p.numel() for p in model.parameters() if p.requires_grad),
+                vlm_trainable=sum(
+                    p.numel()
+                    for module in (
+                        model.backbone.get_llm(),
+                        model.backbone.get_vision_tower(),
+                        model.backbone.get_mm_projector(),
+                    )
+                    for p in module.parameters()
+                    if p.requires_grad
+                ),
+            )
+        ),
+        flush=True,
+    )
+    print("EGOVLA_MODEL_PROCESSOR_CHECK_OK; no training started")

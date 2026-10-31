@@ -9,12 +9,17 @@ import torch
 from test_pi05_rsci import TinyBackbone
 
 from openpi.rsci.model import Pi05RSCI
-from openpi.rsci.train import parser, resolve, trainer_class, training_arguments
+from openpi.rsci.train import (
+    build_argument_parser,
+    build_training_arguments,
+    create_trainer_class,
+    resolve_training_paths,
+)
 
 
 class OfficialRecipeTests(unittest.TestCase):
     def test_custom_dataset_output_and_step_budget(self):
-        args = parser().parse_args(
+        args = build_argument_parser().parse_args(
             [
                 "--task",
                 "custom",
@@ -30,7 +35,7 @@ class OfficialRecipeTests(unittest.TestCase):
                 "2000",
             ]
         )
-        paths = resolve(args)
+        paths = resolve_training_paths(args)
         self.assertEqual(paths["dataset"], Path("/datasets/custom"))
         self.assertEqual(paths["output"], Path("/runs/custom"))
         self.assertEqual(paths["tokenizer"], Path("/models/tokenizer.model"))
@@ -42,14 +47,14 @@ class OfficialRecipeTests(unittest.TestCase):
                 **{**kwargs, "use_cpu": True, "bf16": False, "tf32": False}
             ),
         ):
-            self.assertEqual(training_arguments(args, paths).max_steps, 2000)
+            self.assertEqual(build_training_arguments(args, paths).max_steps, 2000)
         from openpi.rsci.train import simple_lr_multiplier
 
         self.assertAlmostEqual(simple_lr_multiplier(2000, 2000), 1e-4)
 
     def test_actual_optimizer_and_schedule_match_simple_torch(self):
         with tempfile.TemporaryDirectory() as directory:
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -61,7 +66,7 @@ class OfficialRecipeTests(unittest.TestCase):
                     "0",
                 ]
             )
-            paths = resolve(args)
+            paths = resolve_training_paths(args)
             self.assertEqual(args.run_tag, "main")
             self.assertIn("runs/pi05", str(paths["output"]))
             paths["output"] = Path(directory)
@@ -73,10 +78,10 @@ class OfficialRecipeTests(unittest.TestCase):
                     **{**kwargs, "use_cpu": True, "bf16": False, "tf32": False}
                 ),
             ):
-                actual = training_arguments(args, paths)
+                actual = build_training_arguments(args, paths)
             self.assertEqual(actual.max_steps, 40000)
             self.assertEqual(actual.per_device_train_batch_size * 8, 128)
-            trainer = trainer_class()(model=torch.nn.Linear(3, 2), args=actual)
+            trainer = create_trainer_class()(model=torch.nn.Linear(3, 2), args=actual)
             trainer.create_optimizer_and_scheduler(40000)
             self.assertEqual(len(trainer.optimizer.param_groups), 1)
             group = trainer.optimizer.param_groups[0]

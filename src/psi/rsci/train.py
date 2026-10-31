@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-from psi.rsci.defaults import training_args as original_args
+from psi.rsci.defaults import build_training_arguments
 from rsci.data.state_noise import validate_scale
 from rsci.paths import CODE_ROOT
 from rsci.runtime.processes import cleanup, process_table, remember_tree
@@ -24,28 +24,29 @@ CODE = CODE_ROOT
 VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
-def parser():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument(
         "--model", choices=VARIANTS, required=True, help="带星号的方案请用引号，例如 'VGQ-VLM*'"
     )
-    p.add_argument("--task", required=True, help="本地 SIMPLE repo/task 名")
-    p.add_argument("--vlm", choices=("frozen", "lora"), default="frozen")
-    p.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
-    p.add_argument("--port", type=int)
-    p.add_argument("--data-root", type=Path)
-    p.add_argument("--sidecar-root", type=Path)
-    p.add_argument("--vlm-path", type=Path)
-    p.add_argument("--ae-path", type=Path)
-    p.add_argument("--dino-path", type=Path)
-    p.add_argument("--batch-size", type=int, default=16, help="每卡 batch size")
-    p.add_argument(
+    argument_parser.add_argument("--task", required=True, help="本地 SIMPLE repo/task 名")
+    argument_parser.add_argument("--vlm", choices=("frozen", "lora"), default="frozen")
+    argument_parser.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
+    argument_parser.add_argument("--port", type=int)
+    argument_parser.add_argument("--data-root", type=Path)
+    argument_parser.add_argument("--sidecar-root", type=Path)
+    argument_parser.add_argument("--vlm-path", type=Path)
+    argument_parser.add_argument("--ae-path", type=Path)
+    argument_parser.add_argument("--dino-path", type=Path)
+    argument_parser.add_argument("--batch-size", type=int, default=16, help="每卡 batch size")
+    argument_parser.add_argument(
         "--no-reader", action="store_true", help="Use full visual tokens for query memory"
     )
-    p.add_argument(
+    argument_parser.add_argument(
         "--ardy-offset", type=int, default=0, help="Future ARDY target offset in 50 Hz frames"
     )
-    p.add_argument(
+    argument_parser.add_argument(
         "--state-measurement-noise-std-rad",
         type=float,
         nargs="?",
@@ -53,31 +54,34 @@ def parser():
         default=0.0,
         help="Training noise before normalization; flag alone selects 0.02 rad; STATE only",
     )
-    p.add_argument("--num-workers", type=int, default=8)
-    p.add_argument("--max-steps", type=int, default=40000)
-    p.add_argument("--output-dir", type=Path)
-    p.add_argument(
+    argument_parser.add_argument("--num-workers", type=int, default=8)
+    argument_parser.add_argument("--max-steps", type=int, default=40000)
+    argument_parser.add_argument("--output-dir", type=Path)
+    argument_parser.add_argument(
         "--nccl-library",
         type=Path,
         help="Optional validated NCCL shared library; otherwise use the environment runtime",
     )
-    p.add_argument("--seed", type=int, default=292285)
-    p.add_argument("--run-tag", default="main", help="源码/超参数改变时选择新的独立运行名")
-    p.add_argument(
+    argument_parser.add_argument("--seed", type=int, default=292285)
+    argument_parser.add_argument(
+        "--run-tag", default="main", help="源码/超参数改变时选择新的独立运行名"
+    )
+    argument_parser.add_argument(
         "--resume", type=Path, help="完整 RHSCI checkpoint；默认自动查找同组最新完整断点"
     )
-    modes = p.add_mutually_exclusive_group()
+    modes = argument_parser.add_mutually_exclusive_group()
     modes.add_argument(
         "--dry-run", action="store_true", help="解析并打印配置，不加载样本/模型或启动训练"
     )
     modes.add_argument(
         "--check", action="store_true", help="检查本地模型、数据与正式 ARDY 标签，不启动训练"
     )
-    p.add_argument("--guardian-fd", type=int, help=argparse.SUPPRESS)
-    return p
+    argument_parser.add_argument("--guardian-fd", type=int, help=argparse.SUPPRESS)
+    return argument_parser
 
 
-def resolved(args):
+def resolve_training_plan(args):
+    """校验 CLI 参数并应用 Ψ0 配方；返回配置、启动命令、输出目录和进程数。"""
     noise = validate_scale(args.state_measurement_noise_std_rad, args.model)
     if args.ardy_offset < 0 or (
         (args.ardy_offset or args.no_reader) and args.model in ("STATE", "NO-STATE")
@@ -142,7 +146,7 @@ def resolved(args):
             args.dino_path or runtime / "cache/checkpoints/dinov2-small"
         )
     # Apply the model, dataset and output choices to the native training defaults.
-    old = original_args(runtime)
+    old = build_training_arguments(runtime)
     values = [old[0]]
     excluded = {"--model.no-tune-vlm", "--train.skip-resumed-steps"}
     for item in old[1:]:
@@ -196,7 +200,8 @@ def resolved(args):
     return cfg, command, output, ranks
 
 
-def contract(cfg, ranks):
+def build_training_contract(cfg, ranks):
+    """根据已解析参数、数据与源码生成恢复身份；调用方据此拒绝不兼容续训。返回契约字典。"""
     data = cfg.model_dump(mode="json")
     train = dict(data["train"])
     for key in ("resume_from_checkpoint", "skip_resumed_steps"):
@@ -240,7 +245,8 @@ def contract(cfg, ranks):
     )
 
 
-def preflight(cfg):
+def run_training_preflight(cfg):
+    """检查本地资产和真实数据处理结果，不启动训练。验证失败抛出异常，通过时返回 None。"""
     from transformers import AutoProcessor
 
     from psi.data.lerobot import LeRobotDatasetWrapper
@@ -316,7 +322,8 @@ def latest_checkpoint(output, ranks):
     )
 
 
-def guard(args, cfg, command, output, ranks):
+def run_training_guardian(args, cfg, command, output, ranks):
+    """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     if any(Path(output).rglob("NUMERICAL_FAILURE.json")):
         raise RuntimeError("NUMERICAL_FAILURE: automatic recovery is disabled")
     tracked = {}
@@ -330,7 +337,9 @@ def guard(args, cfg, command, output, ranks):
     previous_step = -1
     for attempt in range(4):
         identity_path = output / "launch_contract.json"
-        if identity_path.exists() and json.loads(identity_path.read_text()) != contract(cfg, ranks):
+        if identity_path.exists() and json.loads(
+            identity_path.read_text()
+        ) != build_training_contract(cfg, ranks):
             raise ValueError(
                 "RHSCI source/parameters changed during training; refusing recovery with a different contract"
             )
@@ -401,11 +410,11 @@ def guard(args, cfg, command, output, ranks):
 
 
 def main():
-    args = parser().parse_args()
+    args = build_argument_parser().parse_args()
     from psi.rsci.contract import validate_rsci_training
 
     validate_rsci_training(args.model, args.vlm)
-    cfg, command, output, ranks = resolved(args)
+    cfg, command, output, ranks = resolve_training_plan(args)
     print(shlex.join(command), flush=True)
     print(
         json.dumps(
@@ -421,9 +430,9 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
     os.environ["PSI_RSCI_TRAIN"] = "1"  # 此入口完全使用显式配置，不要求复制其他工作树的 .env。
     if args.guardian_fd is not None:
-        guard(args, cfg, command, output, ranks)
+        run_training_guardian(args, cfg, command, output, ranks)
         return
-    preflight(cfg)
+    run_training_preflight(cfg)
     if args.check:
         return
     import torch
@@ -433,7 +442,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     with (output / "guardian.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        identity = contract(cfg, ranks)
+        identity = build_training_contract(cfg, ranks)
         path = output / "launch_contract.json"
         if path.exists() and json.loads(path.read_text()) != identity:
             raise ValueError(

@@ -13,7 +13,7 @@ class TrainingGateTests(unittest.TestCase):
         for variant in ("VGQ-VLM", "EGQ-VLM"):
             with (
                 patch.object(sys, "argv", ["entry", "--model", variant, "--task", "G1Test-v0"]),
-                patch.object(train, "resolved") as resolve,
+                patch.object(train, "resolve_training_plan") as resolve,
             ):
                 with self.assertRaisesRegex(ValueError, "no ARDY supervision path"):
                     train.main()
@@ -29,7 +29,9 @@ class TrainingGateTests(unittest.TestCase):
             argv = ["entry", "--model", variant, "--task", "G1Test-v0", "--vlm", mode, "--dry-run"]
             with (
                 patch.object(sys, "argv", argv),
-                patch.object(train, "resolved", side_effect=RuntimeError("resolved")) as resolve,
+                patch.object(
+                    train, "resolve_training_plan", side_effect=RuntimeError("resolved")
+                ) as resolve,
             ):
                 with self.assertRaisesRegex(RuntimeError, "resolved"):
                     train.main()

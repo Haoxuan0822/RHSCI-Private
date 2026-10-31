@@ -36,7 +36,9 @@ class TrainingCLITests(unittest.TestCase):
                 arguments = ["--backbone", backbone, "--gpus", "2,5"]
                 if backbone in configs:
                     arguments += ["--config", configs[backbone]]
-                command, cwd, env = cli.plan(cli.parser().parse_args(arguments + ["--", "--help"]))
+                command, cwd, env = cli.build_launch_plan(
+                    cli.build_argument_parser().parse_args(arguments + ["--", "--help"])
+                )
                 self.assertIn("--nproc-per-node=2", command)
                 self.assertEqual(command[-1], "--help")
                 self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "2,5")
@@ -62,7 +64,9 @@ class TrainingCLITests(unittest.TestCase):
                 "--output-dir",
                 "/tmp/run with spaces",
             ]
-            command, _, env = cli.plan(cli.parser().parse_args(arguments))
+            command, _, env = cli.build_launch_plan(
+                cli.build_argument_parser().parse_args(arguments)
+            )
             self.assertTrue(Path(command[1]).is_file())
             self.assertEqual(
                 command[2:],
@@ -71,7 +75,7 @@ class TrainingCLITests(unittest.TestCase):
             self.assertIn("/tmp/my python", env.values())
 
     def test_beingh05_native_paths_and_unavailable_rsci(self):
-        args = cli.parser().parse_args(
+        args = cli.build_argument_parser().parse_args(
             [
                 "--backbone",
                 "beingh05",
@@ -84,7 +88,7 @@ class TrainingCLITests(unittest.TestCase):
                 "/tmp/my run",
             ]
         )
-        command, cwd, env = cli.plan(args)
+        command, cwd, env = cli.build_launch_plan(args)
         self.assertEqual(cwd, ROOT / "src/beingh05")
         self.assertIn(str(cwd), env["PYTHONPATH"].split(os.pathsep))
         index = command.index("--dataset_config_file")
@@ -93,7 +97,9 @@ class TrainingCLITests(unittest.TestCase):
         self.assertEqual(command[command.index("--action_chunk_length") + 1], "16")
         self.assertFalse((cwd / "configs/rng_state.pkl").exists())
         with self.assertRaisesRegex(ValueError, "no RHSCI adapter"):
-            cli.plan(cli.parser().parse_args(["--backbone", "beingh05", "--mode", "rsci"]))
+            cli.build_launch_plan(
+                cli.build_argument_parser().parse_args(["--backbone", "beingh05", "--mode", "rsci"])
+            )
 
     def test_native_exec_preserves_cwd_environment_and_spaces(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -144,15 +150,15 @@ class TrainingCLITests(unittest.TestCase):
             ["--master-port", "22"],
         ):
             with self.subTest(flags=flags), self.assertRaises(ValueError):
-                cli.plan(
-                    cli.parser().parse_args(
+                cli.build_launch_plan(
+                    cli.build_argument_parser().parse_args(
                         ["--backbone", "act", "--config", "simple_act_config", *flags]
                     )
                 )
 
     def test_native_argument_file_preserves_token_boundaries(self):
         for backbone in ("act", "dp"):
-            args = cli.parser().parse_args(
+            args = cli.build_argument_parser().parse_args(
                 [
                     "--backbone",
                     backbone,
@@ -165,7 +171,7 @@ class TrainingCLITests(unittest.TestCase):
                     "my task",
                 ]
             )
-            command, _, _ = cli.plan(args)
+            command, _, _ = cli.build_launch_plan(args)
             self.assertEqual(command[-2:], ["--exp", "my task"])
             self.assertIn("--data.transform.field.normalize-state", command)
             self.assertIn("--standalone", command)

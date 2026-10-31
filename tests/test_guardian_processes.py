@@ -31,7 +31,7 @@ def worker(*args, **kwargs):
 with patch.object(module, 'latest', return_value=None), \
      patch.object(module, 'checkpoint_ok', return_value=False), \
      patch('subprocess.Popen', side_effect=worker):
-    module.guardian(SimpleNamespace(gpus='0', max_steps=2),
+    module.run_training_guardian(SimpleNamespace(gpus='0', max_steps=2),
                     {'output': pathlib.Path(sys.argv[2]), 'input_cache': InputCacheConfig()},
                     {}, 'test')
 """

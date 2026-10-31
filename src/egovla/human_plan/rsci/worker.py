@@ -3,13 +3,14 @@
 import os
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
-from .config import training_arguments
-from .trainer import completion_callback, configure_vlm_execution, trainer_type
+from .config import build_training_arguments
+from .trainer import build_checkpoint_callback, configure_vlm_execution, create_trainer_class
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def train(args, paths, value, digest):
+def run_training_worker(args, paths, value, digest):
+    """在当前分布式 worker 内装配模型、数据与 Trainer，恢复完整状态并执行训练。"""
     import torch
 
     if os.environ.get("RSCI_NCCL_LIBRARY"):
@@ -46,13 +47,13 @@ def train(args, paths, value, digest):
         variant=args.model,
         cache=paths["input_cache"],
     )
-    trainer = trainer_type()(
+    trainer = create_trainer_class()(
         model=model,
-        args=training_arguments(args, paths),
+        args=build_training_arguments(args, paths),
         train_dataset=dataset,
         data_collator=Collator(processor.tokenizer.pad_token_id),
         launch_contract=value,
-        callbacks=[completion_callback(paths["output"], world, digest)],
+        callbacks=[build_checkpoint_callback(paths["output"], world, digest)],
     )
     if args.num_train_epochs:
         actual_batches = len(trainer.get_train_dataloader())
@@ -72,7 +73,7 @@ def train(args, paths, value, digest):
     # 非1000整数步的显式短训练同样保存完整HF状态和RNG；不把裸权重当完成。
     if not checkpoint_ok(paths["output"] / f"checkpoint-{args.max_steps}", world, digest):
         trainer._save_checkpoint(trainer.model, trial=None)
-        completion_callback(paths["output"], world, digest).on_save(
+        build_checkpoint_callback(paths["output"], world, digest).on_save(
             trainer.args, trainer.state, trainer.control
         )
     if trainer.is_world_process_zero():

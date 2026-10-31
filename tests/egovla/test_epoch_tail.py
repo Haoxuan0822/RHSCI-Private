@@ -7,7 +7,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import torch
-from human_plan.rsci.train import parser, trainer_type, training_arguments
+from human_plan.rsci.train import (
+    build_argument_parser,
+    build_training_arguments,
+    create_trainer_class,
+)
 from torch import nn
 from transformers import set_seed
 
@@ -29,7 +33,7 @@ class EpochTailTests(unittest.TestCase):
     def test_native_epoch_tail_and_mid_epoch_resume(self):
         torch.set_num_threads(1)
 
-        class Recording(trainer_type()):
+        class Recording(create_trainer_class()):
             def __init__(self, *a, **kw):
                 super().__init__(*a, **kw)
                 self.seen = []
@@ -39,7 +43,7 @@ class EpochTailTests(unittest.TestCase):
                 return super().training_step(model, inputs, *a, **kw)
 
         data = [{"x": torch.tensor([float(i)])} for i in range(9)]
-        args = parser().parse_args(
+        args = build_argument_parser().parse_args(
             [
                 "--task",
                 "between",
@@ -57,7 +61,7 @@ class EpochTailTests(unittest.TestCase):
             root = Path(directory)
             set_seed(21)
             initial = TinyPolicy()
-            options = training_arguments(args, {"output": root / "continuous"}, cpu=True)
+            options = build_training_arguments(args, {"output": root / "continuous"}, cpu=True)
             options.gradient_checkpointing = False  # 微型线性模型无Transformer重算层。
             options.save_steps, options.disable_tqdm = 1, True
             first = Recording(

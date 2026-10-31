@@ -7,12 +7,12 @@ import sys
 
 from rsci.data.cache_config import cache_arguments
 
-from .config import parser, resolve
+from .config import build_argument_parser, resolve_training_paths
 
 
 def main():
-    args = parser().parse_args()
-    paths = resolve(args)
+    args = build_argument_parser().parse_args()
+    paths = resolve_training_paths(args)
     # 前台核对参数、路径和基础资产；守护必须通过正式数据验收后才会启动训练。
     checked = subprocess.run(
         [

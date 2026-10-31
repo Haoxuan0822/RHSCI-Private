@@ -3,13 +3,14 @@
 import json
 import os
 
-from .config import optimization_kwargs, training_arguments
-from .trainer import completion_callback, trainer_type
+from .config import build_training_arguments, optimization_kwargs
+from .trainer import build_checkpoint_callback, create_trainer_class
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def train(args, paths, processor, dataset, digest, *, validation_steps=0):
+def run_training_worker(args, paths, processor, dataset, digest, *, validation_steps=0):
+    """在当前分布式 worker 内装配模型、数据与 Trainer，恢复完整状态并执行训练。"""
     import torch
     import torch.distributed as dist
     from transformers import TrainerCallback, set_seed
@@ -131,7 +132,7 @@ def train(args, paths, processor, dataset, digest, *, validation_steps=0):
                 flush=True,
             )
 
-    training = training_arguments(args, paths, validation_steps=validation_steps)
+    training = build_training_arguments(args, paths, validation_steps=validation_steps)
     if local_rank == 0:
         print(
             "GR00T_RSCI_OPTIMIZATION " + json.dumps(optimization_kwargs(), sort_keys=True),
@@ -147,7 +148,7 @@ def train(args, paths, processor, dataset, digest, *, validation_steps=0):
             "DDP gradient bucket views; VLM features only",
             flush=True,
         )
-    trainer = trainer_type()(
+    trainer = create_trainer_class()(
         model=model,
         args=training,
         train_dataset=dataset,
@@ -155,7 +156,7 @@ def train(args, paths, processor, dataset, digest, *, validation_steps=0):
         callbacks=[
             MemoryValidationCallback()
             if validation_steps
-            else completion_callback(args, paths, processor, world, digest)
+            else build_checkpoint_callback(args, paths, processor, world, digest)
         ],
     )
     # 自定义loss已按微批次归一化，由Trainer按累积次数缩放梯度；不使用语言token计数。

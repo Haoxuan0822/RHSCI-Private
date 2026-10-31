@@ -63,19 +63,24 @@ def main():
     from openpi.rsci.checkpoints import atomic_json
     from openpi.rsci.model import Pi05RSCI
     from openpi.rsci.processing import collate
-    from openpi.rsci.train import parser, preflight, resolve, simple_lr_multiplier
+    from openpi.rsci.train import (
+        build_argument_parser,
+        resolve_training_paths,
+        run_training_preflight,
+        simple_lr_multiplier,
+    )
 
     torch.set_num_threads(1)
     if args.shared:
         torch.cuda.set_per_process_memory_fraction(fraction)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-    config = parser().parse_args(["--task", args.task, "--gpus", "0", "--check"])
+    config = build_argument_parser().parse_args(["--task", args.task, "--gpus", "0", "--check"])
     for name in ("dataset", "sidecar", "checkpoint", "tokenizer"):
         if getattr(args, name) is not None:
             setattr(config, name, getattr(args, name))
-    paths = resolve(config)
-    _, dataset = preflight(config, paths)
+    paths = resolve_training_paths(config)
+    _, dataset = run_training_preflight(config, paths)
     # 从第6帧以后开始，保证既含历史，又含正式ARDY；所有profile复用同一CPU输入。
     batches = [
         collate([dataset[6 + step * args.batch_size + i] for i in range(args.batch_size)])

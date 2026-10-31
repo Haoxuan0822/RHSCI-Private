@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 from act.rsci.data import IMAGE, ACTDataset
-from act.rsci.train import parser, resolve
+from act.rsci.train import build_argument_parser, resolve_training_paths
 from rsci.data.ardy_sidecar import dataset_content_fingerprint
 from rsci.data.cache_config import InputCacheConfig
 from rsci.data.raw_input_cache import SCHEMA, cache_identity
@@ -97,8 +97,8 @@ def main():
         ap.error("Cache must live outside the source checkout")
     # 生成时必须从原始视频读取，不能继承当前进程的缓存配置。
     torch.set_num_threads(1)
-    paths = resolve(
-        parser().parse_args(
+    paths = resolve_training_paths(
+        build_argument_parser().parse_args(
             ["--task", cli.dataset.name, "--model", "STATE", "--dataset", str(cli.dataset)]
         )
     )

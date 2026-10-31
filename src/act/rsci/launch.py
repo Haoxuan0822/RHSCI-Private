@@ -12,18 +12,19 @@ from rsci.runtime.processes import wait_worker
 from .checkpoints import atomic_json, checkpoint_ok, latest
 
 
-def guardian(args, paths, value=None, digest=None):
+def run_training_guardian(args, paths, value=None, digest=None):
+    """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     output = paths["output"]
     output.mkdir(parents=True, exist_ok=True)
     with (output / "guardian.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if value is None:
-            from .contract import contract, digest_contract
+            from .contract import build_training_contract, compute_contract_digest
             from .preflight import check_data
 
             # 先持锁再做耗时真实数据验收，避免重复启动或把预检时间当守护未启动。
-            value = contract(args, paths)
-            digest = digest_contract(value)
+            value = build_training_contract(args, paths)
+            digest = compute_contract_digest(value)
             check_data(args, paths)
         previous = output / "launch_contract.json"
         if previous.exists() and json.loads(previous.read_text()) != value:
@@ -69,10 +70,10 @@ def guardian(args, paths, value=None, digest=None):
 
 
 def main():
-    from .config import parser, resolve
+    from .config import build_argument_parser, resolve_training_paths
     from .preflight import initialization
 
-    args = parser().parse_args()
+    args = build_argument_parser().parse_args()
     from rsci.paths import with_nccl
 
     if args.nccl_library:
@@ -82,7 +83,7 @@ def main():
         wrapped = with_nccl(command, args.nccl_library, expected_version="2.27.3")
         if wrapped != command:
             os.execvpe(wrapped[0], wrapped, {**os.environ, "RSCI_NCCL_PRELOADED": "1"})
-    paths = resolve(args)
+    paths = resolve_training_paths(args)
     output = paths["output"]
     initialization()
     output.mkdir(parents=True, exist_ok=True)

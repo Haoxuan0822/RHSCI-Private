@@ -14,7 +14,8 @@ from .checkpoints import sha256
 CODE = CODE_ROOT
 
 
-def contract(args, paths, manifest):
+def build_training_contract(args, paths, manifest):
+    """根据已解析参数、数据与源码生成恢复身份；调用方据此拒绝不兼容续训。返回契约字典。"""
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
     from rsci.data.input_cache import cache_identity
 
@@ -88,5 +89,6 @@ def contract(args, paths, manifest):
     )
 
 
-def digest_contract(value):
+def compute_contract_digest(value):
+    """按稳定 JSON 顺序计算训练契约 SHA256，返回用于完整断点校验的摘要。"""
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()

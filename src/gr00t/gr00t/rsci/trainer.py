@@ -4,7 +4,8 @@
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def resume_trainer_type():
+def create_resume_trainer_class():
+    """返回保留 epoch、采样顺序与数据消费位置的 Trainer 子类，不实例化模型。"""
     from transformers import Trainer
 
     from rsci.runtime.hf_resume import epoch_safe_training_loop
@@ -31,8 +32,10 @@ def resume_trainer_type():
     return ResumeTrainer
 
 
-def trainer_type():
-    """装配原生分片优化器、采样恢复和数值门禁，不加载模型资产。"""
+def create_trainer_class():
+    """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。
+
+    装配原生分片优化器、采样恢复和数值门禁，不加载模型资产。"""
     import torch
     import torch.distributed as dist
 
@@ -40,7 +43,7 @@ def trainer_type():
 
     from .memory import ShardedOptimizerTrainerMixin
 
-    class RSCITrainer(ShardedOptimizerTrainerMixin, resume_trainer_type()):
+    class RSCITrainer(ShardedOptimizerTrainerMixin, create_resume_trainer_class()):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             clip = self.accelerator.clip_grad_norm_
@@ -92,8 +95,10 @@ def trainer_type():
     return RSCITrainer
 
 
-def completion_callback(args, paths, processor, world, digest):
-    """完整保存单帧推理处理器与断点后，才轮换旧滚动点。"""
+def build_checkpoint_callback(args, paths, processor, world, digest):
+    """返回完整断点回调；等待各 rank 写完状态后再验证并发布完整标记。
+
+    完整保存单帧推理处理器与断点后，才轮换旧滚动点。"""
     import torch.distributed as dist
     from transformers import TrainerCallback
 

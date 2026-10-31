@@ -29,42 +29,44 @@ BACKBONES = (
 ADAPTED = ("psi0", "pi05", "gr00t", "egovla", "lambda0", "act")
 
 
-def parser():
-    result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("--backbone", choices=BACKBONES, required=True)
-    result.add_argument("--mode", choices=("native", "rsci"), default="native")
-    result.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument("--backbone", choices=BACKBONES, required=True)
+    argument_parser.add_argument("--mode", choices=("native", "rsci"), default="native")
+    argument_parser.add_argument(
         "--python", default=sys.executable, help="Interpreter in the selected baseline environment"
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--gpus", help="Visible GPU indices; otherwise inherit CUDA_VISIBLE_DEVICES"
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--nproc-per-node", type=int, default=None, help="Default: number of selected GPUs, or 1"
     )
-    result.add_argument("--nnodes", type=int, default=1)
-    result.add_argument("--node-rank", type=int, default=0)
-    result.add_argument("--master-addr", default="127.0.0.1")
-    result.add_argument(
+    argument_parser.add_argument("--nnodes", type=int, default=1)
+    argument_parser.add_argument("--node-rank", type=int, default=0)
+    argument_parser.add_argument("--master-addr", default="127.0.0.1")
+    argument_parser.add_argument(
         "--master-port", type=int, help="Rendezvous port; single-node default uses a free port"
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--config",
         help="Native config module/name/path (required for PSI0, ACT, DP, InternVLA and lambda0)",
     )
-    result.add_argument(
+    argument_parser.add_argument(
         "--args-file",
         type=Path,
         help="JSON array of native trainer arguments; identity and paths can follow --",
     )
-    result.add_argument("--dry-run", action="store_true")
-    result.add_argument(
+    argument_parser.add_argument("--dry-run", action="store_true")
+    argument_parser.add_argument(
         "trainer_args", nargs=argparse.REMAINDER, help="Native trainer arguments after --"
     )
-    return result
+    return argument_parser
 
 
-def plan(args):
+def build_launch_plan(args):
+    """返回目标命令、工作目录和环境变量；只解析启动计划，不创建训练进程。"""
     forwarded = args.trainer_args[1:] if args.trainer_args[:1] == ["--"] else args.trainer_args
     if args.args_file:
         if args.mode != "native":
@@ -222,10 +224,10 @@ def plan(args):
 
 
 def main():
-    options = parser()
+    options = build_argument_parser()
     args = options.parse_args()
     try:
-        command, cwd, env = plan(args)
+        command, cwd, env = build_launch_plan(args)
     except ValueError as error:
         options.error(str(error))
     if args.dry_run:

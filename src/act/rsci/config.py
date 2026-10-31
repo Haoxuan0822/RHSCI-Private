@@ -11,36 +11,42 @@ from rsci.paths import add_data_arguments, dataset_paths
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def parser():
-    p = argparse.ArgumentParser(description=__doc__)
-    add_data_arguments(p)
-    add_input_cache_arguments(p, env_var="RSCI_ACT_SPACE_CACHE")
-    p.add_argument("--task", required=True)
-    p.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    add_data_arguments(argument_parser)
+    add_input_cache_arguments(argument_parser, env_var="RSCI_ACT_SPACE_CACHE")
+    argument_parser.add_argument("--task", required=True)
+    argument_parser.add_argument(
         "--torch-home",
         type=Path,
         help="External Torch cache containing the ImageNet ResNet18 weights",
     )
-    p.add_argument("--nccl-library", type=Path, help="Optional explicitly validated NCCL runtime")
-    p.add_argument("--model", choices=("STATE", "NO-STATE", "EGQ-AE"), default="EGQ-AE")
-    p.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
-    p.add_argument("--batch-size", type=int, default=32)
-    p.add_argument("--gradient-accumulation-steps", type=int, default=1)
-    p.add_argument("--num-workers", type=int, default=12)
-    p.add_argument("--max-steps", type=int, default=40000)
-    p.add_argument("--seed", type=int, default=2026)
-    p.add_argument("--run-tag", default="main")
-    p.add_argument("--check-data", action="store_true")
-    p.add_argument(
+    argument_parser.add_argument(
+        "--nccl-library", type=Path, help="Optional explicitly validated NCCL runtime"
+    )
+    argument_parser.add_argument(
+        "--model", choices=("STATE", "NO-STATE", "EGQ-AE"), default="EGQ-AE"
+    )
+    argument_parser.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
+    argument_parser.add_argument("--batch-size", type=int, default=32)
+    argument_parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    argument_parser.add_argument("--num-workers", type=int, default=12)
+    argument_parser.add_argument("--max-steps", type=int, default=40000)
+    argument_parser.add_argument("--seed", type=int, default=2026)
+    argument_parser.add_argument("--run-tag", default="main")
+    argument_parser.add_argument("--check-data", action="store_true")
+    argument_parser.add_argument(
         "--check", action="store_true", help="随机初始化全尺寸CPU检查，不下载ImageNet权重、不训练"
     )
-    p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
-    p.add_argument("--guardian", action="store_true", help=argparse.SUPPRESS)
-    return p
+    argument_parser.add_argument("--dry-run", action="store_true")
+    argument_parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    argument_parser.add_argument("--guardian", action="store_true", help=argparse.SUPPRESS)
+    return argument_parser
 
 
-def resolve(args):
+def resolve_training_paths(args):
+    """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     if (
         not re.fullmatch(r"\d+(,\d+)*", args.gpus)
         or len(set(args.gpus.split(","))) != len(args.gpus.split(","))
@@ -63,7 +69,8 @@ def resolve(args):
     return paths
 
 
-def training_arguments(args, paths, *, cpu=False):
+def build_training_arguments(args, paths, *, cpu=False):
+    """从已解析参数和输出路径构造本骨干原生 TrainingArguments，返回参数对象。"""
     from transformers import TrainingArguments
 
     return TrainingArguments(

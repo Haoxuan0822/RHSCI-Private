@@ -12,49 +12,53 @@ from rsci.paths import add_data_arguments, dataset_paths
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def parser():
-    p = argparse.ArgumentParser(description=__doc__)
-    add_data_arguments(p)
-    add_input_cache_arguments(p, env_var="RSCI_INPUT_CACHE")
-    p.add_argument("--task", required=True)
-    p.add_argument("--model", choices=("VGQ-AE", "STATE"), default="VGQ-AE")
-    p.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    add_data_arguments(argument_parser)
+    add_input_cache_arguments(argument_parser, env_var="RSCI_INPUT_CACHE")
+    argument_parser.add_argument("--task", required=True)
+    argument_parser.add_argument("--model", choices=("VGQ-AE", "STATE"), default="VGQ-AE")
+    argument_parser.add_argument(
         "--vlm-training",
         choices=("full", "frozen"),
         default="full",
         help="默认按SIMPLE全量微调视觉/投影/语言；frozen仅作显式消融",
     )
-    p.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
-    p.add_argument("--batch-size", type=int, default=16)
-    p.add_argument("--gradient-accumulation-steps", type=int, default=4)
-    p.add_argument("--num-workers", type=int, default=8)
-    p.add_argument("--preset", choices=("simple-115epoch",))
-    p.add_argument(
+    argument_parser.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
+    argument_parser.add_argument("--batch-size", type=int, default=16)
+    argument_parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
+    argument_parser.add_argument("--num-workers", type=int, default=8)
+    argument_parser.add_argument("--preset", choices=("simple-115epoch",))
+    argument_parser.add_argument(
         "--gradient-checkpointing",
         action=argparse.BooleanOptionalAction,
         default=True,
         help="视觉/语言非重入重算；默认启用，关闭时使用独立输出目录",
     )
-    length = p.add_mutually_exclusive_group()
+    length = argument_parser.add_mutually_exclusive_group()
     length.add_argument("--max-steps", type=int)
     length.add_argument("--num-train-epochs", type=int)
-    p.add_argument("--seed", type=int, default=292285)
-    p.add_argument("--checkpoint", type=Path)
-    p.add_argument("--run-tag", default="main")
-    p.add_argument(
+    argument_parser.add_argument("--seed", type=int, default=292285)
+    argument_parser.add_argument("--checkpoint", type=Path)
+    argument_parser.add_argument("--run-tag", default="main")
+    argument_parser.add_argument(
         "--check-data", action="store_true", help="只核对正式数据，不需要 EgoVLA 权重/环境"
     )
-    p.add_argument("--check", action="store_true", help="完整CPU初始化和处理器预检，不训练")
-    p.add_argument("--dry-run", action="store_true")
-    p.add_argument(
+    argument_parser.add_argument(
+        "--check", action="store_true", help="完整CPU初始化和处理器预检，不训练"
+    )
+    argument_parser.add_argument("--dry-run", action="store_true")
+    argument_parser.add_argument(
         "--register-assets", action="store_true", help="为已下载的本地基础权重生成SHA清单，不下载"
     )
-    p.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
-    p.add_argument("--guardian", action="store_true", help=argparse.SUPPRESS)
-    return p
+    argument_parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    argument_parser.add_argument("--guardian", action="store_true", help=argparse.SUPPRESS)
+    return argument_parser
 
 
-def resolve(args):
+def resolve_training_paths(args):
+    """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     if args.preset == "simple-115epoch":
         if args.max_steps is not None or args.num_train_epochs not in (None, 115):
             raise ValueError("simple-115epoch requires 115 epochs, without --max-steps")
@@ -113,7 +117,8 @@ def resolve(args):
     return paths
 
 
-def training_arguments(args, paths, cpu=False):
+def build_training_arguments(args, paths, cpu=False):
+    """从已解析参数和输出路径构造本骨干原生 TrainingArguments，返回参数对象。"""
     from transformers import TrainingArguments
 
     # constant 不是 constant_with_warmup；原 SIMPLE 脚本虽然写了3%，实际不执行预热。

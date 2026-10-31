@@ -11,7 +11,8 @@ from .config import optimization_kwargs
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def contract(args, paths):
+def build_training_contract(args, paths):
+    """根据已解析参数、数据与源码生成恢复身份；调用方据此拒绝不兼容续训。返回 (契约字典, SHA256)。"""
     from rsci.data.ardy_sidecar import dataset_content_fingerprint
     from rsci.data.input_cache import cache_identity
 

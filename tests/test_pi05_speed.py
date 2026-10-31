@@ -170,10 +170,10 @@ class SpeedTests(unittest.TestCase):
             torch.testing.assert_close(expected, actual, rtol=0, atol=0)
 
     def test_profile_is_part_of_run_path_and_config(self):
-        from openpi.rsci.train import parser, resolve
+        from openpi.rsci.train import build_argument_parser, resolve_training_paths
 
         for profile in ("reference", "history", "query", "both"):
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -185,7 +185,7 @@ class SpeedTests(unittest.TestCase):
                     profile,
                 ]
             )
-            path = resolve(args)["output"]
+            path = resolve_training_paths(args)["output"]
             self.assertIn("runs/pi05", str(path))
             self.assertIn(profile, path.parts)
 

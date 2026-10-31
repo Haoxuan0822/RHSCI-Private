@@ -7,7 +7,8 @@ from .checkpoints import checkpoint_ok, latest_checkpoint, sha256
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def preflight(args, paths):
+def run_training_preflight(args, paths):
+    """检查本地资产和真实数据处理结果，不启动训练。返回 (处理器, 数据集)；π0.5 仅查数据时处理器为 None。"""
     import numpy as np
 
     from .data import SimpleRSCIDataset

@@ -1,4 +1,4 @@
-"""act: 兼容命令入口，负责流程编排。"""
+"""ACT RHSCI 训练入口：编排参数解析、预检与守护/worker 角色。"""
 
 import json
 import os
@@ -6,26 +6,26 @@ import sys
 
 from rsci.paths import with_nccl as with_nccl
 
-from .config import parser as parser
-from .config import resolve as resolve
-from .config import training_arguments as training_arguments
+from .config import build_argument_parser as build_argument_parser
+from .config import build_training_arguments as build_training_arguments
+from .config import resolve_training_paths as resolve_training_paths
 from .contract import CODE as CODE
-from .contract import contract as contract
-from .contract import digest_contract as digest_contract
+from .contract import build_training_contract as build_training_contract
+from .contract import compute_contract_digest as compute_contract_digest
 from .preflight import check_data as check_data
 from .preflight import initialization as initialization
 from .preflight import nccl_runtime as nccl_runtime
-from .trainer import completion_callback as completion_callback
+from .trainer import build_checkpoint_callback as build_checkpoint_callback
 from .trainer import create_optimizer as create_optimizer
+from .trainer import create_trainer_class as create_trainer_class
 from .trainer import require_finite as require_finite
-from .trainer import trainer_type as trainer_type
-from .worker import train as train
+from .worker import run_training_worker as run_training_worker
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
 def main():
-    args = parser().parse_args()
+    args = build_argument_parser().parse_args()
     if args.nccl_library:
         os.environ["RSCI_NCCL_LIBRARY"] = str(args.nccl_library.resolve(strict=True))
     if not (args.worker or args.dry_run or args.check or args.check_data) and not os.environ.get(
@@ -35,7 +35,7 @@ def main():
         wrapped = with_nccl(command, args.nccl_library, expected_version="2.27.3")
         if wrapped != command:
             os.execvpe(wrapped[0], wrapped, {**os.environ, "RSCI_NCCL_PRELOADED": "1"})
-    paths = resolve(args)
+    paths = resolve_training_paths(args)
     print(json.dumps({key: str(value) for key, value in paths.items()}, indent=2), flush=True)
     if args.dry_run:
         world = len(args.gpus.split(","))
@@ -68,13 +68,13 @@ def main():
             )
         return
     if args.worker:
-        value = contract(args, paths)
-        digest = digest_contract(value)
-        train(args, paths, value, digest)
+        value = build_training_contract(args, paths)
+        digest = compute_contract_digest(value)
+        run_training_worker(args, paths, value, digest)
     else:
-        from .launch import guardian
+        from .launch import run_training_guardian
 
-        guardian(args, paths)
+        run_training_guardian(args, paths)
 
 
 if __name__ == "__main__":

@@ -11,17 +11,20 @@ from rsci.paths import add_data_arguments, dataset_paths
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def parser():
-    p = argparse.ArgumentParser(description=__doc__)
-    add_data_arguments(p)
-    add_input_cache_arguments(p, env_var="RSCI_INPUT_CACHE")
-    p.add_argument(
+def build_argument_parser():
+    """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    add_data_arguments(argument_parser)
+    add_input_cache_arguments(argument_parser, env_var="RSCI_INPUT_CACHE")
+    argument_parser.add_argument(
         "--nccl-library",
         type=Path,
         help="Optional alternate NCCL library; otherwise use the environment runtime",
     )
-    p.add_argument("--model", choices=("STATE", "NO-STATE", "VGQ-AE"), default="VGQ-AE")
-    p.add_argument(
+    argument_parser.add_argument(
+        "--model", choices=("STATE", "NO-STATE", "VGQ-AE"), default="VGQ-AE"
+    )
+    argument_parser.add_argument(
         "--state-measurement-noise-std-rad",
         type=float,
         nargs="?",
@@ -29,35 +32,38 @@ def parser():
         default=0.0,
         help="Training noise before state normalization/tokenization; STATE only",
     )
-    p.add_argument("--task", required=True)
-    p.add_argument("--vlm", choices=("frozen",), default="frozen")
-    p.add_argument(
+    argument_parser.add_argument("--task", required=True)
+    argument_parser.add_argument("--vlm", choices=("frozen",), default="frozen")
+    argument_parser.add_argument(
         "--execution",
         choices=("reference", "history", "query", "both"),
         default="reference",
         help="执行方式验证；默认保留原路径，history合并历史batch，query关闭Query重算",
     )
-    p.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
-    p.add_argument("--batch-size", type=int, default=16, help="每卡微批量")
-    p.add_argument("--gradient-accumulation-steps", type=int, default=1)
-    p.add_argument("--num-workers", type=int, default=8)
-    p.add_argument("--run-tag", default="main")
-    p.add_argument("--max-steps", type=int, default=40000)
-    p.add_argument("--seed", type=int, default=292285)
-    p.add_argument("--tokenizer", type=Path)
-    p.add_argument("--checkpoint", type=Path)
-    p.add_argument("--resume", type=Path)
-    p.add_argument("--check", action="store_true", help="真实数据/处理器/权重文件检查，不启动训练")
-    p.add_argument(
+    argument_parser.add_argument("--gpus", default=os.environ.get("CUDA_VISIBLE_DEVICES") or "0")
+    argument_parser.add_argument("--batch-size", type=int, default=16, help="每卡微批量")
+    argument_parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    argument_parser.add_argument("--num-workers", type=int, default=8)
+    argument_parser.add_argument("--run-tag", default="main")
+    argument_parser.add_argument("--max-steps", type=int, default=40000)
+    argument_parser.add_argument("--seed", type=int, default=292285)
+    argument_parser.add_argument("--tokenizer", type=Path)
+    argument_parser.add_argument("--checkpoint", type=Path)
+    argument_parser.add_argument("--resume", type=Path)
+    argument_parser.add_argument(
+        "--check", action="store_true", help="真实数据/处理器/权重文件检查，不启动训练"
+    )
+    argument_parser.add_argument(
         "--check-data", action="store_true", help="只检查RGB/动作/正式ARDY，不要求模型权重"
     )
-    p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
-    p.add_argument("--guardian-fd", type=int, help=argparse.SUPPRESS)
-    return p
+    argument_parser.add_argument("--dry-run", action="store_true")
+    argument_parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    argument_parser.add_argument("--guardian-fd", type=int, help=argparse.SUPPRESS)
+    return argument_parser
 
 
-def resolve(args):
+def resolve_training_paths(args):
+    """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     import re
 
     validate_scale(args.state_measurement_noise_std_rad, args.model)
@@ -107,8 +113,10 @@ def simple_lr_multiplier(step, max_steps=40000):
     return 1e-4 + (1 - 1e-4) * 0.5 * (1 + math.cos(math.pi * progress))
 
 
-def training_arguments(args, paths):
-    """生产与CPU配方核验共用，优化配置不再套用Psi0参数。"""
+def build_training_arguments(args, paths):
+    """从已解析参数和输出路径构造本骨干原生 TrainingArguments，返回参数对象。
+
+    生产与CPU配方核验共用，优化配置不再套用Psi0参数。"""
     from transformers import TrainingArguments
 
     return TrainingArguments(

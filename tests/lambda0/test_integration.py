@@ -346,7 +346,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(parameter.any())
 
     def test_guardian_does_not_restart_from_zero_or_numeric_failure(self):
-        from lambda0.rsci.launch import guardian
+        from lambda0.rsci.launch import run_training_guardian
 
         for message, expected in (
             (b"worker crashed", "No verified complete checkpoint"),
@@ -361,7 +361,7 @@ class IntegrationTests(unittest.TestCase):
 
                 with patch("lambda0.rsci.launch.subprocess.Popen", side_effect=spawn) as mock:
                     with self.assertRaisesRegex(RuntimeError, expected):
-                        guardian(SimpleNamespace(gpus="0"), [], Path(root))
+                        run_training_guardian(SimpleNamespace(gpus="0"), [], Path(root))
                     self.assertEqual(mock.call_count, 1)
 
     def test_serving_rejects_foreign_processor_statistics_and_source(self):
@@ -416,18 +416,18 @@ class IntegrationTests(unittest.TestCase):
         )
 
     def test_launcher_coordination_is_not_a_checkpoint_or_training_run(self):
-        from lambda0.rsci.train import guard_output
+        from lambda0.rsci.train import validate_output_directory
 
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)
             (root / "guardian.lock").touch()
             (root / "attempt-1.log").touch()
-            guard_output(SimpleNamespace(resume="none"), root)
+            validate_output_directory(SimpleNamespace(resume="none"), root)
             (root / "rsci_run.json").write_text("{}")
             with self.assertRaises(FileExistsError):
-                guard_output(SimpleNamespace(resume="none"), root)
+                validate_output_directory(SimpleNamespace(resume="none"), root)
             with self.assertRaisesRegex(ValueError, "no verified complete checkpoint"):
-                guard_output(SimpleNamespace(resume="auto"), root)
+                validate_output_directory(SimpleNamespace(resume="auto"), root)
 
     def test_auxiliary_rejects_broadcast_targets_and_missing_current_frame(self):
         prediction = torch.randn(2, 128)

@@ -299,7 +299,7 @@ class RSCITests(unittest.TestCase):
                     packed,
                 )
             for mode in ("frozen", "lora"):
-                args = launch_rsci.parser().parse_args(
+                args = launch_rsci.build_argument_parser().parse_args(
                     [
                         "--model",
                         variant,
@@ -312,7 +312,7 @@ class RSCITests(unittest.TestCase):
                         "--dry-run",
                     ]
                 )
-                cfg, command, output, ranks = launch_rsci.resolved(args)
+                cfg, command, output, ranks = launch_rsci.resolve_training_plan(args)
                 self.assertEqual(cfg.model.rsci_variant, variant)
                 self.assertEqual(cfg.model.tune_vlm, mode == "lora")
                 self.assertIn("runs/psi0", str(output))
@@ -322,7 +322,7 @@ class RSCITests(unittest.TestCase):
             RSCISpec("EGQ-AE*")
 
     def test_custom_training_budget_and_environment_nccl(self):
-        args = launch_rsci.parser().parse_args(
+        args = launch_rsci.build_argument_parser().parse_args(
             [
                 "--task",
                 "custom",
@@ -338,13 +338,13 @@ class RSCITests(unittest.TestCase):
                 "2000",
             ]
         )
-        config, command, output, ranks = launch_rsci.resolved(args)
+        config, command, output, ranks = launch_rsci.resolve_training_plan(args)
         self.assertEqual(config.train.max_training_steps, 2000)
         self.assertEqual(str(output), "/runs/custom")
         self.assertNotIn("--library", command)
         self.assertIn("torch.distributed.run", command)
         args.nccl_library = Path("/runtime/libnccl.so.2")
-        self.assertIn("/runtime/libnccl.so.2", launch_rsci.resolved(args)[1])
+        self.assertIn("/runtime/libnccl.so.2", launch_rsci.resolve_training_plan(args)[1])
 
     def test_real_qwen_visual_lora_and_full_checkpoint_restore(self):
         from safetensors.torch import load_file, save_model
@@ -447,21 +447,21 @@ class RSCITests(unittest.TestCase):
     def test_guard_recovery_contract_and_no_zero_restart(self):
         from safetensors.torch import save_file
 
-        args = launch_rsci.parser().parse_args(
+        args = launch_rsci.build_argument_parser().parse_args(
             ["--model", "VGQ-AE", "--task", "G1Test-v0", "--gpus", "0", "--dry-run"]
         )
-        cfg, command, _, ranks = launch_rsci.resolved(args)
+        cfg, command, _, ranks = launch_rsci.resolve_training_plan(args)
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
             # 无断点失败只能停止，不能重新从零跑第二次。
             failed = SimpleNamespace(pid=99999999, returncode=1, poll=lambda: 1)
             with patch.object(launch_rsci.subprocess, "Popen", return_value=failed) as spawn:
                 with self.assertRaisesRegex(RuntimeError, "step zero"):
-                    launch_rsci.guard(args, cfg, command, output, ranks)
+                    launch_rsci.run_training_guardian(args, cfg, command, output, ranks)
                 self.assertEqual(spawn.call_count, 1)
             with patch.object(launch_rsci.subprocess, "Popen") as spawn:
                 with self.assertRaisesRegex(RuntimeError, "step zero"):
-                    launch_rsci.guard(args, cfg, command, output, ranks)
+                    launch_rsci.run_training_guardian(args, cfg, command, output, ranks)
                 spawn.assert_not_called()
             run = output / "finetune/test"
             checkpoint = run / "checkpoints/ckpt_1000"
@@ -475,7 +475,7 @@ class RSCITests(unittest.TestCase):
             self.assertIsNone(launch_rsci.latest_checkpoint(output, 2))
             with patch.object(launch_rsci.subprocess, "Popen", return_value=failed) as spawn:
                 with self.assertRaisesRegex(RuntimeError, "No new complete checkpoint"):
-                    launch_rsci.guard(args, cfg, command, output, ranks)
+                    launch_rsci.run_training_guardian(args, cfg, command, output, ranks)
                 self.assertEqual(spawn.call_count, 1)
                 self.assertIn(
                     f"--train.resume-from-checkpoint={checkpoint}", spawn.call_args.args[0]
@@ -486,13 +486,13 @@ class RSCITests(unittest.TestCase):
             (run / "run_config.json").write_text(json.dumps(saved))
             with patch.object(launch_rsci.subprocess, "Popen") as spawn:
                 with self.assertRaisesRegex(ValueError, "do not match"):
-                    launch_rsci.guard(args, cfg, command, output, ranks)
+                    launch_rsci.run_training_guardian(args, cfg, command, output, ranks)
                 spawn.assert_not_called()
-            identity = launch_rsci.contract(cfg, ranks)
+            identity = launch_rsci.build_training_contract(cfg, ranks)
             changed = cfg.model_copy(deep=True)
             changed.model.rsci_vlm_mode = "lora"
-            self.assertNotEqual(identity, launch_rsci.contract(changed, ranks))
-            self.assertNotEqual(identity, launch_rsci.contract(cfg, 2))
+            self.assertNotEqual(identity, launch_rsci.build_training_contract(changed, ranks))
+            self.assertNotEqual(identity, launch_rsci.build_training_contract(cfg, 2))
 
     def test_serving_history_protocol(self):
         model = policy("EGQ-VLM*")[1].eval()
@@ -566,7 +566,7 @@ class RSCITests(unittest.TestCase):
                     self.assertEqual(query.call_count, int(variant.endswith("*")))
 
     def test_numerical_failure_blocks_even_explicit_resume_before_spawn(self):
-        args = launch_rsci.parser().parse_args(
+        args = launch_rsci.build_argument_parser().parse_args(
             ["--model", "VGQ-AE", "--task", "Test-v0", "--resume", "/unused/checkpoint"]
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -574,7 +574,7 @@ class RSCITests(unittest.TestCase):
             (output / "NUMERICAL_FAILURE.json").write_text("{}")
             with patch.object(launch_rsci.subprocess, "Popen") as spawn:
                 with self.assertRaisesRegex(RuntimeError, "NUMERICAL_FAILURE"):
-                    launch_rsci.guard(args, None, [], output, 1)
+                    launch_rsci.run_training_guardian(args, None, [], output, 1)
                 spawn.assert_not_called()
 
 

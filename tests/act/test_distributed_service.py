@@ -56,7 +56,7 @@ class DistributedAndService(unittest.TestCase):
 
         from fastapi.testclient import TestClient
 
-        from act.rsci.serve import app_for
+        from act.rsci.serve import create_app
         from psi.deploy.helpers import RequestMessage, ResponseMessage
 
         class FakePolicy:
@@ -73,7 +73,7 @@ class DistributedAndService(unittest.TestCase):
                 self.resets += 1
 
         policy = FakePolicy()
-        with TestClient(app_for(policy)) as client:
+        with TestClient(create_app(policy)) as client:
             image = np.zeros((224, 224, 3), np.uint8)
             request = RequestMessage(
                 {"egocentric": image}, "unused language", {}, {}, {}, [], "simple", "0"

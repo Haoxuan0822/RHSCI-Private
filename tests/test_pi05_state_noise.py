@@ -12,7 +12,7 @@ from test_pi05_rsci import TinyBackbone, fixture
 
 from openpi.rsci.model import Pi05RSCI
 from openpi.rsci.processing import Processor
-from openpi.rsci.train import parser, resolve
+from openpi.rsci.train import build_argument_parser, resolve_training_paths
 from rsci.inference.state_noise import RequestStateNoise
 
 
@@ -180,15 +180,21 @@ class StateNoiseTests(unittest.TestCase):
 
     def test_cli_rejects_invalid_noise_and_separates_output_paths(self):
         base = ["--task", "example", "--model", "STATE", "--dataset", "/datasets/example"]
-        clean = resolve(parser().parse_args(base))
-        noisy = resolve(parser().parse_args(base + ["--state-measurement-noise-std-rad"]))
+        clean = resolve_training_paths(build_argument_parser().parse_args(base))
+        noisy = resolve_training_paths(
+            build_argument_parser().parse_args(base + ["--state-measurement-noise-std-rad"])
+        )
         self.assertNotEqual(clean["output"], noisy["output"])
         for value in ("-0.1", "nan", "inf"):
             with self.assertRaises(ValueError):
-                resolve(parser().parse_args(base + ["--state-measurement-noise-std-rad", value]))
+                resolve_training_paths(
+                    build_argument_parser().parse_args(
+                        base + ["--state-measurement-noise-std-rad", value]
+                    )
+                )
         with self.assertRaises(ValueError):
-            resolve(
-                parser().parse_args(
+            resolve_training_paths(
+                build_argument_parser().parse_args(
                     [
                         "--task",
                         "example",

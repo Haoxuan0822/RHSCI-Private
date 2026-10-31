@@ -9,13 +9,13 @@ from unittest.mock import patch
 
 import torch
 from gr00t.configs.training.training_config import TrainingConfig
-from gr00t.rsci.train import parser, resolve, training_arguments
+from gr00t.rsci.train import build_argument_parser, build_training_arguments, resolve_training_paths
 from transformers import Trainer, TrainingArguments
 
 
 class OfficialOptimizationTests(unittest.TestCase):
     def test_custom_dataset_output_and_step_budget(self):
-        cli = parser().parse_args(
+        cli = build_argument_parser().parse_args(
             [
                 "--task",
                 "custom",
@@ -29,12 +29,12 @@ class OfficialOptimizationTests(unittest.TestCase):
                 "2000",
             ]
         )
-        paths = resolve(cli)
+        paths = resolve_training_paths(cli)
         self.assertEqual(paths["dataset"], Path("/datasets/custom"))
         self.assertEqual(paths["output"], Path("/runs/custom"))
         from rsci.paths import worker_arguments
 
-        forwarded = worker_arguments(cli, parser())
+        forwarded = worker_arguments(cli, build_argument_parser())
         self.assertIn("--dataset", forwarded)
         self.assertIn("/datasets/custom", forwarded)
         self.assertIn("/runs/custom", forwarded)
@@ -46,12 +46,12 @@ class OfficialOptimizationTests(unittest.TestCase):
 
         cpu_arguments.__dataclass_fields__ = TrainingArguments.__dataclass_fields__
         with patch("transformers.TrainingArguments", new=cpu_arguments):
-            self.assertEqual(training_arguments(cli, paths).max_steps, 2000)
+            self.assertEqual(build_training_arguments(cli, paths).max_steps, 2000)
 
     def test_real_optimizer_and_schedule_match_official_experiment(self):
         native = TrainingConfig()
         with tempfile.TemporaryDirectory() as directory:
-            cli = parser().parse_args(
+            cli = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -74,7 +74,7 @@ class OfficialOptimizationTests(unittest.TestCase):
                 ),
             ) as factory:
                 factory.__dataclass_fields__ = TrainingArguments.__dataclass_fields__
-                actual = training_arguments(cli, {"output": Path(directory) / "actual"})
+                actual = build_training_arguments(cli, {"output": Path(directory) / "actual"})
             # 仅测试设备/精度选择用CPU；实际生产优化参数完全保留。
             actual = dataclasses.replace(actual, use_cpu=True, bf16=False, tf32=False)
             expected = TrainingArguments(
@@ -116,10 +116,10 @@ class OfficialOptimizationTests(unittest.TestCase):
             self.assertAlmostEqual(a.lr_scheduler.lr_lambdas[0](1000), 1.0)
 
     def test_new_output_namespace_preserves_original_runs(self):
-        cli = parser().parse_args(
+        cli = build_argument_parser().parse_args(
             ["--dataset", "/datasets/test", "--sidecar", "/labels/test", "--task", "between"]
         )
-        path = resolve(cli)["output"]
+        path = resolve_training_paths(cli)["output"]
         self.assertIn("runs/gr00t/between", str(path))
         self.assertEqual(cli.run_tag, "main")
 

@@ -332,14 +332,14 @@ class ArchitectureTests(unittest.TestCase):
             Gr00tN1d6Config(rsci_variant="VGQ-AE", tune_llm=True)
 
     def test_simple_default_batch_follows_world_and_accumulation(self):
-        from gr00t.rsci.train import parser, resolve
+        from gr00t.rsci.train import build_argument_parser, resolve_training_paths
 
         for gpus, accumulation, batch in (
             ("0,1,2,3,4,5,6,7", 1, 3),
             ("0,1,2,3", 2, 3),
             ("0,1", 1, 12),
         ):
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 [
                     "--dataset",
                     "/datasets/test",
@@ -353,7 +353,7 @@ class ArchitectureTests(unittest.TestCase):
                     str(accumulation),
                 ]
             )
-            paths = resolve(args)
+            paths = resolve_training_paths(args)
             self.assertEqual(args.batch_size, batch)
             self.assertEqual(args.vlm, "top4")
             self.assertEqual(paths["output"].name, "main")

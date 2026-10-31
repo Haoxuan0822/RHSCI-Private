@@ -13,7 +13,7 @@ from PIL import Image
 from psi.config.augmentation import CenterCrop, ColorJitter, ResizeImage
 from psi.config.transform import Psi0ModelTransform
 from psi.rsci.config import load_run_config
-from psi.rsci.train import parser, resolved
+from psi.rsci.train import build_argument_parser, resolve_training_plan
 
 
 class ImageTransform(Psi0ModelTransform):
@@ -91,7 +91,9 @@ class PreprocessingTests(unittest.TestCase):
                 )
 
     def test_saved_json_is_loaded_without_replaying_obsolete_cli(self):
-        cfg, _, _, _ = resolved(parser().parse_args(["--task", "fixture", "--model", "EGQ-AE"]))
+        cfg, _, _, _ = resolve_training_plan(
+            build_argument_parser().parse_args(["--task", "fixture", "--model", "EGQ-AE"])
+        )
         saved = cfg.model_dump(mode="json")
         saved["model"]["depth_rgb_encoder_path"] = saved["model"].pop("rsci_rgb_encoder_path")
         saved["model"]["depth_encoder_input_size"] = saved["model"].pop("rsci_encoder_input_size")

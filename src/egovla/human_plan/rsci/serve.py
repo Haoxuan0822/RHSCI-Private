@@ -134,7 +134,7 @@ def main():
     import torch
 
     from .checkpoints import sha256
-    from .contract import CODE, digest_contract
+    from .contract import CODE, compute_contract_digest
     from .native import load_native
     from .preflight import assets
 
@@ -145,7 +145,7 @@ def main():
     args = p.parse_args()
     checkpoint = args.checkpoint.resolve()
     value = json.loads((checkpoint / "launch_contract.json").read_text())
-    if not checkpoint_ok(checkpoint, value["world"], digest_contract(value), verify=True):
+    if not checkpoint_ok(checkpoint, value["world"], compute_contract_digest(value), verify=True):
         raise ValueError("Incomplete/corrupt EgoVLA checkpoint")
     for name, digest in value["code"].items():
         if sha256(CODE / name) != digest:

@@ -53,7 +53,7 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
     from transformers import TrainingArguments
 
     from openpi.rsci.processing import collate
-    from openpi.rsci.train import complete_callback, trainer_class
+    from openpi.rsci.train import build_checkpoint_callback, create_trainer_class
 
     # CPU 多 rank 默认设备 cpu:0 无法由 torch2.7 恢复；仅测试显式选择标准 cpu。
     os.environ.update(
@@ -86,12 +86,12 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
             remove_unused_columns=False,
             dataloader_pin_memory=False,
         )
-        trainer = trainer_class()(
+        trainer = create_trainer_class()(
             model=model,
             args=arguments,
             train_dataset=samples,
             data_collator=collate,
-            callbacks=[complete_callback(Path(output), 2, "ddp-trainer")],
+            callbacks=[build_checkpoint_callback(Path(output), 2, "ddp-trainer")],
         )
         trainer.train()
         checkpoint = Path(output) / "checkpoint-2"
@@ -99,12 +99,12 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
         assert trainer.accelerator.ddp_handler.gradient_as_bucket_view
         restored, _ = fixture()
         arguments.max_steps = 3
-        trainer = trainer_class()(
+        trainer = create_trainer_class()(
             model=restored,
             args=arguments,
             train_dataset=samples,
             data_collator=collate,
-            callbacks=[complete_callback(Path(output), 2, "ddp-trainer")],
+            callbacks=[build_checkpoint_callback(Path(output), 2, "ddp-trainer")],
         )
         trainer.train(resume_from_checkpoint=str(checkpoint))
         assert trainer.state.global_step == 3
@@ -420,9 +420,9 @@ class CheckpointTests(unittest.TestCase):
         from transformers import TrainingArguments
 
         from openpi.rsci.processing import collate
-        from openpi.rsci.train import complete_callback, trainer_class
+        from openpi.rsci.train import build_checkpoint_callback, create_trainer_class
 
-        Trainer = trainer_class()
+        Trainer = create_trainer_class()
         model, batch = fixture()
         samples = [{key: value[index] for key, value in batch.items()} for index in range(2)]
         with tempfile.TemporaryDirectory() as directory:
@@ -445,7 +445,7 @@ class CheckpointTests(unittest.TestCase):
                 args=args,
                 train_dataset=samples,
                 data_collator=collate,
-                callbacks=[complete_callback(Path(directory), 1, "real-trainer")],
+                callbacks=[build_checkpoint_callback(Path(directory), 1, "real-trainer")],
             )
             trainer.model_accepts_loss_kwargs = False
             trainer.train()
@@ -515,7 +515,7 @@ class NumericalTests(unittest.TestCase):
     def test_production_trainer_rejects_loss_and_backward_overflow_before_update(self):
         from transformers import TrainingArguments
 
-        from openpi.rsci.train import trainer_class
+        from openpi.rsci.train import create_trainer_class
         from rsci.runtime.numerics import FAILURE
 
         class InfiniteBackward(torch.autograd.Function):
@@ -554,7 +554,9 @@ class NumericalTests(unittest.TestCase):
                     remove_unused_columns=False,
                     dataloader_pin_memory=False,
                 )
-                trainer = trainer_class()(model=model, args=args, train_dataset=[{"value": 1.0}])
+                trainer = create_trainer_class()(
+                    model=model, args=args, train_dataset=[{"value": 1.0}]
+                )
                 with self.assertRaisesRegex(FloatingPointError, stage):
                     trainer.train()
                 torch.testing.assert_close(model.weight, before)
@@ -566,11 +568,11 @@ class NumericalTests(unittest.TestCase):
 
 class QueueTests(unittest.TestCase):
     def test_preflight_rejects_other_tasks_stale_run_and_zero_restart(self):
-        from openpi.rsci.train import parser, validate_run
+        from openpi.rsci.train import build_argument_parser, validate_run
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
-            args = parser().parse_args(
+            args = build_argument_parser().parse_args(
                 ["--dataset", "/datasets/test", "--sidecar", "/labels/test", "--task", "between"]
             )
             paths = {"output": output}

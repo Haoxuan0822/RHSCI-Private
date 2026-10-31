@@ -1,20 +1,21 @@
-"""gr00t: 兼容命令入口，负责流程编排。"""
+"""GR00T RHSCI 训练入口：编排参数解析、预检与守护/worker 角色。"""
 
 import json
 
 from rsci.data.cache_config import cache_arguments
 
+from .config import build_argument_parser as build_argument_parser
+from .config import build_training_arguments as build_training_arguments
 from .config import optimization_kwargs as optimization_kwargs
-from .config import parser as parser
-from .config import resolve as resolve
-from .config import training_arguments as training_arguments
-from .contract import contract as contract
-from .guardian import guardian as guardian
+from .config import resolve_training_paths as resolve_training_paths
+from .contract import build_training_contract as build_training_contract
+from .guardian import run_training_guardian as run_training_guardian
 from .preflight import build_processor as build_processor
 from .preflight import check_training_environment as check_training_environment
-from .preflight import preflight as preflight
-from .trainer import resume_trainer_type as resume_trainer_type
-from .worker import train as train
+from .preflight import run_training_preflight as run_training_preflight
+from .preflight import validate_training_data
+from .trainer import create_resume_trainer_class as create_resume_trainer_class
+from .worker import run_training_worker as run_training_worker
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
@@ -27,61 +28,30 @@ def main():
 
     from .checkpoints import atomic_json
 
-    args = parser().parse_args()
-    paths = resolve(args)
+    args = build_argument_parser().parse_args()
+    paths = resolve_training_paths(args)
     print(json.dumps({key: str(value) for key, value in paths.items()}, indent=2), flush=True)
     if args.dry_run:
         print(json.dumps(optimization_kwargs(), sort_keys=True), flush=True)
         return
     if args.check_data:
-        import numpy as np
-
-        from .data import SimpleRSCIDataset
-
-        dataset = SimpleRSCIDataset(
-            paths["dataset"],
-            args.model,
-            sidecar=paths["sidecar"],
-            seed=args.seed,
-            cache=paths["input_cache"],
-        )
-
-        # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
-        indices = [6, 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1, 6]
-        for index in indices:
-            sample = dataset.raw_sample(index)
-            if args.model == "VGQ-AE":
-                frame = sample.metadata["frame_index"]
-                if not np.array_equal(
-                    sample.metadata["rsci_history_valid"], np.array([-6, -4, -2, 0]) + frame >= 0
-                ):
-                    raise ValueError("History crossed episode boundary")
-                target = dataset.reader.get(sample.metadata["episode_index"], frame)
-                np.testing.assert_array_equal(
-                    sample.metadata["rsci_ardy_target"], target.ardy_body_latent
-                )
-            if bool(sample.states) != (args.model == "STATE"):
-                raise ValueError("Unexpected state dependency")
-        print(
-            f"GR00T_RSCI_DATA_OK task={args.task} model={args.model} samples={len(dataset)}; no model loaded",
-            flush=True,
-        )
+        validate_training_data(args, paths)
         return
     if args.guardian_fd is not None:
-        identity, digest = contract(args, paths)
+        identity, digest = build_training_contract(args, paths)
         if json.loads((paths["output"] / "launch_contract.json").read_text()) != identity:
             raise ValueError("Guardian launch contract mismatch")
-        guardian(args, paths, digest)
+        run_training_guardian(args, paths, digest)
         return
     check_training_environment()
-    processor, dataset = preflight(args, paths)
+    processor, dataset = run_training_preflight(args, paths)
     if args.check:
         return
-    identity, digest = contract(args, paths)
+    identity, digest = build_training_contract(args, paths)
     if args.worker:
         if json.loads((paths["output"] / "launch_contract.json").read_text()) != identity:
             raise ValueError("Worker launch contract mismatch")
-        train(args, paths, processor, dataset, digest)
+        run_training_worker(args, paths, processor, dataset, digest)
         return
     import torch
 

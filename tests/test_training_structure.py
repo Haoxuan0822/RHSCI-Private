@@ -39,10 +39,10 @@ class TrainingStructureTests(unittest.TestCase):
                 entry = importlib.import_module(f"{module}.train")
                 config = importlib.import_module(f"{module}.config")
                 worker = importlib.import_module(f"{module}.worker")
-                self.assertIs(entry.parser, config.parser)
-                self.assertIs(entry.resolve, config.resolve)
-                self.assertIs(entry.training_arguments, config.training_arguments)
-                self.assertIs(entry.train, worker.train)
+                self.assertIs(entry.build_argument_parser, config.build_argument_parser)
+                self.assertIs(entry.resolve_training_paths, config.resolve_training_paths)
+                self.assertIs(entry.build_training_arguments, config.build_training_arguments)
+                self.assertIs(entry.run_training_worker, worker.run_training_worker)
 
     def test_cli_freezes_legacy_cache_default_and_worker_role(self):
         for backbone, env in (
@@ -53,24 +53,24 @@ class TrainingStructureTests(unittest.TestCase):
         ):
             with self.subTest(backbone=backbone), patch.dict(os.environ, {env: "/cache/first"}):
                 config = importlib.import_module(f"{BACKBONE_MODULES[backbone]}.config")
-                cli = config.parser()
+                cli = config.build_argument_parser()
                 base = ["--task", "fixture", "--dataset", "/dataset", "--model", "STATE"]
                 args = cli.parse_args(base)
-                paths = config.resolve(args)
+                paths = config.resolve_training_paths(args)
                 cache = paths["input_cache"]
                 self.assertEqual(cache.root, Path("/cache/first"))
                 self.assertEqual(cache.verification, "full")
                 os.environ[env] = "/cache/changed"
                 child_args = cli.parse_args(base + cache_arguments(cache) + ["--worker"])
-                child = config.resolve(child_args)["input_cache"]
+                child = config.resolve_training_paths(child_args)["input_cache"]
                 self.assertEqual(child.root, cache.root)
                 self.assertEqual(child.verification, "metadata")
-                disabled = config.resolve(cli.parse_args(base + ["--no-input-cache"]))[
-                    "input_cache"
-                ]
+                disabled = config.resolve_training_paths(
+                    cli.parse_args(base + ["--no-input-cache"])
+                )["input_cache"]
                 self.assertIsNone(disabled.root)
                 self.assertIsNone(
-                    config.resolve(cli.parse_args(base + cache_arguments(disabled)))[
+                    config.resolve_training_paths(cli.parse_args(base + cache_arguments(disabled)))[
                         "input_cache"
                     ].root
                 )

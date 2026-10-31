@@ -1,8 +1,10 @@
 """Shared PSI0 fine-tuning defaults."""
 
 
-def training_args(runtime):
-    """Base PSI0 fine-tuning arguments; the launcher resolves data, variant and output."""
+def build_training_arguments(runtime):
+    """根据运行根目录生成 Ψ0 原生微调 CLI 参数列表；数据、变体和输出由入口覆盖。
+
+    Base PSI0 fine-tuning arguments; the launcher resolves data, variant and output."""
     checkpoints = runtime / "cache/checkpoints/psi0"
     args = [
         "finetune_simple_psi0_config",

@@ -31,7 +31,8 @@ def build_processor(args, paths):
     )
 
 
-def preflight(args, paths):
+def run_training_preflight(args, paths):
+    """检查本地资产和真实数据处理结果，不启动训练。返回 (处理器, 数据集)。"""
     from .data import SimpleRSCIDataset
 
     checkpoint = paths["checkpoint"]
@@ -96,3 +97,41 @@ def check_training_environment():
             + ", ".join(failures)
             + "; see baselines/gr00t/README.md"
         )
+
+
+def validate_training_data(args, paths):
+    """检查训练数据、归一化与历史帧边界，不进行模型训练更新。
+
+    只读取真实数据，验证集边界、历史帧及 STATE/ARDY 字段，不加载模型。"""
+    import numpy as np
+
+    from .data import SimpleRSCIDataset
+
+    dataset = SimpleRSCIDataset(
+        paths["dataset"],
+        args.model,
+        sidecar=paths["sidecar"],
+        seed=args.seed,
+        cache=paths["input_cache"],
+    )
+
+    # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
+    indices = [6, 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1, 6]
+    for index in indices:
+        sample = dataset.raw_sample(index)
+        if args.model == "VGQ-AE":
+            frame = sample.metadata["frame_index"]
+            if not np.array_equal(
+                sample.metadata["rsci_history_valid"], np.array([-6, -4, -2, 0]) + frame >= 0
+            ):
+                raise ValueError("History crossed episode boundary")
+            target = dataset.reader.get(sample.metadata["episode_index"], frame)
+            np.testing.assert_array_equal(
+                sample.metadata["rsci_ardy_target"], target.ardy_body_latent
+            )
+        if bool(sample.states) != (args.model == "STATE"):
+            raise ValueError("Unexpected state dependency")
+    print(
+        f"GR00T_RSCI_DATA_OK task={args.task} model={args.model} samples={len(dataset)}; no model loaded",
+        flush=True,
+    )

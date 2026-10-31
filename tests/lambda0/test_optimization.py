@@ -22,9 +22,9 @@ from torch import nn
 
 class OptimizationTests(unittest.TestCase):
     def test_custom_bundle_paths_and_training_budget(self):
-        from lambda0.rsci.train import configuration, parser
+        from lambda0.rsci.train import build_argument_parser, build_training_config
 
-        args = parser().parse_args(
+        args = build_argument_parser().parse_args(
             [
                 "--task",
                 "custom",
@@ -44,7 +44,7 @@ class OptimizationTests(unittest.TestCase):
                 "7",
             ]
         )
-        config = configuration(args)
+        config = build_training_config(args)
         self.assertEqual(config["output"], "/runs/custom")
         self.assertEqual(config["data"], "/bundles/custom-safe")
         self.assertEqual(config["data_root"], "/datasets")
@@ -57,7 +57,7 @@ class OptimizationTests(unittest.TestCase):
 
     def test_all_four_actual_recipes_against_official_profile_and_parser(self):
         from lambda0.rsci.contracts import UPSTREAM
-        from lambda0.rsci.train import configuration, parser
+        from lambda0.rsci.train import build_argument_parser, build_training_config
         from lambda0.training import engine
         from lambda0.training.runner import resolve_experiment
 
@@ -79,7 +79,7 @@ class OptimizationTests(unittest.TestCase):
         )
         for task in ("hug", "between"):
             for variant in ("STATE", "VGQ-AE"):
-                args = parser().parse_args(
+                args = build_argument_parser().parse_args(
                     [
                         "--dataset",
                         "/datasets/test",
@@ -96,7 +96,7 @@ class OptimizationTests(unittest.TestCase):
                 metadata = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
                 if metadata:
                     args.bundle = Path(metadata).resolve().parent
-                config = configuration(args)
+                config = build_training_config(args)
                 if (
                     not Path(config["model"]).exists()
                     or not (Path(config["data"]) / "manifest.json").is_file()

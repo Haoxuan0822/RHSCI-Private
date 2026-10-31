@@ -3,15 +3,16 @@
 import os
 
 from .checkpoints import checkpoint_ok
-from .config import training_arguments
-from .contract import contract
+from .config import build_training_arguments
+from .contract import build_training_contract
 from .preflight import validate_run
-from .trainer import complete_callback, trainer_class
+from .trainer import build_checkpoint_callback, create_trainer_class
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def train(args, paths, processor, dataset, digest):
+def run_training_worker(args, paths, processor, dataset, digest):
+    """在当前分布式 worker 内装配模型、数据与 Trainer，恢复完整状态并执行训练。"""
     import torch
     from transformers import set_seed
 
@@ -30,15 +31,15 @@ def train(args, paths, processor, dataset, digest):
     )
     model.load_initial(paths["checkpoint"])
     world = len(args.gpus.split(","))
-    identity = contract(args, paths)[0]
+    identity = build_training_contract(args, paths)[0]
     resume = validate_run(args, paths, identity, digest, allow_started=True)
-    training = training_arguments(args, paths)
-    trainer = trainer_class()(
+    training = build_training_arguments(args, paths)
+    trainer = create_trainer_class()(
         model=model,
         args=training,
         train_dataset=dataset,
         data_collator=collate,
-        callbacks=[complete_callback(paths["output"], world, digest)],
+        callbacks=[build_checkpoint_callback(paths["output"], world, digest)],
     )
     print(
         f"PI05_SPEED BF16/FP32-trainable; SDPA; layer-checkpoint; frozen-VLM-KV; fused-AdamW; "

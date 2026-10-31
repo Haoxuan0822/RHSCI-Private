@@ -21,7 +21,8 @@ def require_finite(values, output, step, stage):
         raise FloatingPointError(f"Nonfinite {stage}; automatic restart disabled")
 
 
-def trainer_type():
+def create_trainer_class():
+    """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。"""
     import torch
     from transformers import Trainer
 
@@ -88,7 +89,8 @@ def trainer_type():
     return RSCITrainer
 
 
-def completion_callback(output, world, digest):
+def build_checkpoint_callback(output, world, digest):
+    """返回完整断点回调；等待各 rank 写完状态后再验证并发布完整标记。"""
     import torch.distributed as dist
     from transformers import TrainerCallback
 

@@ -5,13 +5,14 @@ import os
 from rsci.data.cache_config import cache_arguments
 from rsci.paths import with_nccl, worker_arguments
 
-from .config import parser
-from .contract import contract
+from .config import build_argument_parser
+from .contract import build_training_contract
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
-def guardian(args, paths, digest):
+def run_training_guardian(args, paths, digest):
+    """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     import signal
     import subprocess
     import sys
@@ -36,7 +37,7 @@ def guardian(args, paths, digest):
         from rsci.runtime.numerics import reject_numerical_failure
 
         reject_numerical_failure(output)
-        _, current_digest = contract(args, paths)
+        _, current_digest = build_training_contract(args, paths)
         if current_digest != digest:
             raise ValueError("Source/data/environment changed; refusing recovery")
         resume = (
@@ -68,7 +69,7 @@ def guardian(args, paths, digest):
             "--module",
             "gr00t.rsci.train",
             "--worker",
-            *worker_arguments(args, parser()),
+            *worker_arguments(args, build_argument_parser()),
             *cache_arguments(paths["input_cache"]),
         ]
         if resume:

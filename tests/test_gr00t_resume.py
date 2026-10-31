@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 import torch
-from gr00t.rsci.train import resume_trainer_type
+from gr00t.rsci.train import create_resume_trainer_class
 from torch.utils.data import Dataset
 from transformers import TrainerCallback, TrainingArguments, set_seed
 
@@ -42,7 +42,7 @@ class StopAtSeven(TrainerCallback):
 
 class ResumeTests(unittest.TestCase):
     def test_production_trainer_finite_loss_gate(self):
-        from gr00t.rsci.trainer import trainer_type
+        from gr00t.rsci.trainer import create_trainer_class
 
         class LossModel(torch.nn.Module):
             def __init__(self):
@@ -56,7 +56,7 @@ class ResumeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             model = LossModel()
             args = TrainingArguments(output_dir=tmp, use_cpu=True, report_to="none")
-            trainer = trainer_type()(model=model, args=args)
+            trainer = create_trainer_class()(model=model, args=args)
             loss = trainer.compute_loss(model, dict(x=torch.tensor(2.0)))
             loss.backward()
             torch.testing.assert_close(model.weight.grad, torch.tensor(2.0))
@@ -86,7 +86,7 @@ class ResumeTests(unittest.TestCase):
                     remove_unused_columns=False,
                     save_safetensors=True,
                 )
-                result = resume_trainer_type()(
+                result = create_resume_trainer_class()(
                     model=Model(),
                     args=arguments,
                     train_dataset=Samples(),
