@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rsci.paths import BACKBONE_MODULES
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,6 +20,7 @@ class GuardianProcessTests(unittest.TestCase):
 import importlib, pathlib, subprocess, sys
 from types import SimpleNamespace
 from unittest.mock import patch
+from rsci.data.cache_config import InputCacheConfig
 module = importlib.import_module(sys.argv[1])
 real_popen = subprocess.Popen
 def worker(*args, **kwargs):
@@ -29,14 +32,19 @@ with patch.object(module, 'latest', return_value=None), \
      patch.object(module, 'checkpoint_ok', return_value=False), \
      patch('subprocess.Popen', side_effect=worker):
     module.guardian(SimpleNamespace(gpus='0', max_steps=2),
-                    {'output': pathlib.Path(sys.argv[2])}, {}, 'test')
+                    {'output': pathlib.Path(sys.argv[2]), 'input_cache': InputCacheConfig()},
+                    {}, 'test')
 """
         for backbone in ("act", "egovla"):
             with self.subTest(backbone=backbone), tempfile.TemporaryDirectory() as temp:
-                module = f"rsci.backbones.{backbone}." + (
-                    "launch" if backbone == "act" else "train"
+                module = f"{BACKBONE_MODULES[backbone]}." + (
+                    "launch" if backbone == "act" else "guardian"
                 )
-                env = dict(os.environ, PYTHONPATH=str(ROOT / "src"), PYTHONDONTWRITEBYTECODE="1")
+                env = dict(
+                    os.environ,
+                    PYTHONPATH=os.pathsep.join((str(ROOT / "src"), str(ROOT / "src/egovla"))),
+                    PYTHONDONTWRITEBYTECODE="1",
+                )
                 guard = subprocess.Popen(
                     [sys.executable, "-u", "-c", code, module, temp],
                     stdout=subprocess.PIPE,

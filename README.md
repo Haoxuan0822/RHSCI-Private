@@ -225,7 +225,7 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 ## Documentation
 
-[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Official SIMPLE version](docs/SIMPLE_OFFICIAL_20261030.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Development](docs/ARCHITECTURE.md)
+[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Official SIMPLE version](docs/SIMPLE_OFFICIAL_20261030.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Native package layout](docs/NATIVE_PACKAGE_LAYOUT_20261031.md) · [Development](docs/ARCHITECTURE.md)
 
 ## Acknowledgements and license
 
@@ -237,3 +237,5 @@ Built on [Ψ0](https://github.com/physical-superintelligence-lab/Psi0) and the n
 Latest input-cache and training-recovery changes are documented in the [integration record](docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
 
 2026-10-30: [训练职责与显式缓存配置](docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
+
+2026-10-31: 模型专属扩展已按原生包聚合，`src/rsci` 只保留共用工具；[位置、入口和兼容性](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)。

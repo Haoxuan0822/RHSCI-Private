@@ -10,9 +10,9 @@ from test_rsci import inputs, policy, sample
 
 from psi.config.transform import ActionStateTransform
 from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
+from psi.rsci.model import RSCIQuery, RSCISpec, masked_auxiliary_loss
+from psi.rsci.train import contract, parser, resolved
 from psi.trainers.finetune import FinetuneTrainer
-from rsci.backbones.psi0.model import RSCIQuery, RSCISpec, masked_auxiliary_loss
-from rsci.backbones.psi0.train import contract, parser, resolved
 from rsci.data.ardy_future import ardy_target_at_offset, supervision_counts
 from rsci.data.ardy_sidecar import ArdySidecarReader
 from rsci.data.state_noise import InferenceStateNoise, TrainingStateNoise, add_measurement_noise

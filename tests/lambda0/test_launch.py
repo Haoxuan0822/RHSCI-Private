@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from rsci.backbones.lambda0.launch import guardian
+from lambda0.rsci.launch import guardian
 
 
 class GuardianTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class GuardianTests(unittest.TestCase):
                         json.dumps(dict(global_step=recorded))
                     )
                 process = SimpleNamespace(pid=123, poll=lambda: 0, wait=lambda: 0)
-                with patch("rsci.backbones.lambda0.launch.subprocess.Popen", return_value=process):
+                with patch("lambda0.rsci.launch.subprocess.Popen", return_value=process):
                     if recorded == budget:
                         guardian(SimpleNamespace(gpus="0", max_steps=budget), [], output)
                     else:

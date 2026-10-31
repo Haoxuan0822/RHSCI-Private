@@ -10,8 +10,8 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 for lambda_arg in "$@"; do
   case "$lambda_arg" in
     --help|-h|--check|--check-data|--check-model|--dry-run)
-      exec "$lambda_python" -m rsci.backbones.lambda0.train "$@" ;;
+      exec "$lambda_python" -m lambda0.rsci.train "$@" ;;
     --worker|--guardian) echo "内部参数不能直接使用" >&2; exit 2 ;;
   esac
 done
-exec "$lambda_python" -m rsci.backbones.lambda0.launch "$@"
+exec "$lambda_python" -m lambda0.rsci.launch "$@"

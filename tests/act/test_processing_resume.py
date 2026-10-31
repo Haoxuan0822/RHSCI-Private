@@ -8,8 +8,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from rsci.backbones.act.data import IMAGE, ACTDataset, Processor
-from rsci.backbones.act.train import parser, resolve, trainer_type, training_arguments
+from act.rsci.data import IMAGE, ACTDataset, Processor
+from act.rsci.train import parser, resolve, trainer_type, training_arguments
 
 
 def stats():
@@ -166,7 +166,7 @@ class Resume(unittest.TestCase):
     def run_resume(self, workers):
         from transformers import TrainerCallback, set_seed
 
-        from rsci.backbones.act.checkpoints import checkpoint_ok, publish
+        from act.rsci.checkpoints import checkpoint_ok, publish
 
         class StopAtFive(TrainerCallback):
             def on_step_end(self, args, state, control, **kwargs):

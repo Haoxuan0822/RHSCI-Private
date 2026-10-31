@@ -17,9 +17,9 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 for argument in "$@"; do
   case "$argument" in
     --help|-h|--check|--check-data|--dry-run)
-      exec "$act_python" -m rsci.backbones.act.train "$@" ;;
+      exec "$act_python" -m act.rsci.train "$@" ;;
     --worker|--guardian)
       echo "--worker/--guardian are internal options" >&2; exit 2 ;;
   esac
 done
-exec "$act_python" -m rsci.backbones.act.launch "$@"
+exec "$act_python" -m act.rsci.launch "$@"

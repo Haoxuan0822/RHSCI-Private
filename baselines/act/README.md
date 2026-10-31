@@ -1,6 +1,6 @@
 # ACT
 
-Native implementation: `src/act`. RHSCI adapter: `src/rsci/backbones/act`. Supported variants are STATE, NO-STATE and EGQ-AE, with no language model or Reader. NO-STATE removes state projections. EGQ-AE uses native trainable ResNet features and four-frame history `[-6, -4, -2, 0]` for training-only ARDY supervision; inference needs only the current image. The current frame's features are shared between action and auxiliary paths.
+Native implementation: `src/act`. RHSCI adapter: `src/act/rsci`. Supported variants are STATE, NO-STATE and EGQ-AE, with no language model or Reader. NO-STATE removes state projections. EGQ-AE uses native trainable ResNet features and four-frame history `[-6, -4, -2, 0]` for training-only ARDY supervision; inference needs only the current image. The current frame's features are shared between action and auxiliary paths.
 
 Use an isolated Python 3.10 environment with the root PSI0 dependency group: `uv sync --group psi --group serve --group viz --active --frozen`. The locked LeRobot 0.3.3 uses its native `lerobot.datasets` layout; no legacy `src/lerobot_patch/common` overlay is needed. Follow the [PSI0 installation guide](../psi0/README.md#installation), including its layout check. Keep the environment outside the checkout and configure the appropriate dataset schema.
 
@@ -30,7 +30,7 @@ The local multi-GPU experiment explicitly used NCCL 2.27.3; to reproduce that ru
 
 ## Inference and native training
 
-Serve a complete RHSCI checkpoint with `python -m rsci.backbones.act.serve --checkpoint /runs/act/my_task/checkpoint-40000`. See [Inference](../../docs/INFERENCE.md). STATE requires measured 32D state; there is no fallback to previously predicted state.
+Serve a complete RHSCI checkpoint with `python -m act.rsci.serve --checkpoint /runs/act/my_task/checkpoint-40000`. See [Inference](../../docs/INFERENCE.md). STATE requires measured 32D state; there is no fallback to previously predicted state.
 
 For upstream ACT training, use `bash scripts/train/act.sh --help` and [the native training example](../../docs/TRAINING.md#act-and-diffusion-policy), with `configs/train/act.json`. Native training has not been validated in this standalone release.
 

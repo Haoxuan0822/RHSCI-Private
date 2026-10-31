@@ -31,4 +31,4 @@ for rsci_argument in "$@"; do
 done
 export CUDA_VISIBLE_DEVICES="$rsci_gpu_list"
 cd -- "$rsci_code"
-exec "$rsci_python" -u -m rsci.backbones.gr00t.train "$@"
+exec "$rsci_python" -u -m gr00t.rsci.train "$@"

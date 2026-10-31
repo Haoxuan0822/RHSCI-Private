@@ -4,7 +4,7 @@
 
 - 先读 [README](README.md)、[架构](docs/ARCHITECTURE.md)、对应 baselines 指南；涉及本次合入时读 [2026-10-30 整理记录](docs/PSI0_RAW_INTEGRATION_20261030.md)。后者记录本轮来源、差异、验收和兼容性，不代表 GPU 验收。
 - 本机数据默认 `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`；权重、checkpoint 和日志默认同根 `checkpoints`。通用代码仍使用显式 dataset/output 参数，不硬编码本机路径；环境和缓存放代码目录之外。
-- 原生骨干位于 src；课题代码放 src/rsci/backbones，公共数据与恢复逻辑放 src/rsci/data、src/rsci/runtime；入口放 scripts/train、scripts/data。不要复制历史 RSCI 目录或按日期的活动控制器作为新入口。
+- 按 Psi0 原有包名组织：模型专属扩展就近放入 psi.rsci、openpi.rsci、gr00t.rsci、human_plan.rsci、lambda0.rsci、act.rsci；src/rsci 只放跨模型公共数据、运行和推理工具。入口放 scripts/train、scripts/data，不再创建 rsci/backbones 或旧导入别名，不复制历史活动控制器。各包真实路径见 docs/DIRECTORY_STRUCTURE.md。
 - 用户2026-10-30要求仓库保持干净：当前源码树只保留有效版本，不留旧版 SIMPLE 副本、备份目录或废弃接入配置；历史版本由 Git 记录追溯，迁移来源文档不作为旧代码副本。
 - 训练、恢复、推理使用对应骨干原生处理器和配方；ACT 无 Reader，EGQ-AE 不改称 VGQ-AE。π0.5 与 EgoVLA 的 Transformers 环境分离。
 - 缓存仅保存原始 uint8 RGB/小张量；不保存增强或可训练特征。Guardian 验完整 SHA，worker 验清单/stat。完整断点含模型、优化器、调度器、RNG 和消费位置；契约变更拒绝原目录续训，不绕过校验或无点重训。
@@ -19,3 +19,5 @@
 2026-10-30 文档登记：main，[训练职责整理](docs/TRAINING_STRUCTURE_20261030.md)；修改四骨干训练/恢复/缓存前必读。配方保留各骨干 config.py；入口只编排，公共 HF 门禁不混用 schema；缓存显式传参，环境默认仅在 CLI 解析。CPU 143 项通过，EgoVLA 1 项缺 FlashAttention 阻塞，CUDA/多卡/闭环待验；不自动推送远端。
 
 2026-10-30 文档登记：main，[官方 SIMPLE 替换](docs/SIMPLE_OFFICIAL_20261030.md)与[固定清单](configs/simple/official.json)；更新仿真依赖/引用评测前必读。默认官方 b75c6786（含 PR #29），外部源码及9子模块已落地，433文件SHA和14项CPU通过；环境/资产/GPU闭环待验，不携带历史本地仿真补丁，不自动推送。
+
+2026-10-31 文档登记：main，[按原生包聚合模型代码](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)；修改模型入口、源码契约、环境导入或引用旧模块路径前必读。替代2026-10-30记录中的旧目录布局；训练职责与配方继续保留，验证/环境限制见记录，不自动推送。

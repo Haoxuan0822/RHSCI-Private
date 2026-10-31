@@ -9,7 +9,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from rsci.backbones.act.model import masked_ardy_loss
+from act.rsci.model import masked_ardy_loss
 
 
 class Scale(torch.nn.Module):
@@ -56,8 +56,8 @@ class DistributedAndService(unittest.TestCase):
 
         from fastapi.testclient import TestClient
 
+        from act.rsci.serve import app_for
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.backbones.act.serve import app_for
 
         class FakePolicy:
             model = SimpleNamespace(variant="EGQ-AE")

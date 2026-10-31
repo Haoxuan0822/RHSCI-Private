@@ -15,9 +15,8 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
+from gr00t.rsci.data import SimpleRSCIDataset
 from torch.utils.data import DataLoader, Dataset
-
-from rsci.backbones.gr00t.data import SimpleRSCIDataset
 
 
 def image_hash(sample):

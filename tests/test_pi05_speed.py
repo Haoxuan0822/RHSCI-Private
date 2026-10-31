@@ -170,7 +170,7 @@ class SpeedTests(unittest.TestCase):
             torch.testing.assert_close(expected, actual, rtol=0, atol=0)
 
     def test_profile_is_part_of_run_path_and_config(self):
-        from rsci.backbones.pi05.train import parser, resolve
+        from openpi.rsci.train import parser, resolve
 
         for profile in ("reference", "history", "query", "both"):
             args = parser().parse_args(

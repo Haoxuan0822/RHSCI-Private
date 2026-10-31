@@ -1,6 +1,6 @@
 # GR00T
 
-Implementation: `src/rsci/backbones/gr00t`, alongside the native GR00T model.
+Implementation: `src/gr00t/gr00t/rsci`, alongside the native GR00T model.
 Entry: `bash scripts/train/gr00t.sh --help`.
 
 This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00t/LICENSE) limits the work and derivatives to non-commercial research and imposes other use restrictions. The current upstream main branch's license does not replace these terms. See [Third-party notices](../../THIRD_PARTY_NOTICES.md).

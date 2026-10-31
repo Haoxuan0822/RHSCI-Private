@@ -8,7 +8,7 @@ import torch
 from test_pi05_rsci import fixture
 
 from openpi.models_pytorch.preprocessing_pytorch import preprocess_observation_pytorch
-from rsci.backbones.pi05.augmentation import augment_training_images
+from openpi.rsci.augmentation import augment_training_images
 
 
 class AugmentationTests(unittest.TestCase):
@@ -69,7 +69,7 @@ class AugmentationTests(unittest.TestCase):
         model, batch = fixture()
         model.eval()
         with patch(
-            "rsci.backbones.pi05.model.augment_training_images",
+            "openpi.rsci.model.augment_training_images",
             side_effect=AssertionError("inference augmentation"),
         ):
             with torch.no_grad():

@@ -15,15 +15,14 @@ import torch
 from lambda0.models.action_expert import LayerwiseActionExpert
 from lambda0.models.heterogeneous_action_space import HeterogeneousActionSpace
 from lambda0.models.modeling_lambda0 import Lambda0
-from torch import nn
-
-from rsci.backbones.lambda0.data import ResumableLoader, local_rng
-from rsci.backbones.lambda0.model import Lambda0RSCI, masked_ardy_loss
-from rsci.backbones.lambda0.runtime import (
+from lambda0.rsci.data import ResumableLoader, local_rng
+from lambda0.rsci.model import Lambda0RSCI, masked_ardy_loss
+from lambda0.rsci.runtime import (
     RSCITrainingBackend,
     checkpoint_receipt,
     verify_checkpoint,
 )
+from torch import nn
 
 
 class TinyVLM(nn.Module):
@@ -96,9 +95,8 @@ class IntegrationTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_backend_loading_is_explicit_and_does_not_change_native_engine(self):
+        from lambda0.rsci.optimization import native_arguments
         from lambda0.training import engine
-
-        from rsci.backbones.lambda0.optimization import native_arguments
 
         operations = (
             "load_model_and_processor",
@@ -140,8 +138,7 @@ class IntegrationTests(unittest.TestCase):
     def test_serving_normalization_is_explicit_and_keeps_native_defaults(self):
         from fastapi.testclient import TestClient
         from lambda0.inference import server
-
-        from rsci.backbones.lambda0.contracts import SAFE_NORMALIZATION
+        from lambda0.rsci.contracts import SAFE_NORMALIZATION
 
         model = tiny("STATE").eval()
         spec = model.action_space.specs[3]
@@ -292,9 +289,8 @@ class IntegrationTests(unittest.TestCase):
 
     def test_action_window_and_paired_augmentation_at_episode_edges(self):
         from lambda0.data.dataset import InfiniteDataReader
-
-        from rsci.backbones.lambda0.contracts import RUNTIME
-        from rsci.backbones.lambda0.data import RSCIPsiSimpleHandler, SafePsiSimpleHandler
+        from lambda0.rsci.contracts import RUNTIME
+        from lambda0.rsci.data import RSCIPsiSimpleHandler, SafePsiSimpleHandler
 
         location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
@@ -350,7 +346,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(parameter.any())
 
     def test_guardian_does_not_restart_from_zero_or_numeric_failure(self):
-        from rsci.backbones.lambda0.launch import guardian
+        from lambda0.rsci.launch import guardian
 
         for message, expected in (
             (b"worker crashed", "No verified complete checkpoint"),
@@ -363,16 +359,14 @@ class IntegrationTests(unittest.TestCase):
                     kwargs["stdout"].write(message)
                     return process
 
-                with patch(
-                    "rsci.backbones.lambda0.launch.subprocess.Popen", side_effect=spawn
-                ) as mock:
+                with patch("lambda0.rsci.launch.subprocess.Popen", side_effect=spawn) as mock:
                     with self.assertRaisesRegex(RuntimeError, expected):
                         guardian(SimpleNamespace(gpus="0"), [], Path(root))
                     self.assertEqual(mock.call_count, 1)
 
     def test_serving_rejects_foreign_processor_statistics_and_source(self):
-        from rsci.backbones.lambda0 import serve
-        from rsci.backbones.lambda0.contracts import sha256
+        from lambda0.rsci import serve
+        from lambda0.rsci.contracts import sha256
 
         source = Path(serve.__file__).resolve().parent
         with tempfile.TemporaryDirectory() as folder:
@@ -385,7 +379,7 @@ class IntegrationTests(unittest.TestCase):
             stats.write_text("{}")
             provenance = dict(
                 source={p.name: sha256(p) for p in sorted(source.glob("*.py"))},
-                upstream_patch=sha256(source.parents[3] / "baselines/lambda0/upstream.patch"),
+                upstream_patch=sha256(serve.CODE / "baselines/lambda0/upstream.patch"),
             )
             (root / "rsci_run.json").write_text(json.dumps(provenance))
             checkpoint_receipt(root, {})
@@ -422,7 +416,7 @@ class IntegrationTests(unittest.TestCase):
         )
 
     def test_launcher_coordination_is_not_a_checkpoint_or_training_run(self):
-        from rsci.backbones.lambda0.train import guard_output
+        from lambda0.rsci.train import guard_output
 
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)
@@ -460,8 +454,7 @@ class IntegrationTests(unittest.TestCase):
 
     def test_real_data_prefetch_resume_and_rng_independence(self):
         from lambda0.data.dataset import InfiniteDataReader
-
-        from rsci.backbones.lambda0.contracts import RUNTIME
+        from lambda0.rsci.contracts import RUNTIME
 
         location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
@@ -479,7 +472,7 @@ class IntegrationTests(unittest.TestCase):
                 image_max_pixels=4096,
             )
             for meta in reader.metas.values():
-                meta["handler"] = "rsci.backbones.lambda0.data:RSCIPsiSimpleHandler"
+                meta["handler"] = "lambda0.rsci.data:RSCIPsiSimpleHandler"
             return ResumableLoader(reader, 2, workers)
 
         running = loader(2)
@@ -517,9 +510,8 @@ class IntegrationTests(unittest.TestCase):
     def test_native_accelerate_checkpoint_restores_optimizer_rng_and_cursor(self):
         from accelerate import Accelerator
         from lambda0.data.dataset import InfiniteDataReader
+        from lambda0.rsci.contracts import RUNTIME
         from lambda0.training import engine
-
-        from rsci.backbones.lambda0.contracts import RUNTIME
 
         location = os.environ.get("RSCI_TEST_LAMBDA0_BUNDLE")
         if not location:
@@ -535,7 +527,7 @@ class IntegrationTests(unittest.TestCase):
             image_max_pixels=4096,
         )
         for meta in reader.metas.values():
-            meta["handler"] = "rsci.backbones.lambda0.data:SafePsiSimpleHandler"
+            meta["handler"] = "lambda0.rsci.data:SafePsiSimpleHandler"
         loader = ResumableLoader(reader, 1, 0)
         for _ in range(3):
             next(iter(loader))
@@ -575,7 +567,7 @@ class IntegrationTests(unittest.TestCase):
             with torch.no_grad():
                 next(model.parameters()).add_(7)
             restored = engine.load_training_checkpoint(accelerator, checkpoint, args)
-            from rsci.backbones.lambda0.runtime import verify_restored_state
+            from lambda0.rsci.runtime import verify_restored_state
 
             verify_restored_state(accelerator)
             self.assertEqual(restored, 3)

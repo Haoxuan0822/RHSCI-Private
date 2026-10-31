@@ -28,7 +28,7 @@ from transformers import Qwen3VLForConditionalGeneration, AutoConfig, AutoProces
 from qwen_vl_utils import process_vision_info
 
 from psi.utils import initialize_overwatch, count_parameters
-from rsci.backbones.psi0.model import RSCIPolicyMixin
+from psi.rsci.model import RSCIPolicyMixin
 
 # from InternVLA.model.modules.action_model.DiT_modules.models import DiT
 # from InternVLA.model.modules.projector.QFormer import CrossAttentionBlock

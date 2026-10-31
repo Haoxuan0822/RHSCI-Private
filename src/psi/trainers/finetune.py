@@ -766,7 +766,7 @@ class FinetuneTrainer(Trainer):
 
 
         if self.model_cfg.rsci_variant not in (None, "STATE", "NO-STATE"):
-            from rsci.backbones.psi0.model import masked_auxiliary_loss
+            from psi.rsci.model import masked_auxiliary_loss
             if model_output.ardy_prediction is None or "ardy_target" not in batch or "ardy_valid" not in batch:
                 raise ValueError("RHSCI Query requires prediction and formal labels")
             auxiliary = masked_auxiliary_loss(model_output.ardy_prediction, batch["ardy_target"], batch["ardy_valid"])

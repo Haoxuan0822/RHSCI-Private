@@ -12,15 +12,14 @@ from unittest.mock import patch
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from test_gr00t_rsci import batch, model
-from transformers import Trainer, TrainerCallback, TrainingArguments
-
-from rsci.backbones.gr00t import checkpoints
-from rsci.backbones.gr00t.memory import (
+from gr00t.rsci import checkpoints
+from gr00t.rsci.memory import (
     ShardedOptimizerTrainerMixin,
     enable_dit_recomputation,
     unwrap_zero,
 )
+from test_gr00t_rsci import batch, model
+from transformers import Trainer, TrainerCallback, TrainingArguments
 
 
 class MemoryTrainer(ShardedOptimizerTrainerMixin, Trainer):

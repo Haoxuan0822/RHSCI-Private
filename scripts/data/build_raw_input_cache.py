@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rsci.backbones.act.data import IMAGE, ACTDataset
-from rsci.backbones.act.train import parser, resolve
+from act.rsci.data import IMAGE, ACTDataset
+from act.rsci.train import parser, resolve
 from rsci.data.ardy_sidecar import dataset_content_fingerprint
 from rsci.data.cache_config import InputCacheConfig
 from rsci.data.raw_input_cache import SCHEMA, cache_identity

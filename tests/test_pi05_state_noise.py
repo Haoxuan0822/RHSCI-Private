@@ -10,9 +10,9 @@ import numpy as np
 import torch
 from test_pi05_rsci import TinyBackbone, fixture
 
-from rsci.backbones.pi05.model import Pi05RSCI
-from rsci.backbones.pi05.processing import Processor
-from rsci.backbones.pi05.train import parser, resolve
+from openpi.rsci.model import Pi05RSCI
+from openpi.rsci.processing import Processor
+from openpi.rsci.train import parser, resolve
 from rsci.inference.state_noise import RequestStateNoise
 
 
@@ -101,8 +101,8 @@ class StateNoiseTests(unittest.TestCase):
         self.assertTrue((self.processor().normalize(state, "states") == 1).all())
 
     def test_http_action_noise_is_independent_of_prior_global_rng(self):
+        from openpi.rsci.serve import Server
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.backbones.pi05.serve import Server
         from rsci.inference.action_noise import PROTOCOL, RequestActionNoise, derive_seed
 
         # Golden seeds from the local evaluation protocol, independent of server RNG.

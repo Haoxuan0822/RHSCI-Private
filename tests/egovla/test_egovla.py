@@ -15,18 +15,16 @@ from unittest.mock import patch
 
 import numpy as np
 import torch
-from torch import nn
-
-from rsci.backbones.egovla.checkpoints import (
+from human_plan.rsci.checkpoints import (
     atomic_json,
     checkpoint_ok,
     load_trainables,
     prune,
     publish,
 )
-from rsci.backbones.egovla.model import EgoVLARSCI, decode_latents, masked_ardy_loss
-from rsci.backbones.egovla.processing import Collator, Processor
-from rsci.backbones.egovla.train import (
+from human_plan.rsci.model import EgoVLARSCI, decode_latents, masked_ardy_loss
+from human_plan.rsci.processing import Collator, Processor
+from human_plan.rsci.train import (
     CODE,
     assets,
     completion_callback,
@@ -35,6 +33,7 @@ from rsci.backbones.egovla.train import (
     trainer_type,
     training_arguments,
 )
+from torch import nn
 
 
 def native_decoder(width=16):
@@ -635,7 +634,7 @@ class ProcessorTests(unittest.TestCase):
         self.assertTrue((collated["labels"][~collated["attention_mask"]] == -100).all())
 
     def test_simple_inference_ignores_state_and_preserves_numpy_protocol(self):
-        from rsci.backbones.egovla.serve import decode_numpy, encode_numpy, predict
+        from human_plan.rsci.serve import decode_numpy, encode_numpy, predict
 
         model = EgoVLARSCI(Backbone()).eval()
         image = np.full((12, 20, 3), 50, dtype=np.uint8)
@@ -648,7 +647,7 @@ class ProcessorTests(unittest.TestCase):
         np.testing.assert_array_equal(decode_numpy(encode_numpy(actual)), expected)
 
     def test_state_processor_and_server_require_actual_state(self):
-        from rsci.backbones.egovla.serve import predict
+        from human_plan.rsci.serve import predict
 
         image = np.full((12, 20, 3), 50, dtype=np.uint8)
         state = np.arange(32, dtype=np.float32) / 32
@@ -676,7 +675,7 @@ class ProcessorTests(unittest.TestCase):
 
 
 class RecipeAndCheckpointTests(unittest.TestCase):
-    @patch("rsci.backbones.egovla.checkpoints.prune", lambda *args: None)
+    @patch("human_plan.rsci.checkpoints.prune", lambda *args: None)
     def test_resume_mid_later_epochs_with_accumulation(self):
         from torch.utils.data import Dataset
         from transformers import set_seed
@@ -925,7 +924,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
             self.assertEqual(parameters.weight_decay, 0.0)
             self.assertEqual(parameters.gradient_accumulation_steps, 4)
 
-    @patch("rsci.backbones.egovla.checkpoints.prune", lambda *args: None)
+    @patch("human_plan.rsci.checkpoints.prune", lambda *args: None)
     def test_hf_full_resume_model_adam_rng_and_step(self):
         from torch.utils.data import Dataset
         from transformers import set_seed
@@ -996,7 +995,7 @@ class RecipeAndCheckpointTests(unittest.TestCase):
                     torch.testing.assert_close(parameter, expected[name], rtol=0, atol=0)
             self.assertTrue(checkpoint_ok(Path(root) / "checkpoint-2", 1, digest, verify=True))
             with patch(
-                "rsci.backbones.egovla.checkpoints.validate_numerics",
+                "human_plan.rsci.checkpoints.validate_numerics",
                 side_effect=FloatingPointError("fixture"),
             ):
                 self.assertFalse(checkpoint_ok(Path(root) / "checkpoint-2", 1, digest, verify=True))

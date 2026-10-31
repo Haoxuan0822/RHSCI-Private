@@ -13,11 +13,10 @@ import torch
 from gr00t.configs.model.gr00t_n1d6 import Gr00tN1d6Config
 from gr00t.model.gr00t_n1d6.gr00t_n1d6 import Gr00tN1d6
 from gr00t.model.gr00t_n1d6.rsci_query import masked_ardy_loss
+from gr00t.rsci import checkpoints
+from gr00t.rsci.data import GROUPS, TAG, modality
 from torch import nn
 from transformers.feature_extraction_utils import BatchFeature
-
-from rsci.backbones.gr00t import checkpoints
-from rsci.backbones.gr00t.data import GROUPS, TAG, modality
 
 
 class TinyBackbone(nn.Module):
@@ -333,7 +332,7 @@ class ArchitectureTests(unittest.TestCase):
             Gr00tN1d6Config(rsci_variant="VGQ-AE", tune_llm=True)
 
     def test_simple_default_batch_follows_world_and_accumulation(self):
-        from rsci.backbones.gr00t.train import parser, resolve
+        from gr00t.rsci.train import parser, resolve
 
         for gpus, accumulation, batch in (
             ("0,1,2,3,4,5,6,7", 1, 3),
@@ -665,9 +664,9 @@ class ProcessorAndServingTests(unittest.TestCase):
 
     def test_native_serving_request_noise_survives_different_episode_lengths(self):
         from gr00t.deploy.gr00t_serve_simple import Server
+        from gr00t.rsci.serve import build_server
 
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.backbones.gr00t.serve import build_server
         from rsci.inference.action_noise import PROTOCOL
 
         outputs = []

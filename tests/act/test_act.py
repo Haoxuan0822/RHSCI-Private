@@ -9,8 +9,8 @@ from pathlib import Path
 import torch
 
 from act.models.act import ACTConfig
-from rsci.backbones.act.model import RSCIACT, masked_ardy_loss
-from rsci.backbones.act.train import create_optimizer
+from act.rsci.model import RSCIACT, masked_ardy_loss
+from act.rsci.train import create_optimizer
 
 
 def config(state=False):
@@ -76,7 +76,7 @@ class ModelTests(unittest.TestCase):
     def test_full_checkpoint_round_trip_preserves_parameters_and_buffers(self):
         from safetensors.torch import save_file
 
-        from rsci.backbones.act.checkpoints import load_model_state
+        from act.rsci.checkpoints import load_model_state
 
         model = RSCIACT("EGQ-AE", config()).eval()
         inputs = batch()

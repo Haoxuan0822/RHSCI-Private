@@ -11,14 +11,14 @@ from torch import nn
 from transformers import GemmaConfig
 from transformers.models.gemma.modeling_gemma import GemmaModel
 
-from rsci.backbones.pi05.checkpoints import (
+from openpi.rsci.checkpoints import (
     atomic_json,
     checkpoint_ok,
     complete_checkpoint,
     prune_rolling,
 )
-from rsci.backbones.pi05.model import Pi05RSCI
-from rsci.backbones.pi05.processing import Processor
+from openpi.rsci.model import Pi05RSCI
+from openpi.rsci.processing import Processor
 
 
 def ddp_worker(rank, rendezvous):
@@ -52,8 +52,8 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
     import torch.distributed as dist
     from transformers import TrainingArguments
 
-    from rsci.backbones.pi05.processing import collate
-    from rsci.backbones.pi05.train import complete_callback, trainer_class
+    from openpi.rsci.processing import collate
+    from openpi.rsci.train import complete_callback, trainer_class
 
     # CPU 多 rank 默认设备 cpu:0 无法由 torch2.7 恢复；仅测试显式选择标准 cpu。
     os.environ.update(
@@ -229,7 +229,7 @@ class ModelTests(unittest.TestCase):
         from torch.nn import functional as F
 
         from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
-        from rsci.backbones.pi05.model import time_embedding
+        from openpi.rsci.model import time_embedding
 
         model, batch = fixture()
         model.eval()
@@ -419,8 +419,8 @@ class CheckpointTests(unittest.TestCase):
     def test_real_trainer_save_and_resume(self):
         from transformers import TrainingArguments
 
-        from rsci.backbones.pi05.processing import collate
-        from rsci.backbones.pi05.train import complete_callback, trainer_class
+        from openpi.rsci.processing import collate
+        from openpi.rsci.train import complete_callback, trainer_class
 
         Trainer = trainer_class()
         model, batch = fixture()
@@ -515,7 +515,7 @@ class NumericalTests(unittest.TestCase):
     def test_production_trainer_rejects_loss_and_backward_overflow_before_update(self):
         from transformers import TrainingArguments
 
-        from rsci.backbones.pi05.train import trainer_class
+        from openpi.rsci.train import trainer_class
         from rsci.runtime.numerics import FAILURE
 
         class InfiniteBackward(torch.autograd.Function):
@@ -566,7 +566,7 @@ class NumericalTests(unittest.TestCase):
 
 class QueueTests(unittest.TestCase):
     def test_preflight_rejects_other_tasks_stale_run_and_zero_restart(self):
-        from rsci.backbones.pi05.train import parser, validate_run
+        from openpi.rsci.train import parser, validate_run
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

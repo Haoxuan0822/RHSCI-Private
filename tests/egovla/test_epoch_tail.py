@@ -7,10 +7,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import torch
+from human_plan.rsci.train import parser, trainer_type, training_arguments
 from torch import nn
 from transformers import set_seed
-
-from rsci.backbones.egovla.train import parser, trainer_type, training_arguments
 
 
 class TinyPolicy(nn.Module):
@@ -26,7 +25,7 @@ class TinyPolicy(nn.Module):
 
 
 class EpochTailTests(unittest.TestCase):
-    @patch("rsci.backbones.egovla.checkpoints.prune", lambda *a: None)
+    @patch("human_plan.rsci.checkpoints.prune", lambda *a: None)
     def test_native_epoch_tail_and_mid_epoch_resume(self):
         torch.set_num_threads(1)
 

@@ -1,6 +1,6 @@
 # λ₀
 
-Backbone: `src/openlambda`. Adapter: `src/rsci/backbones/lambda0` (`rsci.backbones.lambda0`).
+Backbone: `src/openlambda`. Adapter: `src/openlambda/lambda0/lambda0/rsci` (`lambda0.rsci`).
 Entry: `bash scripts/train/lambda0.sh --help`.
 
 The adapter uses native SIMPLE preparation, processing, flow/RTC, optimization and serving. VGQ-AE adds training-only Reader/query supervision. Normalization falls back to observed bounds for nonconstant dimensions with degenerate quantiles; this differs from upstream quantile-only normalization.

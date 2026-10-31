@@ -1,5 +1,7 @@
 # PSI0-RAW 训练、恢复与推理代码整理
 
+2026-10-31 目录迁移提示：本文保留该日期提交的历史路径与验证记录。当前模型专属代码已移入各原生包，使用[现行位置映射](NATIVE_PACKAGE_LAYOUT_20261031.md)；旧模块路径不可再作为执行入口。
+
 日期：2026-10-30。目标：RHSCI-Private / main，原 HEAD `0c4656e834d4cde8ccb22ac135508b5f07466f24`。
 来源：本机 PSI0-RAW / main，HEAD `9ceb57802f1dd8c0326c5ffed170c17e1776025d`，**包含未提交代码**；因此 HEAD 不能单独标识本次来源，逐文件 SHA 与目标映射见[来源清单](PSI0_RAW_INTEGRATION_20261030.json)。
 

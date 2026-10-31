@@ -89,7 +89,7 @@ def main():
         training_source_root=args.training_source_root,
     )
     if args.backbone == "pi05":
-        from rsci.backbones.pi05.serve import Server
+        from openpi.rsci.serve import Server
 
         server = Server(
             checkpoint,
@@ -104,7 +104,7 @@ def main():
         )
     else:
         sys.path.insert(0, str(ROOT / "src/gr00t"))
-        from rsci.backbones.gr00t.serve import build_server
+        from gr00t.rsci.serve import build_server
 
         server = build_server(
             checkpoint,

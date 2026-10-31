@@ -92,7 +92,7 @@ Run in the EgoVLA environment with the native VILA source on the import path:
 
 ```bash
 PYTHONPATH=src:src/egovla:src/egovla/VILA \
-  /path/to/egovla-env/bin/python -m rsci.backbones.egovla.serve \
+  /path/to/egovla-env/bin/python -m human_plan.rsci.serve \
   --checkpoint /runs/egovla/my_task/checkpoint-10120 --port 8011
 ```
 
@@ -107,7 +107,7 @@ Use `baselines/lambda0/Lambda0_Serve.sh` in the pinned λ₀ environment. Supply
 Use the ACT environment, including the serving dependencies, with a complete RHSCI checkpoint:
 
 ```bash
-PYTHONPATH=src /path/to/act-env/bin/python -m rsci.backbones.act.serve \
+PYTHONPATH=src /path/to/act-env/bin/python -m act.rsci.serve \
   --checkpoint /runs/act/my_task/checkpoint-40000 --device cuda:0 --port 8126
 ```
 

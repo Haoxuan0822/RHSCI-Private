@@ -7,16 +7,38 @@ from pathlib import Path
 from unittest.mock import patch
 
 from rsci.data.cache_config import InputCacheConfig, cache_arguments
-from rsci.paths import worker_arguments
+from rsci.paths import BACKBONE_MODULES, CODE_ROOT, worker_arguments
 
 
 class TrainingStructureTests(unittest.TestCase):
-    def test_legacy_entry_points_reexport_same_functions(self):
+    def test_model_modules_resolve_inside_native_packages(self):
+        expected = {
+            "psi0": "src/psi/rsci",
+            "pi05": "src/openpi/rsci",
+            "gr00t": "src/gr00t/gr00t/rsci",
+            "egovla": "src/egovla/human_plan/rsci",
+            "act": "src/act/rsci",
+            "lambda0": "src/openlambda/lambda0/lambda0/rsci",
+        }
+        # 验证实际导入位置，防止独立环境中的旧 editable 包遮蔽本仓库。
+        for backbone, relative in expected.items():
+            with self.subTest(backbone=backbone):
+                module = importlib.import_module(BACKBONE_MODULES[backbone] + ".train")
+                self.assertEqual(Path(module.__file__).resolve().parent, CODE_ROOT / relative)
+                if backbone in ("pi05", "gr00t"):
+                    contract = importlib.import_module(BACKBONE_MODULES[backbone] + ".contract")
+                    self.assertEqual(contract.CODE_ROOT, CODE_ROOT)
+                else:
+                    self.assertEqual(module.CODE, CODE_ROOT)
+        self.assertFalse((CODE_ROOT / "src/rsci/backbones").exists())
+
+    def test_native_package_entry_points_reexport_same_functions(self):
         for backbone in ("act", "pi05", "egovla", "gr00t"):
             with self.subTest(backbone=backbone):
-                entry = importlib.import_module(f"rsci.backbones.{backbone}.train")
-                config = importlib.import_module(f"rsci.backbones.{backbone}.config")
-                worker = importlib.import_module(f"rsci.backbones.{backbone}.worker")
+                module = BACKBONE_MODULES[backbone]
+                entry = importlib.import_module(f"{module}.train")
+                config = importlib.import_module(f"{module}.config")
+                worker = importlib.import_module(f"{module}.worker")
                 self.assertIs(entry.parser, config.parser)
                 self.assertIs(entry.resolve, config.resolve)
                 self.assertIs(entry.training_arguments, config.training_arguments)
@@ -30,7 +52,7 @@ class TrainingStructureTests(unittest.TestCase):
             ("gr00t", "RSCI_GR00T_INPUT_CACHE"),
         ):
             with self.subTest(backbone=backbone), patch.dict(os.environ, {env: "/cache/first"}):
-                config = importlib.import_module(f"rsci.backbones.{backbone}.config")
+                config = importlib.import_module(f"{BACKBONE_MODULES[backbone]}.config")
                 cli = config.parser()
                 base = ["--task", "fixture", "--dataset", "/dataset", "--model", "STATE"]
                 args = cli.parse_args(base)

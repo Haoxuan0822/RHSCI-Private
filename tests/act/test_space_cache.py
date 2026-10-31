@@ -9,7 +9,7 @@ from unittest.mock import patch
 import numpy as np
 import torch
 
-from rsci.backbones.act.checkpoints import sha256
+from act.rsci.checkpoints import sha256
 from rsci.data.cache_config import InputCacheConfig
 from rsci.data.raw_input_cache import (
     SCHEMA,

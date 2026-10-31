@@ -12,11 +12,10 @@ from unittest.mock import patch
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from lambda0.rsci.model import masked_ardy_loss
+from lambda0.rsci.runtime import check_finite, verify_restored_state
 from test_integration import inputs, tiny, vlm_inputs
 from torch import nn
-
-from rsci.backbones.lambda0.model import masked_ardy_loss
-from rsci.backbones.lambda0.runtime import check_finite, verify_restored_state
 
 
 def validation_fixture(model, folder):

@@ -16,9 +16,9 @@ from torch.utils.data import Dataset
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "scripts/train")]
+from psi.rsci import train as launch_rsci
+from psi.rsci.trainer import RSCIFinetuneTrainer
 from psi.trainers.trainer import Trainer
-from rsci.backbones.psi0 import train as launch_rsci
-from rsci.backbones.psi0.trainer import RSCIFinetuneTrainer
 
 
 class Samples(Dataset):

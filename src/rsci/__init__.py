@@ -1,1 +1,1 @@
-"""RHSCI research extensions; upstream backbone packages remain separate."""
+"""RHSCI 跨模型共用的数据、运行与推理工具；模型扩展位于各原生包内。"""

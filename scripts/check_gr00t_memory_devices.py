@@ -34,7 +34,7 @@ def require_fresh_output():
     import os
     from pathlib import Path
 
-    from rsci.backbones.gr00t.train import parser, resolve
+    from gr00t.rsci.train import parser, resolve
 
     probe = argparse.ArgumentParser(add_help=False)
     probe.add_argument("--steps", type=int, default=6)

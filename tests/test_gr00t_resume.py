@@ -5,10 +5,9 @@ import unittest
 from pathlib import Path
 
 import torch
+from gr00t.rsci.train import resume_trainer_type
 from torch.utils.data import Dataset
 from transformers import TrainerCallback, TrainingArguments, set_seed
-
-from rsci.backbones.gr00t.train import resume_trainer_type
 
 
 class Samples(Dataset):
@@ -43,7 +42,7 @@ class StopAtSeven(TrainerCallback):
 
 class ResumeTests(unittest.TestCase):
     def test_production_trainer_finite_loss_gate(self):
-        from rsci.backbones.gr00t.trainer import trainer_type
+        from gr00t.rsci.trainer import trainer_type
 
         class LossModel(torch.nn.Module):
             def __init__(self):

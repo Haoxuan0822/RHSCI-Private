@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import torch
 
-from rsci.backbones.act.video_cache import VideoCache
+from act.rsci.video_cache import VideoCache
 
 
 class FakeDecoder:
@@ -35,7 +35,7 @@ class CacheTests(unittest.TestCase):
 
         code = """
 import subprocess, sys
-from rsci.backbones.act.launch import wait_worker
+from act.rsci.launch import wait_worker
 p=subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
 print(p.pid, flush=True)
 wait_worker(p)

@@ -51,7 +51,7 @@ class Server:
         assert osp.exists(run_dir / "run_config.json"), f"run config does not exist!"
 
         # load launch config
-        from rsci.backbones.psi0.config import load_run_config
+        from psi.rsci.config import load_run_config
         launch_config = load_run_config(
             run_dir, run_dir / "checkpoints" / f"ckpt_{ckpt_step}" / "model.safetensors")
         seed_everything(launch_config.seed or 42)

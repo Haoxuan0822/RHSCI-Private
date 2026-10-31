@@ -20,10 +20,10 @@ from transformers.models.qwen3_vl.modeling_qwen3_vl import Qwen3VLTextModel
 from psi.config.model_psi0 import Psi0ModelConfig
 from psi.config.transform import SimpleRepackTransform
 from psi.models.psi0 import ActionTransformerModel, Psi0Model
-from rsci.backbones.psi0.model import VARIANTS, RSCISpec, masked_auxiliary_loss
+from psi.rsci.model import VARIANTS, RSCISpec, masked_auxiliary_loss
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/train"))
-from rsci.backbones.psi0 import train as launch_rsci
+from psi.rsci import train as launch_rsci
 
 
 class SmallVLM(nn.Module):
@@ -100,7 +100,7 @@ def policy(variant, mode="frozen", vlm=None, gradient_checkpointing=False, use_r
 
     with (
         patch("psi.models.psi0.ActionTransformerModel", side_effect=small_header),
-        patch("rsci.backbones.psi0.rgb_encoder.DINOv2RGBAdapter", SmallDINO),
+        patch("psi.rsci.rgb_encoder.DINOv2RGBAdapter", SmallDINO),
     ):
         model = Psi0Model(cfg, vlm if vlm is not None else SmallVLM())
     return cfg, model

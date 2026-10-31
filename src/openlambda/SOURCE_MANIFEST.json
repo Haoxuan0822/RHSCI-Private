@@ -121,6 +121,18 @@
     "lambda0/lambda0/recipes/midtrain.json": "ad1e93977bc425a81528ee682225fab2311a88f53532cd3456d690755bbc5aed",
     "lambda0/lambda0/recipes/posttrain.json": "e722be40c9a80b33736dec3363f75752f8e74635a235c04459cd478614e4093b",
     "lambda0/lambda0/recipes/pretrain.json": "dce11e73de5025835cd6d5890adf190f1010f74e4c04f7250ce026f2c6a0159b",
+    "lambda0/lambda0/rsci/__init__.py": "b9c5dac61b811396fc3cd0ab90cbbfa299b6c885cf545c4e5c3e15ebcd159e3e",
+    "lambda0/lambda0/rsci/assets.py": "cb72205e7022053b3e51aa1a1ab044976c09ee5d7fe8c2c8a32b722775a40d90",
+    "lambda0/lambda0/rsci/contracts.py": "0503a4ae6d2ca700041eeb4b5253f16c253b377bd8d943c44a537446903d8b21",
+    "lambda0/lambda0/rsci/data.py": "c93dd8cac81770781ecb868f9f9a68ecb04fdca7540639f0e111ea0d806a31f1",
+    "lambda0/lambda0/rsci/environment.py": "0d1b7ff02050be139212f003f575cd464aa55932e19d181090562b8a9181064f",
+    "lambda0/lambda0/rsci/launch.py": "f9b0013e6c16237ca5304113cca8bef0b4258bd10cb4c6c0fbcba0b196600e3d",
+    "lambda0/lambda0/rsci/model.py": "d6c24408282fcc0df431b7d44e7ed64388bfea5258064694ecf81ea00bcdfacd",
+    "lambda0/lambda0/rsci/optimization.py": "90c05312f63ed9234576d8e83f7186168af4e17c580afe3bf737bf18ecb30372",
+    "lambda0/lambda0/rsci/prepare.py": "4975384c4c71f42c9d3f9d61eaa58d2b317fe862a2dffb79a4b9de3bee1c523f",
+    "lambda0/lambda0/rsci/runtime.py": "84ecdcb90fd4f8e0f585ae571110ad9c4668482cfd23a2b9e25f705a9335125b",
+    "lambda0/lambda0/rsci/serve.py": "75721795615c6ee1462c6261bfe886dc859285e791f8805c3544166e58db39f1",
+    "lambda0/lambda0/rsci/train.py": "813fafddfde456f0061ffa98a896398b906bcf9f722935e5cbdc5d928508efe5",
     "lambda0/lambda0/runtime/__init__.py": "0bf6c6ee3aebf89ab1c30bee85748f040b38a88e829c92902068e31208c000c5",
     "lambda0/lambda0/runtime/doctor.py": "75dcc2cd2f933f3eddd86a10847293f12920fcaaa05518a0b78ded52d90f4374",
     "lambda0/lambda0/runtime/environment.py": "93d0ff5340acc5d1962c57eba4255818b951966946daf938b79c1e2fb2440100",
@@ -151,5 +163,10 @@
     "setup/robot/model/g1_revo2.xml": "2dc22986b164d719251e2a7e440f542270d80cc3d6243147c33440af609b5c1f",
     "setup/robot/model/scene.xml": "3b4ef8b32bf4be6954c26a5931b23d6bbbac3e39a9b8d7add275d1a03e9a0afa",
     "setup/robot/sonic.patch": "d045b7a129095888365e1db397910b3180509b413a2692860095c68df4ab9615"
+  },
+  "rhsci_extensions": {
+    "path": "lambda0/lambda0/rsci",
+    "origin": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/lambda0",
+    "note": "Local research extension relocated into the native package on 2026-10-31; not part of the upstream commit."
   }
 }

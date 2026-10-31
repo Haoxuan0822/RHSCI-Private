@@ -10,20 +10,19 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import torch
-from test_integration import inputs, tiny, vlm_inputs
-from torch import nn
-
-from rsci.backbones.lambda0.optimization import (
+from lambda0.rsci.optimization import (
     effective_arguments,
     native_arguments,
     optimizer_report,
 )
-from rsci.backbones.lambda0.runtime import RSCITrainingBackend
+from lambda0.rsci.runtime import RSCITrainingBackend
+from test_integration import inputs, tiny, vlm_inputs
+from torch import nn
 
 
 class OptimizationTests(unittest.TestCase):
     def test_custom_bundle_paths_and_training_budget(self):
-        from rsci.backbones.lambda0.train import configuration, parser
+        from lambda0.rsci.train import configuration, parser
 
         args = parser().parse_args(
             [
@@ -57,11 +56,10 @@ class OptimizationTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_all_four_actual_recipes_against_official_profile_and_parser(self):
+        from lambda0.rsci.contracts import UPSTREAM
+        from lambda0.rsci.train import configuration, parser
         from lambda0.training import engine
         from lambda0.training.runner import resolve_experiment
-
-        from rsci.backbones.lambda0.contracts import UPSTREAM
-        from rsci.backbones.lambda0.train import configuration, parser
 
         recipe = json.loads((UPSTREAM / "lambda0/lambda0/recipes/posttrain.json").read_text())[
             "training"

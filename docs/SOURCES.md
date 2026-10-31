@@ -1,8 +1,8 @@
 # Sources
 
-RHSCI builds on [PSI0](https://github.com/physical-superintelligence-lab/Psi0). Native packages retain their original names, copyright notices and component licenses. RHSCI integrations live in `src/rsci/backbones` and include changes to the native model and training interfaces where needed.
+RHSCI builds on [PSI0](https://github.com/physical-superintelligence-lab/Psi0). Native packages retain their original names, copyright notices and component licenses. RHSCI integrations live inside their native packages (`psi.rsci`, `openpi.rsci`, `gr00t.rsci`, `human_plan.rsci`, `lambda0.rsci`, `act.rsci`); shared tools live in `src/rsci`. The [2026-10-31 layout record](NATIVE_PACKAGE_LAYOUT_20261031.md) records the relocation without changing upstream provenance.
 
-ACT, Diffusion Policy, InternVLA-M1, H-RDT, DreamZero and the EgoDex/EgoMimic data helpers were imported from PSI0 commit [`cda3fdfafe47cb6fa75400d013de1bd36e3cea05`](https://github.com/physical-superintelligence-lab/Psi0/tree/cda3fdfafe47cb6fa75400d013de1bd36e3cea05). Their native source is included. ACT additionally has an RHSCI adapter under `src/rsci/backbones/act`.
+ACT, Diffusion Policy, InternVLA-M1, H-RDT, DreamZero and the EgoDex/EgoMimic data helpers were imported from PSI0 commit [`cda3fdfafe47cb6fa75400d013de1bd36e3cea05`](https://github.com/physical-superintelligence-lab/Psi0/tree/cda3fdfafe47cb6fa75400d013de1bd36e3cea05). Their native source is included. ACT additionally has an RHSCI adapter under `src/act/rsci`.
 
 Being-H0.5 in `src/beingh05` is the `Being-H05` directory of [BeingBeyond/Being-H](https://github.com/BeingBeyond/Being-H/tree/27ec67b84ac6c8e55f95408205e1ad7ba8bec253/Being-H05), revision `27ec67b84ac6c8e55f95408205e1ad7ba8bec253`. Official source, docs and license are retained; `configs/rng_state.pkl` is omitted as runtime state. Its launcher supports native training only. Diffusion Policy, InternVLA-M1, H-RDT, DreamZero and Being-H0.5 have no RHSCI adapters.
 

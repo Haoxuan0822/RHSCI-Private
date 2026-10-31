@@ -3,8 +3,10 @@
 import hashlib
 import importlib
 import json
+import sys
 from pathlib import Path
 
+from rsci.paths import BACKBONE_MODULES
 from rsci.runtime.artifacts import sha256
 
 BACKBONES = ("pi05", "gr00t")
@@ -13,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def historical_pi05_checkpoint_ok(checkpoint, contract, digest, *, verify_hash):
     """Admit schema-1 inference after explicit original-source verification."""
-    from rsci.backbones.pi05.checkpoints import required_files
+    from openpi.rsci.checkpoints import required_files
 
     try:
         marker = json.loads((checkpoint / "RSCI_COMPLETE.json").read_text())
@@ -71,7 +73,10 @@ def inspect_run(run, backbone, *, step=None, verify_hash=False, training_source_
     ):
         raise ValueError("Training action horizon differs from the serving protocol")
     digest = hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()
-    module = importlib.import_module(f"rsci.backbones.{backbone}.checkpoints")
+    if backbone == "gr00t":
+        # GR00T 维持独立原生包根；在惰性载入断点工具之前加入该路径。
+        sys.path.insert(0, str(ROOT / "src/gr00t"))
+    module = importlib.import_module(f"{BACKBONE_MODULES[backbone]}.checkpoints")
     candidates = [run / f"checkpoint-{step}"] if step is not None else run.glob("checkpoint-*")
     candidates = sorted(
         (path for path in candidates if path.name.removeprefix("checkpoint-").isdigit()),

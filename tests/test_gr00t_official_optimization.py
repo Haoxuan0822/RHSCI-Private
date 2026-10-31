@@ -9,9 +9,8 @@ from unittest.mock import patch
 
 import torch
 from gr00t.configs.training.training_config import TrainingConfig
+from gr00t.rsci.train import parser, resolve, training_arguments
 from transformers import Trainer, TrainingArguments
-
-from rsci.backbones.gr00t.train import parser, resolve, training_arguments
 
 
 class OfficialOptimizationTests(unittest.TestCase):

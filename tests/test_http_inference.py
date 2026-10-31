@@ -19,7 +19,7 @@ class CheckpointTests(unittest.TestCase):
     def make_run(self, root):
         run = Path(root) / "run"
         run.mkdir()
-        source = "src/rsci/backbones/pi05/processing.py"
+        source = "src/openpi/rsci/processing.py"
         contract = dict(
             model="VGQ-AE",
             world_size=1,
@@ -206,7 +206,7 @@ class Pi05HTTPTests(unittest.TestCase):
         from safetensors.torch import save_file
         from torch import nn
 
-        from rsci.backbones.pi05.serve import Server
+        from openpi.rsci.serve import Server
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -235,10 +235,10 @@ class Pi05HTTPTests(unittest.TestCase):
             (root / "model.safetensors.index.json").write_text(json.dumps(index))
             with (
                 patch(
-                    "rsci.backbones.pi05.model.Pi05RSCI",
+                    "openpi.rsci.model.Pi05RSCI",
                     side_effect=lambda *a, **k: nn.Linear(2, 2),
                 ),
-                patch("rsci.backbones.pi05.processing.Processor"),
+                patch("openpi.rsci.processing.Processor"),
                 patch("rsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixture"),
             ):
                 server = Server(root, contract, root, tokenizer, "cpu")
@@ -260,9 +260,9 @@ class Pi05HTTPTests(unittest.TestCase):
         import torch
         from fastapi.testclient import TestClient
 
+        from openpi.rsci.processing import Processor
+        from openpi.rsci.serve import Server
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rsci.backbones.pi05.processing import Processor
-        from rsci.backbones.pi05.serve import Server
         from rsci.data.state_noise import InferenceStateNoise
         from rsci.inference.http_server import create_app
         from rsci.inference.state_noise import RequestStateNoise
@@ -337,7 +337,7 @@ class Pi05HTTPTests(unittest.TestCase):
             self.assertEqual(client.post("/act", json=request.serialize()).status_code, 422)
 
     def test_gr00t_uses_saved_checkpoint_with_current_frame_and_native_horizon(self):
-        from rsci.backbones.gr00t.serve import build_server
+        from gr00t.rsci.serve import build_server
 
         modality = {"video": SimpleNamespace(delta_indices=[-6, -4, -2, 0])}
         policy = SimpleNamespace(
@@ -358,7 +358,7 @@ class Pi05HTTPTests(unittest.TestCase):
             sys.modules,
             {
                 "gr00t.deploy.gr00t_serve_simple": module,
-                "rsci.backbones.gr00t.data": data,
+                "gr00t.rsci.data": data,
             },
         ):
             self.assertIs(build_server(Path("/models/checkpoint-700"), "cpu"), server)

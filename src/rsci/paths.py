@@ -5,6 +5,18 @@ import re
 import sys
 from pathlib import Path
 
+# 代码根由共用模块定位，不依赖各骨干原生包不同的目录深度。
+CODE_ROOT = Path(__file__).resolve().parents[2]
+# 仅登记模块位置，不在共享工具导入时加载任何模型或可选依赖。
+BACKBONE_MODULES = {
+    "psi0": "psi.rsci",
+    "pi05": "openpi.rsci",
+    "gr00t": "gr00t.rsci",
+    "egovla": "human_plan.rsci",
+    "act": "act.rsci",
+    "lambda0": "lambda0.rsci",
+}
+
 
 def add_data_arguments(parser):
     parser.add_argument(

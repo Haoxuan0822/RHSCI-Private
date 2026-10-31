@@ -1,12 +1,12 @@
 # Code organization
 
-The project name is RHSCI. The existing `rsci` Python namespace, `RSCI_*` environment variables and saved configuration/checkpoint field names remain compatibility interfaces; new help text, messages and experiment display names use RHSCI.
+The project name is RHSCI. Shared utilities retain the `rsci` Python namespace, `RSCI_*` environment variables and saved configuration/checkpoint field names. Model extensions now use each native package; the old `rsci.backbones.*` imports were removed. See the [2026-10-31 migration](NATIVE_PACKAGE_LAYOUT_20261031.md) for compatibility boundaries.
 
-RHSCI extensions live in `src/rsci`. Importing the package root does not load a backbone or its optional dependencies. See [Repository structure](DIRECTORY_STRUCTURE.md) for the directory tree and per-backbone entry points.
+Model-specific RHSCI extensions live inside their native packages. `src/rsci` contains shared utilities; importing its root does not load a backbone or optional dependencies. See [Repository structure](DIRECTORY_STRUCTURE.md) for the directory tree and per-backbone entry points.
 
 | Directory | Responsibility |
 | --- | --- |
-| `src/rsci/backbones/<backbone>` | Model integration, data adaptation, training, checkpoint format and serving |
+| `src/psi/rsci`, `src/openpi/rsci`, `src/gr00t/gr00t/rsci`, `src/egovla/human_plan/rsci`, `src/openlambda/lambda0/lambda0/rsci`, `src/act/rsci` | Model-specific integration, data, training, checkpoints and serving, colocated with each native implementation |
 | `src/rsci/data` | ARDY sidecars, dataset provenance, frame caching and worker cleanup |
 | `src/rsci/runtime` | Artifact writes, numerical checks, process cleanup and profiling |
 | `src/rsci/inference` | SIMPLE control-step RGB history protocol |
@@ -25,8 +25,8 @@ ACT and EgoVLA share complete HF checkpoint gates through `runtime/hf_full_state
 Maintained RHSCI code, launch tools and tests use Python 3.10 syntax, four-space indentation, double quotes, sorted imports and a 100-character target line length. `ruff.toml` scopes these checks; native source retains upstream style.
 
 ```bash
-uvx --from ruff==0.17.2 ruff format --check .
-uvx --from ruff==0.17.2 ruff check .
+uvx --from ruff==0.17.2 ruff format --config ruff.toml --check .
+uvx --from ruff==0.17.2 ruff check --config ruff.toml .
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_training_cli.py
 ```
 

@@ -3,12 +3,17 @@ target-version = "py310"
 line-length = 100
 cache-dir = "/tmp/rsci-ruff-cache"
 extend-exclude = [
-    "src/psi", "src/openpi", "src/gr00t", "src/egovla", "src/openlambda",
-    "src/act", "src/dp", "src/InternVLA-M1", "src/h_rdt", "src/dreamzero", "src/beingh05",
+    "src/dp", "src/InternVLA-M1", "src/h_rdt", "src/dreamzero", "src/beingh05",
     "src/egodex", "src/egomimic", "src/fast", "src/lerobot_patch", "packages",
 ]
 include = [
     "src/rsci/**/*.py",
+    "src/psi/rsci/**/*.py",
+    "src/openpi/rsci/**/*.py",
+    "src/gr00t/gr00t/rsci/**/*.py",
+    "src/egovla/human_plan/rsci/**/*.py",
+    "src/act/rsci/**/*.py",
+    "src/openlambda/lambda0/lambda0/rsci/**/*.py",
     "scripts/train/*.py",
     "scripts/check_gr00t_memory_devices.py",
     "scripts/check_nccl_runtime.py",

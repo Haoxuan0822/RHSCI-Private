@@ -60,10 +60,10 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     import torch
 
-    from rsci.backbones.pi05.checkpoints import atomic_json
-    from rsci.backbones.pi05.model import Pi05RSCI
-    from rsci.backbones.pi05.processing import collate
-    from rsci.backbones.pi05.train import parser, preflight, resolve, simple_lr_multiplier
+    from openpi.rsci.checkpoints import atomic_json
+    from openpi.rsci.model import Pi05RSCI
+    from openpi.rsci.processing import collate
+    from openpi.rsci.train import parser, preflight, resolve, simple_lr_multiplier
 
     torch.set_num_threads(1)
     if args.shared:

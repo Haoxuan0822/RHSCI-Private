@@ -18,7 +18,7 @@
     ],
     "scope": [
       "src/gr00t",
-      "derived portions of src/rsci/backbones/gr00t"
+      "derived portions of src/gr00t/gr00t/rsci"
     ],
     "terms": "NVIDIA License; non-commercial research use only; see section 3.3",
     "file_level_exceptions": "Eagle NVIDIA 2025 files explicitly marked MIT use the local MIT text; Hugging Face files retain their Apache-2.0 headers. See THIRD_PARTY_NOTICES.md."
@@ -144,6 +144,11 @@
       "psi0_git_blob": "7a528d1a9a5dbb6e049d5a6994cd065cdaca62a7",
       "status": "unchanged-from-psi0"
     },
+    "gr00t/data/dataset.py": {
+      "sha256": "cb4a8b016dd9d56c61c041b20b179e761c3b6f060e07b4427e4973c1fc719381",
+      "psi0_git_blob": "c4c9c10664dfa36637c09508ba3ea5bdaee1110f",
+      "status": "unchanged-from-psi0"
+    },
     "gr00t/data/dataset/__init__.py": {
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
@@ -167,11 +172,6 @@
     "gr00t/data/dataset/sharded_single_step_dataset.py": {
       "sha256": "29392473cf5af091974a3fc0247845e6372d406ff100efc3d5c00a8d3217f1e0",
       "psi0_git_blob": "f388961328bbcbd0f0fcd4d072372cfcd71f47dd",
-      "status": "unchanged-from-psi0"
-    },
-    "gr00t/data/dataset.py": {
-      "sha256": "cb4a8b016dd9d56c61c041b20b179e761c3b6f060e07b4427e4973c1fc719381",
-      "psi0_git_blob": "c4c9c10664dfa36637c09508ba3ea5bdaee1110f",
       "status": "unchanged-from-psi0"
     },
     "gr00t/data/embodiment_tags.py": {
@@ -284,14 +284,14 @@
       "psi0_git_blob": "ab64473ad7af65f5abd47a653bfe89ce5f1ae5df",
       "status": "unchanged-from-psi0"
     },
-    "gr00t/eval/sim/robocasa/setup_RoboCasa.sh": {
-      "sha256": "7f213b9c262f7a6376a7ce01ca78e3038db4dc9315be1cd33344690c9e3e3eb0",
-      "psi0_git_blob": "4f55aea77d51a8d2d915c437567e22826c34f1d2",
-      "status": "unchanged-from-psi0"
-    },
     "gr00t/eval/sim/robocasa-gr1-tabletop-tasks/setup_RoboCasaGR1TabletopTasks.sh": {
       "sha256": "b9dc22c0b81dd5a211096223253692abe945f416471e548d5a0af6f40c9a6c23",
       "psi0_git_blob": "91b9a769cc314a42b6f305654c59ad9beb66fada",
+      "status": "unchanged-from-psi0"
+    },
+    "gr00t/eval/sim/robocasa/setup_RoboCasa.sh": {
+      "sha256": "7f213b9c262f7a6376a7ce01ca78e3038db4dc9315be1cd33344690c9e3e3eb0",
+      "psi0_git_blob": "4f55aea77d51a8d2d915c437567e22826c34f1d2",
       "status": "unchanged-from-psi0"
     },
     "gr00t/experiment/__init__.py": {
@@ -638,6 +638,66 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "psi0_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
       "status": "unchanged-from-psi0"
+    },
+    "gr00t/rsci/__init__.py": {
+      "sha256": "31622e57af0617833d2e660633cabfdb9d1443c835834861f32e95db2911de1b",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/__init__.py"
+    },
+    "gr00t/rsci/checkpoints.py": {
+      "sha256": "854a6ab98cc4c4e3a88d49763c28c4f09840edc2acfaf12f69eb2fd8e0d3375e",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/checkpoints.py"
+    },
+    "gr00t/rsci/config.py": {
+      "sha256": "3321f22d3c6ad66c0e7a4b30cb76084a21aa4c13f4f27c48ba430a57c0145a9f",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/config.py"
+    },
+    "gr00t/rsci/contract.py": {
+      "sha256": "e591e135e6d436e36b70341c177d7387265632dc19e0bb0b33fee2d0f56abbe5",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/contract.py"
+    },
+    "gr00t/rsci/data.py": {
+      "sha256": "b2b30ca0a27c72f507db156d4fd66fb0a25d5dc6b297ae7507e05788ff250b15",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/data.py"
+    },
+    "gr00t/rsci/guardian.py": {
+      "sha256": "44750cf638108a0002df0ea98507948b56a5c8b749036892c43dd7226c8c817e",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/guardian.py"
+    },
+    "gr00t/rsci/memory.py": {
+      "sha256": "3bd602a88ea1143eed5adbe4d17f5b266a6385f644dfd49c08bc4a5338ceb8c7",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/memory.py"
+    },
+    "gr00t/rsci/preflight.py": {
+      "sha256": "ec9a4c2310f793eaafa83943909bd97453562840e582fedfce28aa5f850258ba",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/preflight.py"
+    },
+    "gr00t/rsci/serve.py": {
+      "sha256": "d79743383f19e459eacf633f00302f368ee2a2bbd0ca9d84f63a6c20935059f5",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/serve.py"
+    },
+    "gr00t/rsci/train.py": {
+      "sha256": "61e0ce41dacd133ac5d5690ffbda1a48d9711d23519a3e5cd4ee3a61d1a22eb3",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/train.py"
+    },
+    "gr00t/rsci/trainer.py": {
+      "sha256": "6b57342fd6a7ff6781a9c0aa3b17c74e7d4f08b1cc73e631f7affe252d3fb9b1",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/trainer.py"
+    },
+    "gr00t/rsci/worker.py": {
+      "sha256": "f488c0f7a30f5d5a54bc36aee9c33d25fa266e67b0612e45734bd54d8f303150",
+      "status": "rhsci-extension-relocated",
+      "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/worker.py"
     },
     "gr00t/utils/__init__.py": {
       "sha256": "dd7d5f5e544e1d2923bf4f1aa548504255938f58a6e74a119356573e6ce9e36e",

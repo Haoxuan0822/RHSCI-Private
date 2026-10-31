@@ -1,6 +1,6 @@
 # EgoVLA
 
-Backbone: `src/egovla`. Adapter: `src/rsci/backbones/egovla` (`rsci.backbones.egovla`).
+Backbone: `src/egovla`. Adapter: `src/egovla/human_plan/rsci` (`human_plan.rsci`).
 Entry: `bash scripts/train/egovla.sh --help`.
 
 The adapter uses the SIMPLE 36D four-layer action decoder. VGQ-AE adds training-only Reader/query supervision; STATE uses the native state path. VLM training defaults to full finetuning. VGQ-AE inference does not use training history or auxiliary queries.
@@ -30,7 +30,7 @@ The FlashAttention wheel above matches CPython 3.11, Linux x86_64, Torch 2.7 and
 Prepare the fixed SIMPLE base VLM separately:
 
 ```bash
-python -m rsci.backbones.egovla.prepare_assets --runtime-root /opt/rsci-data
+python -m human_plan.rsci.prepare_assets --runtime-root /opt/rsci-data
 ```
 
 This downloads and verifies the base VLM and registers its `RSCI_ASSETS.json`; it does not start training. For already downloaded base assets, use the training entry's `--register-assets` with `--checkpoint` and your task/data arguments. Run `--check` with those same arguments before starting training.
@@ -58,7 +58,7 @@ The 115-epoch preset also defaults `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:
 
 Setting `RSCI_NCCL_LIBRARY=/absolute/path/to/libnccl.so` preloads that library before torchrun and its workers start. The launcher checks the mapped library and its actual runtime version. EgoVLA expects `2.27.3` by default for this override; set `RSCI_NCCL_VERSION` explicitly for another verified version. With no override, it uses the environment's NCCL. This option does not change batch size, gradient reduction or model settings.
 
-Serving uses `python -m rsci.backbones.egovla.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
+Serving uses `python -m human_plan.rsci.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
 
 
 ## 2026-10-30 PSI0-RAW integration

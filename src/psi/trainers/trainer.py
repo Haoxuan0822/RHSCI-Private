@@ -84,7 +84,7 @@ class Trainer(ABC):
         cls, cfg: LaunchConfig, device: Union[torch.device, int]
     ) -> "Trainer":
         if cfg.train.name == "finetune" and getattr(cfg.model, "rsci_variant", None):
-            from rsci.backbones.psi0.trainer import RSCIFinetuneTrainer
+            from psi.rsci.trainer import RSCIFinetuneTrainer
 
             return RSCIFinetuneTrainer(cfg, device)
         trainer_name = cfg.train.name

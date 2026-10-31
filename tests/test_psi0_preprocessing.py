@@ -12,8 +12,8 @@ from PIL import Image
 
 from psi.config.augmentation import CenterCrop, ColorJitter, ResizeImage
 from psi.config.transform import Psi0ModelTransform
-from rsci.backbones.psi0.config import load_run_config
-from rsci.backbones.psi0.train import parser, resolved
+from psi.rsci.config import load_run_config
+from psi.rsci.train import parser, resolved
 
 
 class ImageTransform(Psi0ModelTransform):
