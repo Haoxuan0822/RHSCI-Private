@@ -22,11 +22,11 @@ RHSCI-Private/
 │   │   └── rsci/                    # Ψ0 query/model/trainer extensions and experiment entry
 │   ├── openpi/                      # Native π0.5
 │   │   └── rsci/                    # π0.5 model/data/processing/training/serving
-│   ├── gr00t/gr00t/                 # Native GR00T Python package
+│   ├── gr00t/                       # Native GR00T Python package
 │   │   └── rsci/                    # GR00T data/training/serving integration
-│   ├── egovla/human_plan/           # Native EgoVLA package (VILA remains in src/egovla/VILA)
+│   ├── human_plan/                  # Native EgoVLA Python package
 │   │   └── rsci/                    # EgoVLA model/processing/training/serving
-│   ├── openlambda/lambda0/lambda0/  # Native λ₀ Python package
+│   ├── lambda0/                     # Native λ₀ Python package
 │   │   └── rsci/                    # λ₀ model/bundles/backend/training/serving
 │   ├── act/                         # Native ACT
 │   │   └── rsci/                    # ACT model/data/training/serving, without Reader
@@ -35,6 +35,7 @@ RHSCI-Private/
 │   │   ├── runtime/                 # Artifacts, complete checkpoints, resume, numerics and processes
 │   │   ├── inference/               # Shared HTTP entry, checkpoint discovery, history and noise
 │   │   └── paths.py                 # Shared path/argument helpers and lazy module-location map
+│   ├── egovla/, openlambda/          # Upstream dependency/project resources; VILA, configs, collection/alignment
 │   ├── dp/, InternVLA-M1/, h_rdt/, dreamzero/, beingh05/  # Other native baselines
 │   └── fast/, lerobot_patch/, egodex/, egomimic/         # Native supporting packages
 ├── tests/                           # Shared tests and model regression suites
@@ -44,6 +45,14 @@ RHSCI-Private/
 ```
 
 The `rsci/` subdirectory within a native package is that model's research extension. It uses the adjacent original model and data implementation; there is no second parallel model tree under `src/rsci`. Algorithms and checkpoint formats remain specific to each model.
+
+## Package depth (2026-11-01)
+
+All six model packages now share the import root `src`: `psi`, `openpi`, `gr00t`, `human_plan`, `lambda0`, `act`. Their extensions consistently live at `src/<package>/rsci`. Python imports and checkpoint parameter names remain unchanged; filesystem paths and editable-package discovery were updated. No symlink or duplicate compatibility package is used.
+
+The former extra levels came from copied upstream project roots, not extra network layers: `gr00t/gr00t` was project/package; `egovla/human_plan` was repository/package; `openlambda/lambda0/lambda0` was repository/distribution/package. The Python package roots have been flattened. `src/egovla` retains VILA and its project setup/tools; `src/openlambda` retains collection/alignment tools, assets and native experiment configs. These directories are upstream resources, not additional model import roots. Only VILA still needs its independent `llava` import root at `src/egovla/VILA`.
+
+Existing isolated editable installs should be reinstalled without dependencies from their original project locations when moving this source tree to a persistent environment. Their `pyproject.toml` discovery now points at the flat packages. This round did not install or alter environments; shell/module checks explicitly import this checkout through `PYTHONPATH=src`, adding VILA only for EgoVLA.
 
 ## Model entry points
 

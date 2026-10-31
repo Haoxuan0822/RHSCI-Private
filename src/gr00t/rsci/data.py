@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, Sampler
+from torch.utils.data import Dataset
 
 from gr00t.data.embodiment_tags import EmbodimentTag
 from gr00t.data.types import (
@@ -19,6 +19,7 @@ from gr00t.data.types import (
     VLAStepData,
 )
 from rsci.data.cache_config import InputCacheConfig
+from rsci.data.sampling import EpochSampler as EpochSampler
 
 TAG = EmbodimentTag.G1_LOCO_DOWNSTREAM
 
@@ -291,22 +292,3 @@ class SimpleRSCIDataset(Dataset):
             "_decoders": OrderedDict(),
             "_cache_pid": None,
         }
-
-
-class EpochSampler(Sampler):
-    """显式传递epoch/index，避免断点跳batch后复位到epoch0。"""
-
-    def __init__(self, dataset, seed):
-        self.dataset, self.seed, self.epoch = dataset, seed, 0
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def set_epoch(self, epoch):
-        self.epoch = epoch
-
-    def __iter__(self):
-        indices = torch.randperm(
-            len(self), generator=torch.Generator().manual_seed(self.seed + self.epoch)
-        )
-        return iter((self.epoch, int(index)) for index in indices)

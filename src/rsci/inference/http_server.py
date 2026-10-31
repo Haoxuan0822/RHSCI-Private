@@ -3,11 +3,10 @@
 import argparse
 import json
 import os
-import sys
 import threading
 from pathlib import Path
 
-from rsci.inference.checkpoints import BACKBONES, ROOT, discover, inspect_run
+from rsci.inference.checkpoints import BACKBONES, discover, inspect_run
 from rsci.inference.state_noise import RequestStateNoise, add_arguments
 
 
@@ -107,7 +106,6 @@ def main():
             eval_seed=args.eval_seed,
         )
     else:
-        sys.path.insert(0, str(ROOT / "src/gr00t"))
         from gr00t.rsci.serve import build_server
 
         server = build_server(

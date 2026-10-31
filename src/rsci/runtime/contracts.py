@@ -1,5 +1,6 @@
 """恢复时比较实验配置；源码清单和依赖版本属于记录，不是运行许可证。"""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -20,6 +21,11 @@ _AUDIT_FIELDS = {
     "shared_runtime",
     "initialization_stat",
 }
+
+
+def compute_contract_digest(value):
+    """按稳定 JSON 顺序生成训练契约摘要，保持已有断点身份格式。"""
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
 def training_configuration(contract):

@@ -24,7 +24,7 @@ fast = ["flash-linear-attention==0.4.2", "fla-core==0.4.2", "causal-conv1d==1.5.
 lambda0 = "lambda0.__main__:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["../.."]
 include = ["lambda0*"]
 
 [tool.setuptools.package-data]

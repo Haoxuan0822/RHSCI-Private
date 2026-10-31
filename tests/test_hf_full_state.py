@@ -6,10 +6,10 @@ import unittest
 from pathlib import Path
 
 import torch
-from human_plan.rsci import checkpoints as ego
 from safetensors.torch import save_file
 
 from act.rsci import checkpoints as act
+from human_plan.rsci import checkpoints as ego
 
 
 class HFStateTests(unittest.TestCase):

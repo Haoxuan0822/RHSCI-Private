@@ -1,11 +1,10 @@
 """egovla: 启动身份与源码契约。"""
 
-import hashlib
-import json
 import os
 from pathlib import Path
 
 from rsci.paths import CODE_ROOT as CODE_ROOT
+from rsci.runtime.contracts import compute_contract_digest as compute_contract_digest
 from rsci.runtime.contracts import reuse_run_contract
 
 from .checkpoints import sha256
@@ -74,8 +73,3 @@ def build_training_contract(args, paths, manifest):
         ),
         paths["output"],
     )
-
-
-def compute_contract_digest(value):
-    """按稳定 JSON 顺序计算训练契约 SHA256，返回用于完整断点校验的摘要。"""
-    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()

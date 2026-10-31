@@ -18,7 +18,7 @@ DATASET_PATH=/datasets/my-task python3 scripts/train/baseline.py --backbone gr00
   --python /path/to/gr00t-env/bin/python --gpus 0,1 --dry-run -- \
   --dataset-path /datasets/my-task --base-model-path /models/GR00T-N1.6-3B \
   --embodiment-tag G1_LOCO_DOWNSTREAM \
-  --modality-config-path "$PWD/src/gr00t/gr00t/configs/modality/g1_locomanip.py" \
+  --modality-config-path "$PWD/src/gr00t/configs/modality/g1_locomanip.py" \
   --output-dir /runs/gr00t/my-task \
   --max-steps 20000 --global-batch-size 24 \
   --learning-rate 1e-4 --warmup-ratio 0.05 --weight-decay 1e-5 \

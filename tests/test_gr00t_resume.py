@@ -5,9 +5,10 @@ import unittest
 from pathlib import Path
 
 import torch
-from gr00t.rsci.train import create_resume_trainer_class
 from torch.utils.data import Dataset
 from transformers import TrainerCallback, TrainingArguments, set_seed
+
+from gr00t.rsci.train import create_resume_trainer_class
 
 
 class Samples(Dataset):

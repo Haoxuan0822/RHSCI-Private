@@ -12,7 +12,7 @@ if [[ ! -x "$egovla_python" ]]; then
     exit 1
   fi
 fi
-export PYTHONPATH="$code_root/src/egovla:$code_root/src/egovla/VILA:$code_root/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$code_root/src/egovla/VILA:$code_root/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONUNBUFFERED=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 

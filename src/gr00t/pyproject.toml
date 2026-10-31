@@ -50,7 +50,7 @@ tensorrt = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = [".."]
 include = ["gr00t*"]
 
 [tool.uv.extra-build-dependencies]

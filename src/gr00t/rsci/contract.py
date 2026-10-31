@@ -1,10 +1,7 @@
 """gr00t: 启动身份与源码契约。"""
 
-import hashlib
-import json
-
 from rsci.paths import CODE_ROOT as CODE_ROOT
-from rsci.runtime.contracts import reuse_run_contract
+from rsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
 from .config import optimization_kwargs
 
@@ -48,4 +45,4 @@ def build_training_contract(args, paths):
     if args.model == "VGQ-AE":
         identity["sidecar_manifest"] = sha256(paths["sidecar"] / "manifest.json")
     identity = reuse_run_contract(identity, paths["output"])
-    return identity, hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    return identity, compute_contract_digest(identity)

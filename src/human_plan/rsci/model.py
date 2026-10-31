@@ -3,6 +3,8 @@
 import torch
 from torch import nn
 
+from rsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
+
 
 class Reader(nn.Module):
     """沿用 π0.5 对照：每帧16个 Reader、时间 embedding，再投影回 VLM 宽度。"""
@@ -53,21 +55,6 @@ def decode_latents(decoder, latents, memory, mask):
             :, -length:
         ]
     return hidden
-
-
-def masked_ardy_loss(prediction, target, valid):
-    """全局有效帧归一化；无效目标不能用 NaN×0 污染损失。"""
-    if target.shape != prediction.shape or valid.shape != prediction.shape[:1]:
-        raise ValueError("ARDY target/mask shape mismatch")
-    valid = valid.bool()
-    safe_target = torch.where(valid[:, None], target, torch.zeros_like(target))
-    error = (prediction.float() - safe_target.float()).square().mean(-1)
-    count = valid.float().sum().detach()
-    world = 1
-    if torch.distributed.is_initialized():
-        world = torch.distributed.get_world_size()
-        torch.distributed.all_reduce(count)
-    return torch.where(valid, error, 0).sum() * world / count.clamp_min(1)
 
 
 class EgoVLARSCI(nn.Module):

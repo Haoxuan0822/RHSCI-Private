@@ -3,11 +3,11 @@
 from dataclasses import asdict
 
 import torch
-import torch.distributed as dist
 from torch import nn
 from torch.nn import functional as F
 
 from act.models.act import ACTConfig, ACTPolicy
+from rsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 VARIANTS = ("STATE", "NO-STATE", "EGQ-AE")
 
@@ -24,20 +24,6 @@ def official_config(variant="EGQ-AE", *, pretrained=True):
         use_robot_state=variant == "STATE",
         pretrained_backbone_weights="ResNet18_Weights.IMAGENET1K_V1" if pretrained else None,
     )
-
-
-def masked_ardy_loss(prediction, target, valid):
-    """按全rank有效样本求mean；空rank仍保留完整图，DDP平均后梯度一致。"""
-    valid = valid.bool()
-    # 无效标签允许NaN，但不能用0*NaN屏蔽，也不能让无效预测逃过数值门禁。
-    target = torch.where(valid[:, None], target.float(), torch.zeros_like(target.float()))
-    errors = (prediction.float() - target).square().mean(-1)
-    denominator = valid.sum().to(errors.dtype)
-    world = 1
-    if dist.is_initialized():
-        world = dist.get_world_size()
-        dist.all_reduce(denominator)
-    return (errors * valid).sum() * world / denominator.clamp_min(1)
 
 
 class RSCIACT(nn.Module):

@@ -1,6 +1,6 @@
 # EgoVLA
 
-Backbone: `src/egovla`. Adapter: `src/egovla/human_plan/rsci` (`human_plan.rsci`).
+Backbone package: `src/human_plan`; VILA dependency: `src/egovla/VILA`. Adapter: `src/human_plan/rsci` (`human_plan.rsci`).
 Entry: `bash scripts/train/egovla.sh --help`.
 
 The adapter uses the SIMPLE 36D four-layer action decoder. VGQ-AE adds training-only Reader/query supervision; STATE uses the native state path. VLM training defaults to full finetuning. VGQ-AE inference does not use training history or auxiliary queries.
@@ -18,7 +18,7 @@ python -m pip install --upgrade pip setuptools wheel
 python -m pip install torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 python -m pip install -r baselines/egovla/requirements-rsci.txt
 python -m pip install 'https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x86_64.whl#sha256=cd1a45ebfc1731a13e55ad68e0c9ad92390ddfffba306f9222be67c6d5a805af'
-export PYTHONPATH="$PWD/src/egovla:$PWD/src/egovla/VILA:$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$PWD/src:$PWD/src/egovla/VILA${PYTHONPATH:+:$PYTHONPATH}"
 export EGOVLA_PYTHON="$VIRTUAL_ENV/bin/python"
 python -m pip check
 python -c 'import torch, transformers, accelerate, torchcodec; from llava.model import LlavaLlamaModel; print(torch.__version__, transformers.__version__, accelerate.__version__)'

@@ -58,10 +58,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     for name in (
         "src",
-        "src/gr00t",
-        "src/egovla",
         "src/egovla/VILA",
-        "src/openlambda/lambda0",
         "scripts",
         "tests",
         ".",

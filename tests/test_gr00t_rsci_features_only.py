@@ -15,7 +15,7 @@ class FeaturesOnlyTests(unittest.TestCase):
         torch.manual_seed(120)
         root = (
             Path(__file__).resolve().parents[1]
-            / "src/gr00t/gr00t/model/modules/nvidia/Eagle-Block2A-2B-v2"
+            / "src/gr00t/model/modules/nvidia/Eagle-Block2A-2B-v2"
         )
         config = AutoConfig.from_pretrained(root, trust_remote_code=True, local_files_only=True)
         text = Qwen3Config(

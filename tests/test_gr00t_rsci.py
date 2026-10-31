@@ -10,13 +10,14 @@ from unittest.mock import patch
 
 import numpy as np
 import torch
+from torch import nn
+from transformers.feature_extraction_utils import BatchFeature
+
 from gr00t.configs.model.gr00t_n1d6 import Gr00tN1d6Config
 from gr00t.model.gr00t_n1d6.gr00t_n1d6 import Gr00tN1d6
 from gr00t.model.gr00t_n1d6.rsci_query import masked_ardy_loss
 from gr00t.rsci import checkpoints
 from gr00t.rsci.data import GROUPS, TAG, modality
-from torch import nn
-from transformers.feature_extraction_utils import BatchFeature
 
 
 class TinyBackbone(nn.Module):
@@ -627,7 +628,6 @@ class ProcessorAndServingTests(unittest.TestCase):
 
     def test_simple_http_needs_no_state_and_returns_finite_36d(self):
         from gr00t.deploy.gr00t_serve_simple import Server
-
         from psi.deploy.helpers import RequestMessage, ResponseMessage
 
         server = Server.__new__(Server)
@@ -665,7 +665,6 @@ class ProcessorAndServingTests(unittest.TestCase):
     def test_native_serving_request_noise_survives_different_episode_lengths(self):
         from gr00t.deploy.gr00t_serve_simple import Server
         from gr00t.rsci.serve import build_server
-
         from psi.deploy.helpers import RequestMessage, ResponseMessage
         from rsci.inference.action_noise import PROTOCOL
 

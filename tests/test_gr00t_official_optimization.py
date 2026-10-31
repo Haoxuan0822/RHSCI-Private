@@ -8,9 +8,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import torch
+from transformers import Trainer, TrainingArguments
+
 from gr00t.configs.training.training_config import TrainingConfig
 from gr00t.rsci.train import build_argument_parser, build_training_arguments, resolve_training_paths
-from transformers import Trainer, TrainingArguments
 
 
 class OfficialOptimizationTests(unittest.TestCase):

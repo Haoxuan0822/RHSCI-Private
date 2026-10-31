@@ -148,7 +148,6 @@ def build_launch_plan(args):
                 raise ValueError("--config must select an openpi.training.config entry")
             entry = [str(ROOT / "src/openpi/train_pytorch.py"), args.config]
         elif backbone == "gr00t":
-            source_paths.insert(0, ROOT / "src/gr00t")
             entry = [
                 "--module",
                 "gr00t.experiment.launch_finetune",
@@ -156,9 +155,9 @@ def build_launch_plan(args):
                 str(processes * args.nnodes),
             ]
         elif backbone == "egovla":
-            source_paths[:0] = [ROOT / "src/egovla", ROOT / "src/egovla/VILA"]
+            source_paths.insert(0, ROOT / "src/egovla/VILA")
             cwd = ROOT / "src/egovla"
-            entry = [str(cwd / "human_plan/vila_train/train.py")]
+            entry = [str(ROOT / "src/human_plan/vila_train/train.py")]
         elif backbone == "internvla-m1":
             if not args.config:
                 raise ValueError("--config must name an InternVLA training YAML")
@@ -194,7 +193,6 @@ def build_launch_plan(args):
         else:
             if not args.config:
                 raise ValueError("--config must name a lambda0 experiment JSON")
-            source_paths.insert(0, ROOT / "src/openlambda/lambda0")
             entry = ["--module", "lambda0", "train", "--config", str(Path(args.config).resolve())]
         if args.config and backbone in ("gr00t", "egovla"):
             raise ValueError("This native trainer takes its configuration as arguments after --")

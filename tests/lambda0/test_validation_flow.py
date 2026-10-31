@@ -12,10 +12,11 @@ from unittest.mock import patch
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from lambda0.rsci.model import masked_ardy_loss
-from lambda0.rsci.runtime import check_finite, verify_restored_state
 from test_integration import inputs, tiny, vlm_inputs
 from torch import nn
+
+from lambda0.rsci.model import masked_ardy_loss
+from lambda0.rsci.runtime import check_finite, verify_restored_state
 
 
 def validation_fixture(model, folder):
@@ -76,6 +77,7 @@ def distributed_worker(rank, rendezvous, output, fixture_folder):
         assert rejected
         # 单episode holdout下某些rank根本无数据，不能在VGQ前向内部做collective。
         from accelerate import Accelerator
+
         from lambda0.training import engine
 
         accelerator = Accelerator(cpu=True, mixed_precision="no")
@@ -126,6 +128,7 @@ class ValidationFlowTests(unittest.TestCase):
 
     def test_actual_native_validation_determinism_physical_scale_and_training_mode(self):
         from accelerate import Accelerator
+
         from lambda0.training import engine
 
         accelerator = Accelerator(cpu=True, mixed_precision="no")
@@ -177,6 +180,7 @@ class ValidationFlowTests(unittest.TestCase):
 
     def test_explicit_preparation_callback_is_used_for_model_and_ema(self):
         from accelerate import Accelerator
+
         from lambda0.training import engine
 
         model = tiny("VGQ-AE")

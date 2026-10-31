@@ -91,7 +91,7 @@ The noise generator is independent of action-sampling RNG. When `history.psi_eva
 Run in the EgoVLA environment with the native VILA source on the import path:
 
 ```bash
-PYTHONPATH=src:src/egovla:src/egovla/VILA \
+PYTHONPATH=src:src/egovla/VILA \
   /path/to/egovla-env/bin/python -m human_plan.rsci.serve \
   --checkpoint /runs/egovla/my_task/checkpoint-10120 --port 8011
 ```

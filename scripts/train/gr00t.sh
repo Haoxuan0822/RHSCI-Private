@@ -3,7 +3,7 @@ set -euo pipefail
 # GR00T RHSCI：数据/缓存/断点隔离，正式入口不改PSI0环境、不自动下载。
 rsci_code="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 export PSI_RUNTIME_ROOT="${PSI_RUNTIME_ROOT:-/opt/rsci-data}"
-export PYTHONPATH="$rsci_code/src/gr00t:$rsci_code/src:$rsci_code/packages${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$rsci_code/src:$rsci_code/packages${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HOME="${HF_HOME:-$PSI_RUNTIME_ROOT/cache/rsci/gr00t/huggingface}"
 export HF_HUB_CACHE="$HF_HOME/hub" HF_DATASETS_CACHE="$HF_HOME/datasets"
 export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1

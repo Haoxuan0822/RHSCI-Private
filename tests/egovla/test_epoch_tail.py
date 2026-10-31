@@ -7,13 +7,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import torch
+from torch import nn
+from transformers import set_seed
+
 from human_plan.rsci.train import (
     build_argument_parser,
     build_training_arguments,
     create_trainer_class,
 )
-from torch import nn
-from transformers import set_seed
 
 
 class TinyPolicy(nn.Module):

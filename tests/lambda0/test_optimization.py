@@ -10,14 +10,15 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import torch
+from test_integration import inputs, tiny, vlm_inputs
+from torch import nn
+
 from lambda0.rsci.optimization import (
     effective_arguments,
     native_arguments,
     optimizer_report,
 )
 from lambda0.rsci.runtime import RSCITrainingBackend
-from test_integration import inputs, tiny, vlm_inputs
-from torch import nn
 
 
 class OptimizationTests(unittest.TestCase):
@@ -184,6 +185,7 @@ class OptimizationTests(unittest.TestCase):
 
     def test_parameter_updates_moments_accumulation_and_ema_match_native(self):
         from accelerate import Accelerator
+
         from lambda0.training import engine
 
         accelerator = Accelerator(cpu=True, mixed_precision="no")

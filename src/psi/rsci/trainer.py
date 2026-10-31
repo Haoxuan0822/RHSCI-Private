@@ -5,29 +5,13 @@ import math
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 
 from psi.trainers.finetune import FinetuneTrainer
+from rsci.data.sampling import EpochRandomSampler as EpochRandomSampler
 from rsci.runtime.checkpoints import check_tensors
 
 from .checkpoints import numerical_checkpoint_ok
-
-
-class EpochRandomSampler(Sampler):
-    """按seed/epoch重建排列，独立于worker预取及DataLoader generator消耗。"""
-
-    def __init__(self, data_source, seed):
-        self.data_source, self.seed, self.epoch = data_source, int(seed), 0
-
-    def __len__(self):
-        return len(self.data_source)
-
-    def set_epoch(self, epoch):
-        self.epoch = int(epoch)
-
-    def __iter__(self):
-        generator = torch.Generator().manual_seed(self.seed + self.epoch)
-        yield from torch.randperm(len(self), generator=generator).tolist()
 
 
 class DataProgress:

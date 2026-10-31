@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, Sampler
+from torch.utils.data import Dataset
 
 from psi.config.augmentation import (
     CenterCrop,
@@ -16,6 +16,7 @@ from psi.config.augmentation import (
 from psi.config.transform import ActionStateTransform, ACTModelTransform, SimpleRepackTransform
 from psi.utils import pt_to_pil
 from rsci.data.cache_config import InputCacheConfig
+from rsci.data.sampling import EpochSampler as EpochSampler
 
 OFFSETS = [-6, -4, -2, 0]
 IMAGE = "observation.images.egocentric"
@@ -169,22 +170,3 @@ class ACTDataset(Dataset):
         ):
             raise FloatingPointError(f"Nonfinite ACT data at epoch={epoch}, index={index}")
         return sample
-
-
-class EpochSampler(Sampler):
-    """显式(epoch,index)，由Accelerate.set_epoch传递；不由worker猜测epoch。"""
-
-    def __init__(self, dataset, seed):
-        self.dataset, self.seed, self.epoch = dataset, seed, 0
-
-    def set_epoch(self, epoch):
-        self.epoch = epoch
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __iter__(self):
-        generator = torch.Generator().manual_seed(self.seed + self.epoch)
-        return iter(
-            (self.epoch, index) for index in torch.randperm(len(self), generator=generator).tolist()
-        )

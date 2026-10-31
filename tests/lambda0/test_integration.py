@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 import numpy as np
 import torch
+from torch import nn
+
 from lambda0.models.action_expert import LayerwiseActionExpert
 from lambda0.models.heterogeneous_action_space import HeterogeneousActionSpace
 from lambda0.models.modeling_lambda0 import Lambda0
@@ -21,7 +23,6 @@ from lambda0.rsci.runtime import (
     checkpoint_receipt,
     verify_checkpoint,
 )
-from torch import nn
 
 
 class TinyVLM(nn.Module):
@@ -136,6 +137,7 @@ class IntegrationTests(unittest.TestCase):
 
     def test_serving_normalization_is_explicit_and_keeps_native_defaults(self):
         from fastapi.testclient import TestClient
+
         from lambda0.inference import server
         from lambda0.rsci.contracts import SAFE_NORMALIZATION
 
@@ -226,6 +228,7 @@ class IntegrationTests(unittest.TestCase):
 
     def test_official_simple_http_protocol_and_denormalization(self):
         from fastapi.testclient import TestClient
+
         from lambda0.data.normalization import DatasetNormalizer
         from lambda0.inference.server import build_app, decode_numpy_envelope, encode_numpy_envelope
 
@@ -496,6 +499,7 @@ class IntegrationTests(unittest.TestCase):
 
     def test_native_accelerate_checkpoint_restores_optimizer_rng_and_cursor(self):
         from accelerate import Accelerator
+
         from lambda0.data.dataset import InfiniteDataReader
         from lambda0.rsci.contracts import RUNTIME
         from lambda0.training import engine

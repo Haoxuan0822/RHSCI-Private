@@ -15,6 +15,8 @@ from unittest.mock import patch
 
 import numpy as np
 import torch
+from torch import nn
+
 from human_plan.rsci.checkpoints import (
     atomic_json,
     checkpoint_ok,
@@ -33,7 +35,6 @@ from human_plan.rsci.train import (
     create_trainer_class,
     resolve_training_paths,
 )
-from torch import nn
 
 
 def native_decoder(width=16):

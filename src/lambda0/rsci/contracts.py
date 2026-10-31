@@ -21,13 +21,22 @@ def verify_upstream():
     manifest = json.loads((UPSTREAM / "SOURCE_MANIFEST.json").read_text())
     if manifest["upstream_commit"] != UPSTREAM_COMMIT:
         raise ValueError("λ₀ source revision mismatch")
+    # 包已平铺到 src/lambda0；清单保留上游路径，并显式记录其当前目录。
+    trees = [
+        ("", UPSTREAM),
+        *[
+            (prefix + "/", UPSTREAM / relative)
+            for prefix, relative in manifest.get("relocated_roots", {}).items()
+        ],
+    ]
     actual = {
-        str(path.relative_to(UPSTREAM)): sha256(path)
-        for path in UPSTREAM.rglob("*")
+        prefix + str(path.relative_to(root)): sha256(path)
+        for prefix, root in trees
+        for path in root.rglob("*")
         if path.is_file()
         and not any(
             part in {".git", "__pycache__", ".pytest_cache"}
-            for part in path.relative_to(UPSTREAM).parts
+            for part in path.relative_to(root).parts
         )
         and path.name != "SOURCE_MANIFEST.json"
         and path.suffix != ".pyc"

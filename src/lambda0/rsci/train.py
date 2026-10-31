@@ -1,14 +1,13 @@
 """官方 λ₀ SIMPLE 后训练入口；额外提供只读检查及 VGQ-AE。"""
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
 
 from rsci.paths import add_data_arguments, dataset_paths
-from rsci.runtime.contracts import reuse_run_contract
+from rsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
 from .contracts import CODE as CODE
 from .contracts import CONTRACT, RUNTIME, UPSTREAM_COMMIT, sha256
@@ -305,7 +304,7 @@ def execute_training(args, config):
         },
     )
     signature = reuse_run_contract(signature, config["output"], "rsci_run.json")
-    identity = hashlib.sha256(json.dumps(signature, sort_keys=True).encode()).hexdigest()
+    identity = compute_contract_digest(signature)
     contract = dict(schema=CONTRACT, identity=identity, variant=args.variant)
     backend = RSCITrainingBackend(engine, args.variant, contract)
     settings = resolved["training"]

@@ -3,7 +3,8 @@ import math
 
 import torch
 from torch import nn
-import torch.distributed as dist
+
+from rsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 
 class VisualStateQuery(nn.Module):
@@ -67,18 +68,3 @@ class VisualStateQuery(nn.Module):
                      backbone_attention_mask=mask,
                      timestep=torch.zeros(memory.shape[0], device=memory.device, dtype=torch.long))
         return self.ardy_head(result[:, 0]).float()
-
-
-def masked_ardy_loss(prediction, target, valid):
-    """按有效样本全局平均；DDP平均梯度后仍等于全局有效样本MSE。"""
-    valid = valid.bool().reshape(-1)
-    if target.shape != prediction.shape or prediction.shape[-1] != 128:
-        raise ValueError("ARDY target/prediction must have shape [B,128]")
-    target = target.float().masked_fill(~valid[:, None], 0)
-    errors = (prediction.float() - target).square().mean(-1)
-    denominator = valid.sum().to(errors.dtype)
-    world = 1
-    if dist.is_available() and dist.is_initialized():
-        world = dist.get_world_size()
-        dist.all_reduce(denominator)
-    return (errors * valid).sum() * world / denominator.clamp_min(1)

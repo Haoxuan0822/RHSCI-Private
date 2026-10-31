@@ -123,15 +123,15 @@
     "lambda0/lambda0/recipes/pretrain.json": "dce11e73de5025835cd6d5890adf190f1010f74e4c04f7250ce026f2c6a0159b",
     "lambda0/lambda0/rsci/__init__.py": "b9c5dac61b811396fc3cd0ab90cbbfa299b6c885cf545c4e5c3e15ebcd159e3e",
     "lambda0/lambda0/rsci/assets.py": "5aea691531fe4931db3342b71e2683d3618b1f21dd5b8208facc5f481f790960",
-    "lambda0/lambda0/rsci/contracts.py": "0503a4ae6d2ca700041eeb4b5253f16c253b377bd8d943c44a537446903d8b21",
+    "lambda0/lambda0/rsci/contracts.py": "1df843a4d3dc2925cebb69eb27917b2c647d3ce271a5fd74aa22e0a2f65a2e7e",
     "lambda0/lambda0/rsci/data.py": "c93dd8cac81770781ecb868f9f9a68ecb04fdca7540639f0e111ea0d806a31f1",
     "lambda0/lambda0/rsci/launch.py": "29e995c5b417089d48d306c9677121ac912123c9640297960dbd0bb2472c838d",
-    "lambda0/lambda0/rsci/model.py": "d6c24408282fcc0df431b7d44e7ed64388bfea5258064694ecf81ea00bcdfacd",
+    "lambda0/lambda0/rsci/model.py": "6570184d32b299fb6063c19891e408e46f4f411c13779cb9af0f8b4c4eb18a22",
     "lambda0/lambda0/rsci/optimization.py": "90c05312f63ed9234576d8e83f7186168af4e17c580afe3bf737bf18ecb30372",
     "lambda0/lambda0/rsci/prepare.py": "b64baa36864e35f0535e996c1397ea8a32b1a91dfa3eb97b015670ee3dd45de1",
     "lambda0/lambda0/rsci/runtime.py": "84ecdcb90fd4f8e0f585ae571110ad9c4668482cfd23a2b9e25f705a9335125b",
     "lambda0/lambda0/rsci/serve.py": "ff3cdb3441d4a7d5cbed79c44d1ffe3ab05acd9a71b2e83f50bd0991212c9568",
-    "lambda0/lambda0/rsci/train.py": "154e42efc511f516140bfd60be9aeaba0f03714624b2d7e43826e6316495452f",
+    "lambda0/lambda0/rsci/train.py": "5e7679e698673b46c3e8c2cf56bee13f1206aecd29258731ab138d6350f3dae8",
     "lambda0/lambda0/runtime/__init__.py": "0bf6c6ee3aebf89ab1c30bee85748f040b38a88e829c92902068e31208c000c5",
     "lambda0/lambda0/runtime/doctor.py": "75dcc2cd2f933f3eddd86a10847293f12920fcaaa05518a0b78ded52d90f4374",
     "lambda0/lambda0/runtime/environment.py": "93d0ff5340acc5d1962c57eba4255818b951966946daf938b79c1e2fb2440100",
@@ -141,7 +141,7 @@
     "lambda0/lambda0/training/pretrain.py": "6f386f5e752b11a7c5870b0124f2b105d632b9c9db8272a6e9bcdba4fed8a3d2",
     "lambda0/lambda0/training/pretrain_encoding.py": "8f4ea981caa842c9a600aa6ec2e09489adbe009ba11a7fb922d5115d8c63d7f4",
     "lambda0/lambda0/training/runner.py": "f81c07f543199a6ebaa430edadfae268bf8e3b28babe26129f61c9d352fb5e2d",
-    "lambda0/pyproject.toml": "727ec01437328d8bd0152694a9da85af6e5455472a950e9da575b7a2ca2a212e",
+    "lambda0/pyproject.toml": "5247a9c99ea9b87f50c63933400ae7feffa547bf3d17989f7a2dee768a4f46c4",
     "robot/__init__.py": "a9c14d153a09c43f315493543930caaa1ad45ab00e8ea33baab82b9bf3f20f79",
     "robot/gopro/__init__.py": "425a3809d662ccff08637148470055374be5b04b9c3c0062f5b04e9330fc2943",
     "robot/gopro/relay.py": "d467e38d13fe1a3a07523b41afb21388fd313857772b7ce2846f86c2c1e60411",
@@ -167,5 +167,8 @@
     "path": "lambda0/lambda0/rsci",
     "origin": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/lambda0",
     "note": "Local research extension relocated into the native package on 2026-10-31; not part of the upstream commit."
+  },
+  "relocated_roots": {
+    "lambda0/lambda0": "../lambda0"
   }
 }

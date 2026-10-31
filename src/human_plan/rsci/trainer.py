@@ -1,24 +1,18 @@
 """egovla: 骨干Trainer、数值门禁与完整断点回调。"""
 
 import json
+from functools import partial
 from pathlib import Path
 
+from rsci.runtime.hf_callbacks import build_checkpoint_callback as shared_checkpoint_callback
+from rsci.runtime.numerics import require_finite as require_finite
+
+from . import checkpoints as checkpoint_protocol
 from .checkpoints import atomic_json
 
+build_checkpoint_callback = partial(shared_checkpoint_callback, protocol=checkpoint_protocol)
+
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
-
-def require_finite(values, output, step, stage):
-    import torch
-    import torch.distributed as dist
-
-    valid = torch.stack([torch.isfinite(value.detach()).all() for value in values]).all().int()
-    if dist.is_initialized():
-        dist.all_reduce(valid, op=dist.ReduceOp.MIN)
-    if not valid.item():
-        if not dist.is_initialized() or dist.get_rank() == 0:
-            atomic_json(Path(output) / "NUMERICAL_FAILURE.json", dict(step=step, stage=stage))
-        raise FloatingPointError(f"Nonfinite {stage}; automatic restart disabled")
 
 
 def create_trainer_class():
@@ -87,34 +81,6 @@ def create_trainer_class():
             load_trainables(target, path)
 
     return RSCITrainer
-
-
-def build_checkpoint_callback(output, world, digest):
-    """返回完整断点回调；等待各 rank 写完状态后再验证并发布完整标记。"""
-    import torch.distributed as dist
-    from transformers import TrainerCallback
-
-    from .checkpoints import prune, publish
-
-    class Complete(TrainerCallback):
-        def on_save(self, args, state, control, **kwargs):
-            if dist.is_initialized():
-                dist.barrier()
-            if state.is_world_process_zero:
-                target = output / f"checkpoint-{state.global_step}"
-                try:
-                    publish(target, world, digest)
-                    prune(output, target, world, digest)
-                except FloatingPointError:
-                    atomic_json(
-                        output / "NUMERICAL_FAILURE.json",
-                        dict(step=state.global_step, stage="checkpoint"),
-                    )
-                    raise
-            if dist.is_initialized():
-                dist.barrier()
-
-    return Complete()
 
 
 def configure_vlm_execution(model, args):

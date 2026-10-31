@@ -9,6 +9,8 @@ from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 from transformers.models.gemma import modeling_gemma
 
+from rsci.runtime.losses import masked_auxiliary_loss
+
 from .augmentation import AUGMENTATION_VERSION, augment_training_images
 
 
@@ -273,14 +275,7 @@ class Pi05RSCI(nn.Module):
                 recompute=self.execution not in ("query", "both"),
             )[:, 0]
             prediction = self.ardy_head(latent.float())
-            errors = (prediction - ardy_target).square().mean(-1)
-            # DDP平均梯度：按全局有效标签数量归一化，而非各卡有效数量分别平均。
-            count = ardy_valid.float().sum().detach()
-            world = 1
-            if torch.distributed.is_initialized():
-                world = torch.distributed.get_world_size()
-                torch.distributed.all_reduce(count)
-            auxiliary = (errors * ardy_valid).sum() * world / count.clamp_min(1)
+            auxiliary = masked_auxiliary_loss(prediction, ardy_target, ardy_valid)
             loss = loss + 0.1 * auxiliary
             output["ardy_loss"] = auxiliary.detach()
         return dict(loss=loss, **output)

@@ -4,6 +4,8 @@ Rethinking Humanoid State Conditioning in Vision-Language-Action Models.
 
 RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5, GR00T, EgoVLA and λ₀, with ACT as a visual action baseline. VGQ/EGQ variants use four-frame visual histories and ARDY supervision during training. Nonstarred variants need only current RGB and language at inference.
 
+2026-11-01：六模型 Python 包统一为 `src/<包名>/rsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。
+
 ## Getting started
 
 Use Linux, NVIDIA GPUs, Git LFS and [uv](https://docs.astral.sh/uv/getting-started/installation/). Run from the checkout root. Keep data, weights and environments outside it. These examples use the SIMPLE box-hugging task and eight training GPUs. Repeat the path exports in each terminal.

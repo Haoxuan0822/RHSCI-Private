@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from rsci.runtime.losses import masked_auxiliary_loss as masked_auxiliary_loss
+
 VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
@@ -405,22 +407,3 @@ class RSCIPolicyMixin:
             return_dict=return_dict,
         )
         return HumanFoundationModelOutput(action=output.action, ardy_prediction=prediction)
-
-
-def masked_auxiliary_loss(prediction, target, valid, *, smooth_l1=False):
-    """无标签样本不参与归一化；全无效仍保留到预测头的零梯度路径。"""
-    if target.shape != prediction.shape or valid.shape != prediction.shape[:1]:
-        raise ValueError("auxiliary target/mask shapes do not match prediction")
-    valid = valid.bool()
-    if not torch.isfinite(target[valid]).all():
-        raise ValueError("valid auxiliary labels must be finite")
-    target = torch.where(valid[:, None], target, torch.zeros_like(target))
-    fn = F.smooth_l1_loss if smooth_l1 else F.mse_loss
-    error = fn(prediction.float(), target.float(), reduction="none").mean(-1)
-    count = valid.sum().to(error.dtype)
-    world_size = 1
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        # DDP 将梯度平均，先按全局有效标签数归一化，再抵消梯度平均的 world_size。
-        torch.distributed.all_reduce(count)
-        world_size = torch.distributed.get_world_size()
-    return (error * valid).sum() * world_size / count.clamp_min(1)

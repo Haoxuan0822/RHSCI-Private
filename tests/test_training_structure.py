@@ -15,10 +15,10 @@ class TrainingStructureTests(unittest.TestCase):
         expected = {
             "psi0": "src/psi/rsci",
             "pi05": "src/openpi/rsci",
-            "gr00t": "src/gr00t/gr00t/rsci",
-            "egovla": "src/egovla/human_plan/rsci",
+            "gr00t": "src/gr00t/rsci",
+            "egovla": "src/human_plan/rsci",
             "act": "src/act/rsci",
-            "lambda0": "src/openlambda/lambda0/lambda0/rsci",
+            "lambda0": "src/lambda0/rsci",
         }
         # 验证实际导入位置，防止独立环境中的旧 editable 包遮蔽本仓库。
         for backbone, relative in expected.items():

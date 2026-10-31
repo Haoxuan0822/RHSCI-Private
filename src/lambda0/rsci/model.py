@@ -5,6 +5,7 @@ from torch import nn
 from torch.utils.checkpoint import checkpoint
 
 from lambda0.models.modeling_lambda0 import Lambda0
+from rsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 
 class HistoryReader(nn.Module):
@@ -120,22 +121,3 @@ class Lambda0RSCI(Lambda0):
         finally:
             self._rsci_capture = False
             self._rsci_current = None
-
-
-def masked_ardy_loss(prediction, target, valid, global_reduction=True):
-    if (
-        prediction.ndim != 2
-        or prediction.shape[-1] != 128
-        or target.shape != prediction.shape
-        or valid.shape != prediction.shape[:1]
-    ):
-        raise ValueError("ARDY prediction/target/mask shape mismatch")
-    valid = valid.bool().reshape(-1)
-    clean = torch.where(valid[:, None], target, torch.zeros_like(target))
-    per_sample = (prediction.float() - clean.float()).square().mean(dim=-1)
-    count = valid.sum().to(prediction.device, dtype=torch.float32)
-    world = 1
-    if global_reduction and torch.distributed.is_initialized():
-        world = torch.distributed.get_world_size()
-        torch.distributed.all_reduce(count)
-    return (per_sample * valid).sum() * world / count.clamp_min(1)
