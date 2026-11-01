@@ -165,7 +165,7 @@ deactivate
 cd "$PSI_HOME"
 ```
 
-The clone commands above are for a fresh external directory. Keep existing runs and assets separate; check their revisions before evaluation. The code update does not certify that a local asset copy includes the data corrections mentioned in PR #29.
+The clone commands above are for a fresh external directory. Keep existing runs and assets separate; check their revisions before evaluation. The [2026-11-01 data audit](docs/SIMPLE_OFFICIAL_20261030.md#eval-layout-audit-20261101) found all 75 files in the published two-table task ZIP identical to the historical RHSCI copy, including level-2 target poses for episodes 0/6/7/8/9. The public data has not been verified to include the position corrections mentioned in PR #29; updating the code alone does not establish this.
 
 ### Ψ0
 

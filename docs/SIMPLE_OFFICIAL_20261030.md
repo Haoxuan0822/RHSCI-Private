@@ -46,11 +46,38 @@ python3 tools/check_simple.py /mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/
 
 ## 数据与协议边界
 
-PR #29 另提及 level-2 episode 0/6/7/8/9 的初始手部与物体接触问题，相关物体位置修正在 eval data，**不包含在代码 PR 中**。本次未下载、替换或几何核验本地评测资产。
+PR #29 另提及 level-2 episode 0/6/7/8/9 的初始手部与物体接触问题，相关物体位置修正在 eval data，**不包含在代码 PR 中**。2026-10-30 源码替换时未下载、替换或几何核验本地评测资产；2026-11-01 的独立数据核验结果见下节。
 
 2026-10-30 官方 HF API 返回 `USC-PSI-Lab/psi-data` main 为 `e78fb93cc28912a3031a10b8656d32d7f0a2b867`（lastModified 2026-09-14），`USC-PSI-Lab/SIMPLE` 为 `0e8f23cce8f2e96717aa60a0e26bed9d56223c2d`（2026-10-28）。README 的 task zip 下载示例固定前者，资源脚本仍为官方版本；这些元数据不证明 PR 所述修正已被纳入，后续须核验实际场景/episode，不能将两个仓库混称同一资产版本。
 
 历史训练数据、归一化、动作最后四维语义、RTC/噪声/时钟协议均不能因 HTTP 字段兼容就视为完整兼容。没有自动重写旧 checkpoint 或动作。本版评测结果使用独立输出目录并记录 SIMPLE SHA、子模块 SHA、资产 revision 和全部开关，不与旧版结果合并统计。官方客户端不自动生成 RHSCI 的 `history.psi_eval_deterministic` 元数据，直接使用时服务端保持 `--no-deterministic-eval`；只固定普通 seed 不等于验证了历史请求噪声协议。
+
+<a id="eval-layout-audit-20261101"></a>
+
+## 2026-11-01：level-2 位置修正的独立核验
+
+**当前公开包没有核验到 PR 所述的位置修正，不能标为“数据修正已同步”。** 本轮实际下载两份固定版本 ZIP，核对大小、完整 SHA256 和全部成员 CRC，再比较文件内容与每个 episode 的配置。不是仅按上传日期推断。
+
+| 来源 | 固定 revision | ZIP bytes | SHA256 |
+| --- | --- | ---: | --- |
+| [官方 psi-data](https://huggingface.co/datasets/USC-PSI-Lab/psi-data/blob/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval/G1WholebodyLocomotionPickBetweenTablesTeleop-v0.zip) | `e78fb93cc28912a3031a10b8656d32d7f0a2b867` | 480532 | `8a4b0ff7d068967dac8baec2c4a4deca4f644215a1ee15e921739f3dfe90e7e0` |
+| [RHSCI 历史交接包](https://huggingface.co/datasets/ds1x/RHSCI/blob/2bff75eb0ca574211ed95a5d88d4fc8482426369/eval-data/SIMPLE/task-layouts/G1WholebodyLocomotionPickBetweenTablesTeleop-v0.zip) | `2bff75eb0ca574211ed95a5d88d4fc8482426369` | 490093 | `ed40763fd5d2d23e121c2a2900c31c30ed70823b8ee7310bb66907adb92f2527` |
+
+两包的 **75 个实际文件逐字节一致**；历史包另有 22 个空目录项，ZIP 打包差异不能作为位置更新证据。三个 `dr-level-*` 目录各 10 个 episode 的完整 `environment_config` 都一致，全部目标位置及朝向无变化。以下是 level-2 中 PR 指定五条的记录位置（米；两来源相同，显示舍入到六位）：
+
+| Episode | x | y | z | 两包位置差 |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | -0.314270 | 0.058306 | 0.763422 | 0 m |
+| 6 | -0.330995 | -0.051027 | 0.763422 | 0 m |
+| 7 | -0.329937 | 0.013423 | 0.763422 | 0 m |
+| 8 | -0.305153 | -0.051186 | 0.763422 | 0 m |
+| 9 | -0.329676 | 0.017821 | 0.763422 | 0 m |
+
+坐标取自 `meta/episodes.jsonl` → `environment_config` → `dr_state_dict.spatial["0"]`；同一配置的 `target` 为 `graspnet1b` / `uid="0"` / `cracker_box`。直接调用固定官方 `get_episode_lerobot` 读取全部 30 条 metadata，确认它保留上述位姿；没有构造仿真环境或运行物理。原生评测把该配置交给 `env.reset(options={"state_dict": env_conf})`，代码更新不会替换 ZIP 内的目标坐标。
+
+匿名 no-cache API 复查时，官方只有 main 分支，仍为上述 revision；两桌 ZIP 的最后提交为 `7fb4a11d4a564ecdba459586da6e0e103422b833`，时间 `2026-09-14T06:57:58Z`，早于 PR 于 `2026-10-29T05:53:51Z` 合并。结合逐文件比较，当前公开下载入口没有提供可识别的新版位置修正；未取得作者修正后的独立坐标/文件作为参考，不能反向推定移动方向或自行平移物体。
+
+[机器可读证据](../configs/simple/eval_layout_audit_20261101.json)保留两包身份、75 个文件的 SHA256、全部 30 条目标位姿及检查范围。原始 ZIP、API 收据与完整差异报告存于本机用户 data 根下 `SIMPLE-between-eval-audit-20261101/`；只是审计副本，没有替换在用资产。本轮没有验证手与物体的实际接触、物理稳定阶段或成功率；这些结论需修正参考资产和仿真核验。无需修改 RHSCI 模型或训练数据；仅本地提交，不推送。
 
 ## 空间记录
 

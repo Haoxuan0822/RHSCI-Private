@@ -22,8 +22,8 @@
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "261b7fe6d204074c340f245b56ebc2d0b5f228559a3f2e0cfadf69e8c8c93175",
-      "bytes": 13909
+      "export_sha256": "0d03d9234a2e96b9db9ac42242c9a2bb471ce1f6b0f2f5d8667d677812f504d9",
+      "bytes": 14184
     },
     "THIRD_PARTY_NOTICES.md": {
       "export_sha256": "d6c1f710f1c094ff761621c591051d320cfc8b07186a856ade698f1ecbbf243c",
@@ -109,6 +109,10 @@
       "export_sha256": "8023b6317e252959a1292dbaf4694113834aade1fac18912a95ab3675d4a37cb",
       "bytes": 2999
     },
+    "configs/simple/eval_layout_audit_20261101.json": {
+      "export_sha256": "2480066b1546f741b4b4711b671e47cfa24bdfb9938dae077a31fefe12049c83",
+      "bytes": 44839
+    },
     "configs/simple/official.json": {
       "export_sha256": "5f33db2d611e80985002b7ced79466e7c642dd34991ea28134b2ce0377dc30f2",
       "bytes": 95726
@@ -162,8 +166,8 @@
       "bytes": 7008
     },
     "docs/SIMPLE_OFFICIAL_20261030.md": {
-      "export_sha256": "ed86eeebad845308bcea4805dae5c019d9e3d176b673215ee5d73e57f885ff3c",
-      "bytes": 7438
+      "export_sha256": "9d63fadc975d589551377f7b764a9d9de8ab1bd502f7e25427a7b46cc4a64a4c",
+      "bytes": 10703
     },
     "docs/SOURCES.md": {
       "export_sha256": "1f0ec0997b2cea4d62e1d8b62032b88fe263cfca8f37569176af21136d6ed365",
