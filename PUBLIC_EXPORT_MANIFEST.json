@@ -14,16 +14,16 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "6a7cecde62c6b2a545efb97fa35fed059fcff56d1f329be28bc842af098ad7c8",
-      "bytes": 2731
+      "export_sha256": "932573f61cb9db1242b6ce9f17fbd4cc046ce1a6f38b7bf01ab25fde7906b02a",
+      "bytes": 2919
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "6aef6719f5f07133511f843c13d29ac17c47465e72012c947efd140cb6327196",
-      "bytes": 13700
+      "export_sha256": "261b7fe6d204074c340f245b56ebc2d0b5f228559a3f2e0cfadf69e8c8c93175",
+      "bytes": 13909
     },
     "THIRD_PARTY_NOTICES.md": {
       "export_sha256": "d6c1f710f1c094ff761621c591051d320cfc8b07186a856ade698f1ecbbf243c",
@@ -57,7 +57,7 @@
       "export_sha256": "d5cf0975beec184b38a5866e29c6bbef2857de286d12f25e18d1ae779d2b6098",
       "bytes": 6264
     },
-    "baselines/egovla/requirements-rsci.txt": {
+    "baselines/egovla/requirements-rhsci.txt": {
       "export_sha256": "78e21cbe339f3cb690bf042f6554c4754c444ece95c230420e866b5f519940e1",
       "bytes": 843
     },
@@ -101,7 +101,7 @@
       "export_sha256": "389ebb83fe703ad0c0a433c52f120ab53e02ad5ec0cf10f24e34e1f657cb9839",
       "bytes": 4444
     },
-    "baselines/pi05/requirements-rsci.txt": {
+    "baselines/pi05/requirements-rhsci.txt": {
       "export_sha256": "d5470f89b812a9e9efb213602a70e47fa729140c9e17a9bfdf3134adb23b3ecb",
       "bytes": 360
     },
@@ -130,8 +130,8 @@
       "bytes": 8410
     },
     "docs/ASSETS.md": {
-      "export_sha256": "e8d15a6b5e05515435ba0a42eec6d5254be99b01afaecb28a661e803beb3e90b",
-      "bytes": 3171
+      "export_sha256": "9ac19cc9b6c5c2f11375dca97ff7a113fdadc6717c68e0bd3ad820562051fe78",
+      "bytes": 4631
     },
     "docs/DATA_PREPARATION.md": {
       "export_sha256": "d21bc873f905c50eeb925b96b22c37ea0ff17fb74d3b9253473c0ba66ff459b7",
@@ -170,8 +170,8 @@
       "bytes": 3922
     },
     "docs/TRAINING.md": {
-      "export_sha256": "fc3e5d7eecebf9884f47404595a67cb0efb5bc43f67eb4be66ea37588a8abeb9",
-      "bytes": 15654
+      "export_sha256": "42219966c550a7fdc446cb9957078adf7947bce1bb077d8557c37a1065ec47a4",
+      "bytes": 18654
     },
     "docs/TRAINING_STRUCTURE_20261030.md": {
       "export_sha256": "e2743b8ddf496747f15ad2c5d2f9631a39b46eface44d3e93dbb3315a6f2187a",

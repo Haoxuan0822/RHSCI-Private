@@ -29,6 +29,8 @@ export SIMPLE_HOME="$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786"
 mkdir -p "$PSI_RUNTIME_ROOT"
 ```
 
+For a clean machine, follow the [fresh-clone training sequence](docs/TRAINING.md#from-a-fresh-clone). Install only the environment for the selected backbone; pure training does not need the SIMPLE simulator.
+
 ### Installation
 
 Install Ψ0 from the lockfile:

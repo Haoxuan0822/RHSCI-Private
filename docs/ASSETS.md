@@ -2,7 +2,15 @@
 
 Project assets are hosted under the Hugging Face account [ds1x](https://huggingface.co/ds1x). Historical repository and directory names retain `Psi0` and `RSCI`.
 
-## Training data
+## Current RHSCI handoff
+
+The current public handoff uses the dataset [ds1x/RHSCI](https://huggingface.co/datasets/ds1x/RHSCI): `train-data/` contains training data and ARDY labels; `eval-data/` contains evaluation inputs. Weights and resumable checkpoints use the separate model [ds1x/RHSCI](https://huggingface.co/ds1x/RHSCI) under `checkpoint/`. Initialization weights are still downloaded from the original backbone providers.
+
+The [fixed asset manifest](https://huggingface.co/datasets/ds1x/RHSCI/blob/2bff75eb0ca574211ed95a5d88d4fc8482426369/ASSET_MANIFEST.json) records exact filenames, roles, sizes and SHA256. Its metadata was read anonymously on 2026-11-01; this check did not download or revalidate the large payloads. Task directories are `train-data/{hug,between,oven,handover,faucet,xmove}`. Some tasks have separate data/ARDY archives; handover and faucet use combined archives. Read their manifests before extracting. For box-hugging, the two archive basenames listed below are available together under `train-data/hug/` at that fixed revision.
+
+Download only the selected task's training archives and matching metadata. Preserve archived statistics and the processed-data/ARDY pairing. Prebuilt formal labels can be used directly; training with those labels does not require installing the ARDY teacher. Full fresh-machine installation and GPU training have not been validated in this standalone checkout.
+
+## Historical training-data sources
 
 [ds1x/Psi0-reproducibility](https://huggingface.co/datasets/ds1x/Psi0-reproducibility/tree/main) contains dataset and experiment backups:
 
@@ -20,7 +28,7 @@ For the README's box-hugging examples, use these two archives under `last-and-40
 
 Each archive contains the task directory's contents: extract the data into `$HUG_DATASET` and labels into `$HUG_SIDECAR`, preserving the task basename. Retain the supplied statistics and metadata so the ARDY dataset fingerprint remains valid. Run the README's training `--check` before use. Other archives may use different layouts; follow their accompanying JSON manifests and checksums.
 
-## Trained policies
+## Historical trained-policy sources
 
 [ds1x/RSCI](https://huggingface.co/ds1x/RSCI/tree/main) contains historical RHSCI checkpoints:
 

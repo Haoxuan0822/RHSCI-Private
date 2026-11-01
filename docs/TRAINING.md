@@ -2,6 +2,19 @@
 
 Run commands from the repository root, using the selected backbone's environment. See the [backbone guides](../README.md#backbones) for dependencies. Supply data and initialization assets locally; launchers do not install packages or download assets.
 
+## From a fresh clone
+
+Use a source revision that contains the `rhsci` namespace. The local naming/layout commits are not automatically pushed; a public clone only receives commits already published. Work from the checkout root on Linux with an NVIDIA driver compatible with the chosen PyTorch/CUDA build. Install Git, uv, shared FFmpeg libraries and zstd/tar as needed. Pure training does not require the SIMPLE simulator.
+
+1. Choose one backbone and a supported variant. Install only its environment from the corresponding `baselines/<model>/README.md`; do not combine the different Transformers versions. Ψ0 and ACT use the root Python 3.10 uv environment; π0.5 has its own Python 3.10 environment and Transformers overlay; GR00T, EgoVLA and λ₀ have dedicated environments.
+2. Set `PSI_HOME` to the checkout, `PSI_RUNTIME_ROOT` to external runtime storage, and the model's Python override. Keep data, initialization weights and training outputs outside the checkout; pass explicit paths. Ψ0 also needs the local `.env` described in its guide.
+3. Restore the selected task's processed data from the [current RHSCI asset handoff](ASSETS.md#current-rhsci-handoff). Query variants need the matching formal ARDY labels. STATE/NO-STATE do not. Keep the archived normalization files; compute them only for new datasets before generating labels.
+4. Download the selected backbone's initialization weights and processor/tokenizer. Ψ0 needs its VLM and Action Expert; π0.5 needs native PyTorch pi05_droid and the PaliGemma tokenizer; GR00T uses NVIDIA N1.6; EgoVLA uses its base VLM; λ₀ needs its base assets and prepared bundle; ACT needs the local ImageNet ResNet18 file. Ψ0 EGQ variants also need DINOv2. Existing RHSCI-trained checkpoints are only needed for continuation or inference.
+5. Run the actual entry's `--help`, then its configuration/data checks. Most adapters use `--dry-run`, `--check-data` and `--check`; Ψ0 supports `--dry-run`/`--check`, while λ₀ additionally uses bundle/model checks. A dry run only prints configuration. A CPU check does not validate GPU memory or distributed training.
+6. Launch with explicit GPUs, per-GPU batch, accumulation, task, variant, seed, budget and an independent output directory. Global batch equals GPU count × per-GPU batch × accumulation. Keep data/model/recipe fixed when resuming; rerun the same command against the same output to recover a complete checkpoint where supported. Retain model, optimizer, scheduler, RNG, processing/configuration and progress files together.
+
+The root [Ψ0 VGQ-AE example](../README.md#training) shows preflight followed by training. The model guides supply each environment's exact dependencies and required flags. This documentation audit did not install environments, download large assets or start formal training. On this machine, the checkout is `/root/workspace/RHSCI-Private`; default data and checkpoint roots follow its `AGENTS.md`. On another machine, substitute your own absolute paths.
+
 ## Data preparation
 
 RHSCI adapters currently consume the SIMPLE G1 schema with 36-dimensional actions and 50 Hz timing. Prepare LeRobot data and the normalization metadata required by the selected backbone. Query variants also require matching ARDY labels; state baselines do not use those labels.
