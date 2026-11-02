@@ -1,5 +1,7 @@
-"""Preserve sampler epochs when an RHSCI Hugging Face trainer skips resumed batches."""
+"""恢复 HF 训练的数据 epoch、累计尾更新，并隔离 worker 与模型随机流。"""
 
+import inspect
+import textwrap
 from functools import update_wrapper
 from types import FunctionType
 
@@ -50,3 +52,21 @@ def epoch_safe_training_loop(trainer_class):
     )
     method.__kwdefaults__ = original.__kwdefaults__
     return update_wrapper(method, original)
+
+
+def tail_safe_training_loop(trainer_class):
+    """在已恢复 epoch 的循环上保留不足累计组的更新；仅修改派生 Trainer。"""
+    original = epoch_safe_training_loop(trainer_class)
+    source = textwrap.dedent(inspect.getsource(trainer_class._inner_training_loop))
+    old = "do_sync_step = (step + 1) % args.gradient_accumulation_steps == 0 or (step + 1) == steps_in_epoch"
+    new = (
+        "do_sync_step = (step + 1 + steps_skipped) % args.gradient_accumulation_steps == 0 "
+        "or (step + 1 + steps_skipped) == steps_in_epoch"
+    )
+    if source.count(old) != 1:
+        raise RuntimeError(
+            "Unsupported HF epoch-tail loop; inspect native implementation before training"
+        )
+    namespace = dict(original.__globals__)
+    exec(compile(source.replace(old, new), "<rhsci-local-epoch-tail>", "exec"), namespace)
+    return update_wrapper(namespace[original.__name__], original)

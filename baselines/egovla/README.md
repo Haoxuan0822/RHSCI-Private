@@ -67,4 +67,4 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 
 2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
 
-2026-11-02: [Original-source recovery audit](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md) confirms that both PSI0-RAW and this adapter lack worker/model RNG isolation for persistent-worker reconstruction. Sample order alone does not establish exact resumed parameters. This issue remains under the user's current scope.
+2026-11-03: [Official comparison and recovery correction](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md): the user meant official SIMPLE, not PSI0-RAW. The adapter now uses the shared worker RNG isolation and explicitly closes created loaders after training. Its existing accumulation-tail fix is shared with π0.5. With 0 or 2 persistent workers, the CPU recovery comparison matches sample order, final parameters, Adam, scheduler and Torch main RNG exactly; worker-local stochastic transforms and full-model GPU equivalence remain unverified.

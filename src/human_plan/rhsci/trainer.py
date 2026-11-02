@@ -20,8 +20,10 @@ def create_trainer_class():
     import torch
     from transformers import Trainer
 
+    from rhsci.data.loader_cleanup import close_dataloaders
+    from rhsci.runtime.hf_resume import isolate_worker_rng, tail_safe_training_loop
+
     from .checkpoints import load_trainables
-    from .resume_tail import tail_safe_training_loop
 
     class RHSCITrainer(Trainer):
         _inner_training_loop = tail_safe_training_loop(Trainer)
@@ -29,6 +31,19 @@ def create_trainer_class():
         def __init__(self, *args, launch_contract=None, **kwargs):
             super().__init__(*args, **kwargs)
             self.launch_contract = launch_contract
+            self._rsci_loaders = []
+
+        def get_train_dataloader(self):
+            loader = isolate_worker_rng(super().get_train_dataloader(), self.args.seed)
+            self._rsci_loaders.append(loader)
+            return loader
+
+        def train(self, *args, **kwargs):
+            try:
+                return super().train(*args, **kwargs)
+            finally:
+                close_dataloaders(*self._rsci_loaders)
+                self._rsci_loaders.clear()
 
         def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
             outputs = model(**inputs)

@@ -15,11 +15,11 @@ def create_trainer_class():
     from transformers import Trainer
 
     from rhsci.data.loader_cleanup import close_dataloaders
-    from rhsci.runtime.hf_resume import epoch_safe_training_loop, isolate_worker_rng
+    from rhsci.runtime.hf_resume import isolate_worker_rng, tail_safe_training_loop
     from rhsci.runtime.numerics import require_finite
 
     class RHSCITrainer(Trainer):
-        _inner_training_loop = epoch_safe_training_loop(Trainer)
+        _inner_training_loop = tail_safe_training_loop(Trainer)
 
         def __init__(self, *a, **kw):
             super().__init__(*a, **kw)

@@ -32,6 +32,11 @@ class TinyPolicy(nn.Module):
 class EpochTailTests(unittest.TestCase):
     @patch("human_plan.rhsci.checkpoints.prune", lambda *a: None)
     def test_native_epoch_tail_and_mid_epoch_resume(self):
+        for workers in (0, 2):
+            with self.subTest(workers=workers):
+                self.compare_resume(workers)
+
+    def compare_resume(self, workers):
         torch.set_num_threads(1)
 
         class Recording(create_trainer_class()):
@@ -55,7 +60,7 @@ class EpochTailTests(unittest.TestCase):
                 "--num-train-epochs",
                 "3",
                 "--num-workers",
-                "0",
+                str(workers),
             ]
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -95,6 +100,7 @@ class EpochTailTests(unittest.TestCase):
             torch.testing.assert_close(
                 second.optimizer.state_dict(), first.optimizer.state_dict(), rtol=0, atol=0
             )
+            self.assertEqual(second.lr_scheduler.state_dict(), first.lr_scheduler.state_dict())
             torch.testing.assert_close(torch.get_rng_state(), expected_rng, rtol=0, atol=0)
 
 

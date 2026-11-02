@@ -35,6 +35,6 @@ Accelerate 的 `skip_first_batches` 会新建 `DataLoaderShard`，新对象 iter
 
 撤回归一化后的验证：π CPU 38 项、GR CPU 32 项、HTTP 11 项及 CLI 11 项通过。仅本地提交，不推送远端。
 
-## 累计大于1的已确认边界
+## 2026-11-03：累计大于1的尾部恢复修复
 
-后续[原仓库恢复对照](GUARDIAN_RECOVERY_AUDIT_20261102.md)已确认：19样本/batch2/累计4/3epoch，从第4步恢复可能仅到8步，连续训练为9步。PSI0-RAW 原 π Trainer 也复现，按用户“原仓库没有的修复”范围本轮保留。因此累计>1不只是未验证，更是当前已知问题，不能用上述累计1通过结果覆盖。
+后续[官方范围更正与恢复修复](GUARDIAN_RECOVERY_AUDIT_20261102.md)确认此前误把“原仓库”理解成PSI0-RAW，用户实际指SIMPLE官方。π现接公共 `tail_safe_training_loop`，复用Ego已有算法，同步条件计入恢复跳过的批数。19样本/batch2/累计4/3epoch、第4步恢复，0与2持久worker均从修复前8步变为完整9步，与连续训练样本、前向随机值、参数、Adam、调度器和主RNG逐元素一致；π CPU共39项通过。此结果扩展上文累计1证据，不覆盖worker内部随机变换或GPU。归一化保持原版本；旧训练已漏的更新不会自动补回。

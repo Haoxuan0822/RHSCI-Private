@@ -12,7 +12,7 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-02：[π0.5 完整恢复修复](docs/PI05_CORRECTNESS_20261102.md)。按用户最新要求，仅保留跨 epoch 恢复及 worker RNG 隔离；归一化、训练配方和推理公式恢复原有版本。
 
-2026-11-02：[守护与恢复的原仓库对照](docs/GUARDIAN_RECOVERY_AUDIT_20261102.md)。修复 RHSCI 独有 λ₀ 守护的停止清理与锁生命周期；π累计尾部、Ego持久 worker RNG 问题也存在于 PSI0-RAW，按本轮范围保留。
+2026-11-03：[SIMPLE 官方对照及守护/恢复修复](docs/GUARDIAN_RECOVERY_AUDIT_20261102.md)。纠正此前将PSI0-RAW当作官方的对照范围；λ₀守护清理、π累计尾更新及Ego持久worker RNG隔离均已修复并经CPU对照，不代表官方全模型/GPU等价。
 
 ## Getting started
 

@@ -63,7 +63,12 @@ class ResumeProgressTests(unittest.TestCase):
             with self.subTest(workers=workers, stops=stops):
                 self.compare_resume(workers, stops)
 
-    def compare_resume(self, workers, stops):
+    def test_accumulated_epoch_tail_matches_after_resume(self):
+        for workers in (0, 2):
+            with self.subTest(workers=workers):
+                self.compare_resume(workers, [4], accumulation=4, epochs=3, max_steps=-1)
+
+    def compare_resume(self, workers, stops, accumulation=1, epochs=3, max_steps=24):
         with tempfile.TemporaryDirectory() as directory:
 
             def run(name, stop=None, resume=None):
@@ -72,7 +77,9 @@ class ResumeProgressTests(unittest.TestCase):
                 output = Path(directory) / name
                 args = TrainingArguments(
                     output_dir=str(output),
-                    max_steps=24,
+                    max_steps=max_steps,
+                    num_train_epochs=epochs,
+                    gradient_accumulation_steps=accumulation,
                     per_device_train_batch_size=2,
                     learning_rate=1e-4,
                     seed=42,
@@ -97,6 +104,7 @@ class ResumeProgressTests(unittest.TestCase):
                 )
                 trainer.train(resume_from_checkpoint=str(resume) if resume else None)
                 states = (
+                    trainer.state.global_step,
                     copy.deepcopy(model.state_dict()),
                     copy.deepcopy(trainer.optimizer.state_dict()),
                     copy.deepcopy(trainer.lr_scheduler.state_dict()),
@@ -105,6 +113,7 @@ class ResumeProgressTests(unittest.TestCase):
                 return model, states, output
 
             full, expected, _ = run("full")
+            self.assertEqual(expected[0], 9 if accumulation == 4 else max_steps)
             checkpoint = None
             samples, noise = [], []
             for stop in [*stops, None]:

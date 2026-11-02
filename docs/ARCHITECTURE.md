@@ -87,7 +87,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 - `rhsci.runtime.losses.masked_auxiliary_loss` / `masked_ardy_loss` 统一有效标签与 DDP 全局有效数归一化；各骨干保留各自动作损失。
 - `runtime.contracts.training_configuration` / `reuse_run_contract` 比较模型、数据和配方；源码及依赖版本摘要作为审计记录保留，不再作为运行门槛。
 - `runtime.hf_full_state.HFCheckpointProtocol` / `HFTrainerCheckpointProtocol` 统一 ACT、Ego、π、GR 的完整点发布、发现与轮换；Ψ、λ保留原生断点集成。
-- `runtime.numerics.require_finite` 和 `runtime.processes.wait_worker` 复用数值异常传播与子进程回收。ACT/π/GR/Ego 复用 `epoch_safe_training_loop`，Ego 再加 `tail_safe_training_loop` 处理恢复后的 epoch 尾部累计。
+- `runtime.numerics.require_finite` 和 `runtime.processes.wait_worker` 复用数值异常传播与子进程回收。ACT/π/GR/Ego 复用 `epoch_safe_training_loop`；π/Ego 再共用公共 `tail_safe_training_loop` 处理恢复后的 epoch 尾部累计，π/GR/Ego 共用 `isolate_worker_rng`。
 
 剩余结构问题按影响排序：
 
@@ -97,7 +97,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 4. **推理服务接口分散。** π/GR 使用公共 HTTP 层，ACT 独立 FastAPI，Ego 使用 `BaseHTTPRequestHandler`，Ψ/λ保留各自服务。可复用请求编解码、错误响应和 reset 协议，采样本身留在模型侧。
 5. **公共缓存构建反向依赖 ACT。** `scripts/data/build_raw_input_cache.py` 从 `act.rhsci.data` 和 `act.rhsci.train` 导入 Dataset/参数工具。通用原始数据读取应归入公共数据层，避免其他骨干构建缓存时依赖 ACT 的训练入口。
 6. **推理资产仍与训练集耦合。** π `serve.Server.__init__` 核对整个训练集的内容指纹，Processor 从数据目录加载统计；尚非仅凭模型＋独立处理器资产就能部署。应导出独立统计/处理器资产并兼容旧点。
-7. **恢复实现有依赖版本耦合。** Ego `tail_safe_training_loop` 通过读取 HF 源码并替换一行同步条件修复尾部恢复；匹配失败会报错。它有回归覆盖，但维护时仍需检查对应 HF 内部实现，不能等同于稳定公共 API。
+7. **恢复实现有依赖版本耦合。** 公共 `tail_safe_training_loop` 通过读取 HF 源码并替换一行同步条件修复π/Ego尾部恢复；匹配失败会报错。它有回归覆盖，但维护时仍需检查对应 HF 内部实现，不能等同于稳定公共 API。
 
 旧 `rsci_*` 权重键、配置名和产物名用于读取已有模型，不是另一套重复源码；本轮不因命名清理破坏兼容。
 
@@ -194,4 +194,4 @@ ACT, π0.5, GR00T and EgoVLA use `config`, `preflight`, `contract`, `trainer`, `
 
 ## λ₀ 守护与恢复对照（2026-11-02）
 
-[原仓库对照与守护修复](GUARDIAN_RECOVERY_AUDIT_20261102.md)更新公共进程管理接入：λ₀ 也使用 `run_worker_process` / `wait_worker`，通过可选启动/等待回调保留日志、记录PID并跟踪子孙，清理后释放锁；torchrun继承锁FD。π累计>1尾部更新和Ego持久worker RNG扰动在原仓库实际Trainer也可复现，按用户范围不改，不构成迁移独有遗漏。原始归一化及各骨干训练配方保持。
+[官方对照与守护修复](GUARDIAN_RECOVERY_AUDIT_20261102.md)更新公共进程管理接入：λ₀ 也使用 `run_worker_process` / `wait_worker`，通过可选启动/等待回调保留日志、记录PID并跟踪子孙，清理后释放锁；torchrun继承锁FD。2026-11-03用户更正对照对象为SIMPLE官方，撤回此前按PSI0-RAW同源而保留π/Ego问题的决定：π复用公共累计尾恢复，Ego接公共worker RNG隔离与loader清理。两者真实Trainer CPU恢复一致；原始归一化及各骨干训练配方保持，不外推到worker随机变换或全模型GPU。

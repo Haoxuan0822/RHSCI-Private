@@ -46,5 +46,90 @@
       "same_parameters": false
     }
   ],
-  "lambda0_comparison": "No matching RHSCI guardian in the current PSI0-RAW tree. Its RSCI/lambda0 and src/openlambda/lambda0/lambda0/rsci paths are absent; the integration record identifies lambda0 as a target-only adapter."
+  "lambda0_comparison": "No matching RHSCI guardian in the current PSI0-RAW tree. Its RSCI/lambda0 and src/openlambda/lambda0/lambda0/rsci paths are absent; the integration record identifies lambda0 as a target-only adapter.",
+  "interpretation_correction_20261103": {
+    "user_comparison_target": "Official SIMPLE; PSI0-RAW results above are historical local-source probes, not official evidence.",
+    "simple_repository": "https://github.com/physical-superintelligence-lab/SIMPLE",
+    "remote_main": "b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11",
+    "verification": "git ls-remote main plus tools/check_simple.py: 433 files and 9 recursive submodules match",
+    "scope": "SIMPLE clients do not contain the corresponding RHSCI training guardian/Trainer. Absence of those functions is not proof of bug-free official training.",
+    "sources": {
+      "README.md": "91ea94a57833e8d279ab84301bdba97ce12a86ce93a40979b381a714591c739d",
+      "src/simple/baselines/pi05.py": "937331ceb5512c08a4338db97a5e26cc32d7f32d81944702f5c2e5a6b560c1e6",
+      "src/simple/baselines/egovla.py": "6c77b7a8d097c1fb95dad1765a62d838b09a15ca46671b5d51cd3265a3054ce2",
+      ".gitmodules": "d16d6ba693492e823c367d96b33b4ad3ad7a5c3403fd6359045fea3d8964c7a2"
+    },
+    "rhsci_fixes": [
+      "lambda0 process cleanup and inherited lock retained",
+      "pi05 shares existing epoch-tail fix with EgoVLA in rhsci.runtime.hf_resume",
+      "EgoVLA shares pi05/GR worker RNG isolation and closes created loaders"
+    ],
+    "cpu_comparisons": {
+      "pi05": {
+        "dataset_samples": 19,
+        "batch": 2,
+        "accumulation": 4,
+        "epochs": 3,
+        "interrupt_step": 4,
+        "workers": [
+          0,
+          2
+        ],
+        "continuous_steps": 9,
+        "before_resumed_steps": 8,
+        "after_resumed_steps": 9,
+        "equal_after": [
+          "samples",
+          "forward torch/python/numpy randomness",
+          "parameters",
+          "Adam",
+          "scheduler",
+          "main RNG"
+        ]
+      },
+      "egovla": {
+        "dataset_samples": 9,
+        "batch": 1,
+        "accumulation": 4,
+        "epochs": 3,
+        "resume_checkpoint": 4,
+        "workers": [
+          0,
+          2
+        ],
+        "steps": 9,
+        "before_workers2": "parameters differ",
+        "equal_after": [
+          "samples",
+          "parameters",
+          "Adam",
+          "scheduler",
+          "Torch main RNG"
+        ]
+      }
+    },
+    "limitations": [
+      "deterministic tiny CPU datasets only",
+      "no worker-local stochastic transform state guarantee",
+      "no official full-model or CUDA resume run",
+      "previously skipped optimizer updates are not retroactively recovered"
+    ],
+    "validation": {
+      "pi05_cpu": {
+        "passed": 39
+      },
+      "egovla_cpu": {
+        "passed": 28,
+        "environment_errors": 1,
+        "reason": "existing missing flash_attn in SigLIP model test; recovery comparisons pass"
+      },
+      "gr00t_cpu": {
+        "passed": 32
+      },
+      "targeted_resume_tests": {
+        "passed": 3,
+        "subcases": "pi05 accumulation1 single/multiple/boundary; accumulation4 workers0/2; Ego workers0/2"
+      }
+    }
+  }
 }
