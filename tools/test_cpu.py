@@ -19,6 +19,9 @@ PATTERNS = {
         "test_rsci_switches.py",
         "test_psi0_preprocessing.py",
         "test_guardian_processes.py",
+        "test_guardian_recovery.py",
+        "test_raw_cache_builder.py",
+        "test_simple_shared_interfaces.py",
         "test_simple_preparation.py",
     ),
     "pi05": (

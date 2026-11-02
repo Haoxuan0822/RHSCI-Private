@@ -8,7 +8,8 @@ import sys
 
 from rhsci.data.cache_config import cache_arguments
 from rhsci.runtime.environment import get_env
-from rhsci.runtime.processes import wait_worker
+from rhsci.runtime.processes import run_worker_process
+from rhsci.runtime.processes import wait_worker as wait_worker
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
 
@@ -57,12 +58,9 @@ def run_training_guardian(args, paths, value=None, digest=None):
                 "--worker",
                 *cache_arguments(paths["input_cache"]),
             ]
-            process = subprocess.Popen(
-                command,
-                start_new_session=True,
-                env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus},
+            result = run_worker_process(
+                command, env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus}
             )
-            result = wait_worker(process)
             if result == 0 and checkpoint_ok(
                 output / f"checkpoint-{args.max_steps}", world, digest, verify=True
             ):

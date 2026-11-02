@@ -89,10 +89,16 @@ Read `train.main` first, then follow the called functions to their owning module
 | `build_checkpoint_callback` | Return the callback that validates and publishes a complete checkpoint |
 | `run_training_worker` | Assemble the model/data/Trainer and execute one worker in ACT, π0.5, GR00T and EgoVLA |
 | `run_training_guardian` | Supervise workers and restore only verified complete checkpoints |
+| `run_checkpoint_guardian` | Shared π/GR retry loop; adapters supply checkpoint validation and worker commands |
+| `run_worker_process` | Launch one isolated worker group, forward termination and reap its process |
+| `create_policy_app` | Shared HTTP routes around a prediction callable, optional health/reset and existing error policy |
+| `load_raw_lerobot_dataset` | Read raw frame tables and video metadata without importing a model or its Processor |
 
 Ψ0 uses `resolve_training_plan` because it returns config, command, output and rank count. λ₀ uses `build_training_config` and `execute_training` to connect its native resolver/backend. These differences reflect their actual return values and execution flow.
 
 GR00T's `validate_training_data` and EgoVLA's `validate_model_and_worker_preprocessing` live in `preflight.py`, so the CLI shows the execution sequence directly. Shared launch planning uses `build_launch_plan`; HTTP factories use `create_app`. Framework methods such as `forward`, `train` and Trainer hooks retain their required names. CLI flags and persisted checkpoint fields retain their existing names. Old abbreviated Python function names have no aliases; update custom imports when switching versions. The [dated record](NATIVE_PACKAGE_LAYOUT_20261031.md#可读性与函数命名整理2026-10-31) lists validation and compatibility limits.
+
+The [2026-11-02 SIMPLE interface refactor](ARCHITECTURE.md#simple-shared-interfaces-20261102) maps actual shared callers and native model hooks. `rhsci.inference.protocol` owns SIMPLE messages; the old native `psi.deploy.helpers` import reexports the same classes. Distinct native protocols and model algorithms remain separate.
 
 ## External resources
 

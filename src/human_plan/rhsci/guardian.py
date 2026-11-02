@@ -6,6 +6,7 @@ import sys
 
 from rhsci.data.cache_config import cache_arguments
 from rhsci.paths import with_nccl
+from rhsci.runtime.processes import run_worker_process
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
 
@@ -15,7 +16,6 @@ from .checkpoints import atomic_json, checkpoint_ok, latest
 def run_training_guardian(args, paths, value, digest):
     """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""
     import fcntl
-    import subprocess
 
     output = paths["output"]
     output.mkdir(parents=True, exist_ok=True)
@@ -57,13 +57,7 @@ def run_training_guardian(args, paths, value, digest):
                 *cache_arguments(paths["input_cache"]),
             ]
             print(f"EGOVLA attempt={attempt} resume={resume}", flush=True)
-            process = subprocess.Popen(
-                with_nccl(command, expected_version="2.27.3"), start_new_session=True
-            )
-
-            from rhsci.runtime.processes import wait_worker
-
-            result = wait_worker(process)
+            result = run_worker_process(with_nccl(command, expected_version="2.27.3"))
             if result == 0 and checkpoint_ok(
                 output / f"checkpoint-{args.max_steps}", world, digest, verify=True
             ):

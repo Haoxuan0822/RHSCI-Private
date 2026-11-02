@@ -8,6 +8,8 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-02：[函数调用链与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)列出各骨干实际前向、剩余结构问题和验证边界。当前实现不能统称为严格复现官方实验或最新 PSI0-RAW 方法；其中 Ψ0 VGQ-VLM 架构和 GR00T 初始化存在明确差异。
 
+2026-11-02：[参考 SIMPLE 的接口整理](docs/ARCHITECTURE.md#simple-shared-interfaces-20261102)：共用 π/GR 检查点重试、四骨干 worker 进程管理、ACT/π/GR HTTP 包装与 SIMPLE 消息编解码；公共缓存构建已解除 ACT 依赖，原生算法和协议各自保留。
+
 ## Getting started
 
 Use Linux, NVIDIA GPUs, Git LFS and [uv](https://docs.astral.sh/uv/getting-started/installation/). Run from the checkout root. Keep data, weights and environments outside it. These examples use the SIMPLE box-hugging task and eight training GPUs. Repeat the path exports in each terminal.

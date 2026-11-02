@@ -10,7 +10,8 @@ import torch
 from PIL import Image
 
 from act.models.act import ACTConfig
-from psi.deploy.helpers import RequestMessage, ResponseMessage
+from rhsci.inference.http_app import create_policy_app
+from rhsci.inference.protocol import RequestMessage, ResponseMessage
 from rhsci.inference.weights import validate_inference_weights
 
 from .checkpoints import load_model_state
@@ -59,11 +60,7 @@ class Policy:
 
 def create_app(policy):
     """为策略对象构造 HTTP 应用；请求处理沿用该策略的动作预测与异常检查。"""
-    from fastapi import FastAPI, HTTPException
 
-    app = FastAPI()
-
-    @app.get("/health")
     def health():
         return {
             "status": "ok",
@@ -74,28 +71,24 @@ def create_app(policy):
             "action_dim": 36,
         }
 
-    @app.post("/reset")
-    def reset():
-        with policy.lock:
-            policy.reset()
-        return {"status": "ok"}
+    def predict_action(payload):
+        request = RequestMessage.deserialize(payload)
+        if len(request.image) != 1:
+            raise ValueError("ACT requires exactly one current RGB camera")
+        array = np.asarray(next(iter(request.image.values())))
+        if array.dtype != np.uint8 or array.ndim != 3 or array.shape[-1] != 3:
+            raise ValueError("Expected H×W×3 uint8 RGB")
+        actions = policy.predict(Image.fromarray(array), request.state.get("states"))
+        return ResponseMessage(actions, 0.0).serialize()
 
-    @app.post("/act")
-    def act(payload: dict):
-        try:
-            request = RequestMessage.deserialize(payload)
-            if len(request.image) != 1:
-                raise ValueError("ACT requires exactly one current RGB camera")
-            array = np.asarray(next(iter(request.image.values())))
-            if array.dtype != np.uint8 or array.ndim != 3 or array.shape[-1] != 3:
-                raise ValueError("Expected H×W×3 uint8 RGB")
-            with policy.lock:
-                actions = policy.predict(Image.fromarray(array), request.state.get("states"))
-            return ResponseMessage(actions, 0.0).serialize()
-        except Exception as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-
-    return app
+    return create_policy_app(
+        predict_action,
+        health=health,
+        reset=policy.reset,
+        lock=policy.lock,
+        error_status=400,
+        errors=(Exception,),
+    )
 
 
 def main():

@@ -9,9 +9,9 @@ Use descriptive action names for maintained extension functions, consistently ac
 | Directory | Responsibility |
 | --- | --- |
 | `src/psi/rhsci`, `src/openpi/rhsci`, `src/gr00t/rhsci`, `src/human_plan/rhsci`, `src/lambda0/rhsci`, `src/act/rhsci` | Model-specific integration, data, training, checkpoints and serving, colocated with each native implementation |
-| `src/rhsci/data` | ARDY sidecars, dataset provenance, frame caching and worker cleanup |
-| `src/rhsci/runtime` | Artifact writes, numerical checks, process cleanup and profiling |
-| `src/rhsci/inference` | SIMPLE control-step RGB history protocol |
+| `src/rhsci/data` | ARDY sidecars, dataset provenance, raw LeRobot input and frame caching |
+| `src/rhsci/runtime` | Artifact writes, checkpoint retries, numerical checks, process cleanup and profiling |
+| `src/rhsci/inference` | SIMPLE wire format, HTTP app, control-step RGB history and serving utilities |
 | `scripts/train` | Common launcher, shell entry points and distributed launch configuration |
 | `baselines/<backbone>` | Usage, dependencies and component integration records |
 | `tests` | Model, data, resume, numerical failure, serving and launcher regressions |
@@ -122,6 +122,35 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 使用本机已有环境，执行 `tools/test_cpu.py --backbone <name>`，离线 CPU 模式，不安装依赖。Ψ0 43、π0.5 37、GR00T 32、ACT 29 项通过；这些套件按 helper 规则排除分布式用例。EgoVLA 29 项中 28 通过，1 项因缺少 `flash_attn` 报错。λ₀没有找到配套环境，在现有 π 环境（Transformers 4.53.2）执行时，3 项轻量测试通过、3 个模型测试模块因缺 `Qwen3_5Config` 导入失败；该骨干锁文件要求 Transformers 5.14.1，不能把不匹配环境的失败判成模型缺陷。
 
 本轮未做六骨干完整官方权重的前向/梯度对照、GPU 正式训练、生产大断点恢复或 SIMPLE 物理闭环。此前生产实验的通过记录不能直接转移为 RHSCI-Private 当前代码的验收。
+
+<a id="simple-shared-interfaces-20261102"></a>
+
+## 参考 SIMPLE 的接口整理（2026-11-02）
+
+本节记录用户确认后的实际整理，覆盖上方审查第 3、4、5 项的旧现状。参照固定官方 SIMPLE `b75c6786` 的 `EnvRunner._resolve_policy`、`PolicyLike`、`HttpActionClient` 和 `SonicActionPolicy`：公共调用层依赖小接口，骨干适配器提供差异。SIMPLE 自身也有不同协议与重复入口，本仓没有将保留原生协议视为必须消除的问题。
+
+| 公共实现 | 已接入的调用方 | 模型侧继续负责 |
+| --- | --- | --- |
+| `runtime/guardian.py::run_checkpoint_guardian` | π0.5、GR00T 的 `rhsci.guardian.run_training_guardian` | 配方验证、worker 参数、原生完整检查点校验；保留四次尝试、无新点不重复回放、不从零自动重启 |
+| `runtime/processes.py::run_worker_process` / `wait_worker` | ACT、Ego 直接调用；π/GR 经公共 guardian 调用 | ACT/Ego 原有的三次尝试和进展判定仍在各自 guardian；公共层负责独立进程组、信号转发及子进程回收 |
+| `inference/protocol.py` 的 `RequestMessage`、`ResponseMessage`、`numpy_serialize`、`numpy_deserialize` | ACT、π直接使用；Ego 复用数组编解码；原生 Ψ/GR 等通过旧 `psi.deploy.helpers` 路径重导出同一实现 | 各模型的观测字段、维度、归一化与动作含义；旧字段名和 NumPy wire format 保持 |
+| `inference/http_app.py::create_policy_app` | ACT，以及 π/GR 的公共 HTTP 入口 | `predict_action(payload)`、health 内容、可选 reset；ACT 保留 400 错误，π/GR 保留 422；不为无 reset 的策略新增路由 |
+| `data/lerobot.py::load_raw_lerobot_dataset` | `scripts/data/build_raw_input_cache.py` | 原生 LeRobot 帧表/视频路径；构建器不再导入 ACT Dataset、Processor 或训练参数，不需要 `stats_psi0.json` |
+
+π worker 参数转发改用既有 `worker_arguments`，与 GR 一致，避免将旧 `--resume=...` 和 guardian 控制参数再次带入恢复命令。分布式进程数、端口计算、缓存选择、NCCL 环境和训练配置保持。公共缓存继续使用既有 schema `act-raw-input-cache-v1`，没有更名旧产物或改写已有缓存。
+
+原生模型接入点明确如下；这些前向不在本轮移动，以保持模型参数键和研究实现边界：
+
+| 原生接入点 | 调用扩展的位置 |
+| --- | --- |
+| `psi/models/psi0.py::Psi0Model` | 继承 `RHSCIPolicyMixin`；构造/恢复调用 `_init_rhsci` / `_restore_rhsci`，前向调用 `_rhsci_forward`，推理调用 `_rhsci_inference_features` |
+| `psi/trainers/finetune.py::FinetuneTrainer` | 训练传入历史及辅助开关并组合 ARDY loss；验证经 `_rhsci_inference_features` 处理条件 |
+| `psi/data/lerobot/lerobot_ext.py::LeRobotDatasetWrapper` | 历史采样、ARDY sidecar 与输入缓存接入 |
+| `gr00t/model/gr00t_n1d6/gr00t_n1d6.py` | `Gr00tN1d6ActionHead` 构建 `VisualStateQuery`；`Gr00tN1d6.forward` 编码历史、调用共享 DiT Query 并组合辅助损失 |
+
+仍保留模型专属 Processor/Reader、动作损失、优化器配方、采样以及原生服务。Ego 的标准库 HTTP、Ψ/λ的原生服务与 WebSocket 入口继续保留；没有新增重型公共 Trainer。π推理仍依赖训练目录统计，Ego HF 恢复尾部仍耦合内部版本；这两项尚未改变。上节列出的 Ψ方法架构和 GR 初始化差异同样未因基础设施整理而解决，不能据此宣称严格复现。
+
+验证：Ψ套件新增11项后共54项通过（原43项也通过）；π37、GR32、ACT29 项原有 CPU 套件通过。Ego28通过，1项仍缺 FlashAttention。公共守护与真实四骨干子进程终止共7项、原有 HTTP 11项、ACT HTTP 1项、官方 SIMPLE wire format 2项、共享接口3项、原生 LeRobot 数据/无骨干导入2项通过。计数在套件之间有重叠，不是独立测试总数。真实子进程测试覆盖终止转发/回收、失败后完整点恢复、无点不重启、无进展退出、控制参数过滤和路径含空格；数据测试用临时三帧原生 LeRobot 数据，未构建生产全量缓存。HTTP 覆盖原生消息重导出、非连续数组、ACT reset/错误状态、Ego 实际 HTTP 往返及固定官方客户端兼容。原生 Ψ/ACT/DP/GR 部署模块导入、11项公共 CLI 测试、Python 3.10 语法和现有 Ruff 检查通过。仅 CPU；未正式训练、GPU评测、安装环境或改动 PSI0-RAW 生产状态。
 
 ## Development
 

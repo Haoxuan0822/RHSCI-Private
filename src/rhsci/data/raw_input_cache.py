@@ -1,4 +1,4 @@
-"""Read-only ACT input caches: original table values and pre-augmentation RGB."""
+"""Read-only input caches: original table values and pre-augmentation RGB."""
 
 import json
 from pathlib import Path

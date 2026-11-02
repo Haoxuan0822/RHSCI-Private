@@ -1,4 +1,4 @@
-"""Exercise guardian termination through real ACT and EgoVLA child processes."""
+"""Exercise guardian termination through actual child processes for four backbones."""
 
 import os
 import select
@@ -18,6 +18,7 @@ class GuardianProcessTests(unittest.TestCase):
     def test_guardians_forward_termination_and_reap_workers(self):
         code = """
 import importlib, pathlib, subprocess, sys
+from contextlib import ExitStack
 from types import SimpleNamespace
 from unittest.mock import patch
 from rhsci.data.cache_config import InputCacheConfig
@@ -28,14 +29,23 @@ def worker(*args, **kwargs):
                          start_new_session=True)
     print(process.pid, file=sys.stderr, flush=True)
     return process
-with patch.object(module, 'latest', return_value=None), \
-     patch.object(module, 'checkpoint_ok', return_value=False), \
-     patch('subprocess.Popen', side_effect=worker):
-    module.run_training_guardian(SimpleNamespace(gpus='0', max_steps=2),
-                    {'output': pathlib.Path(sys.argv[2]), 'input_cache': InputCacheConfig()},
-                    {}, 'test')
+with ExitStack() as stack:
+    name = 'latest' if hasattr(module, 'latest') else 'latest_checkpoint'
+    stack.enter_context(patch.object(module, name, return_value=None))
+    stack.enter_context(patch.object(module, 'checkpoint_ok', return_value=False))
+    stack.enter_context(patch('subprocess.Popen', side_effect=worker))
+    if hasattr(module, 'build_training_contract'):
+        stack.enter_context(patch.object(module, 'build_training_contract',
+                                         return_value=({}, 'abcd')))
+    args = SimpleNamespace(gpus='0', max_steps=2, resume=None, guardian_fd=0,
+                           nccl_library=None)
+    paths = {'output': pathlib.Path(sys.argv[2]), 'input_cache': InputCacheConfig()}
+    if module.__name__.startswith(('gr00t.', 'openpi.')):
+        module.run_training_guardian(args, paths, 'abcd')
+    else:
+        module.run_training_guardian(args, paths, {}, 'abcd')
 """
-        for backbone in ("act", "egovla"):
+        for backbone in ("act", "egovla", "pi05", "gr00t"):
             with self.subTest(backbone=backbone), tempfile.TemporaryDirectory() as temp:
                 module = f"{BACKBONE_MODULES[backbone]}." + (
                     "launch" if backbone == "act" else "guardian"

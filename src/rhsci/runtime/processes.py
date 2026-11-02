@@ -10,6 +10,19 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
+def run_worker_process(command, **options):
+    """启动独立 worker 进程组并等待退出；转发终止信号、回收子进程，返回退出码。"""
+    process = subprocess.Popen(command, start_new_session=True, **options)
+    try:
+        return wait_worker(process)
+    finally:
+        # 仅清理由本次 Popen 创建的进程组，不能影响其他训练。
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+
 def wait_worker(process, grace=30):
     """Wait for a session-leading worker; forward signals without reentering Popen.wait."""
     requested = None

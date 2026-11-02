@@ -8,24 +8,17 @@ from pathlib import Path
 
 import numpy as np
 
+from rhsci.inference.protocol import numpy_deserialize, numpy_serialize
+
 from .checkpoints import load_trainables
 
 
 def decode_numpy(value):
-    if isinstance(value, dict) and "__numpy__" in value:
-        return np.frombuffer(
-            base64.b64decode(value["__numpy__"]), dtype=np.dtype(value["dtype"])
-        ).reshape(value["shape"])
-    return value
+    return numpy_deserialize(value)
 
 
 def encode_numpy(value):
-    value = np.ascontiguousarray(value)
-    return dict(
-        __numpy__=base64.b64encode(value.tobytes()).decode(),
-        dtype=value.dtype.str,
-        shape=list(value.shape),
-    )
+    return numpy_serialize(np.ascontiguousarray(value))
 
 
 def predict(model, processor, payload):

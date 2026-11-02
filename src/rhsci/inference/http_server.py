@@ -3,33 +3,16 @@
 import argparse
 import json
 import os
-import threading
 from pathlib import Path
 
 from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run
+from rhsci.inference.http_app import create_policy_app
 from rhsci.inference.state_noise import RequestStateNoise, add_arguments
 
 
 def create_app(server):
     """为策略对象构造 HTTP 应用；请求处理沿用该策略的动作预测与异常检查。"""
-    from fastapi import FastAPI, HTTPException
-
-    app = FastAPI()
-    lock = threading.Lock()
-
-    @app.post("/act")
-    def act(payload: dict):
-        try:
-            with lock:
-                return server.predict_action(payload)
-        except (ValueError, KeyError) as error:
-            raise HTTPException(status_code=422, detail=str(error)) from error
-
-    @app.get("/health")
-    def health():
-        return {"status": "ok"}
-
-    return app
+    return create_policy_app(server.predict_action)
 
 
 def build_argument_parser():

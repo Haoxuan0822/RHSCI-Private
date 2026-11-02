@@ -83,7 +83,7 @@ class Server:
         import torch
         from fastapi.responses import JSONResponse
 
-        from psi.deploy.helpers import RequestMessage, ResponseMessage
+        from rhsci.inference.protocol import RequestMessage, ResponseMessage
 
         request = RequestMessage.deserialize(payload)
         if set(request.image) != {"rgb_head_stereo_left"}:

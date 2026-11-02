@@ -12,10 +12,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from act.rhsci.data import IMAGE, ACTDataset
-from act.rhsci.train import build_argument_parser, resolve_training_paths
 from rhsci.data.ardy_sidecar import dataset_content_fingerprint
 from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.lerobot import RGB_KEY, load_raw_lerobot_dataset
 from rhsci.data.raw_input_cache import SCHEMA, cache_identity
 from rhsci.runtime.artifacts import atomic_json, sha256
 
@@ -97,12 +96,7 @@ def main():
         ap.error("Cache must live outside the source checkout")
     # 生成时必须从原始视频读取，不能继承当前进程的缓存配置。
     torch.set_num_threads(1)
-    paths = resolve_training_paths(
-        build_argument_parser().parse_args(
-            ["--task", cli.dataset.name, "--model", "STATE", "--dataset", str(cli.dataset)]
-        )
-    )
-    root = paths["dataset"]
+    root = cli.dataset.resolve(strict=True)
     CACHE.mkdir(parents=True, exist_ok=True)
     target = CACHE / root.name
     with (CACHE / (root.name + ".lock")).open("a") as lock:
@@ -112,9 +106,9 @@ def main():
             return
         pending = CACHE / (root.name + f".building-{os.getpid()}")
         pending.mkdir()
-        ds = ACTDataset(root, None, "STATE", 2026)
-        hf = ds.native.hf_dataset.select_columns(
-            [k for k in ds.native.hf_dataset.column_names if not k.startswith("observation.depth.")]
+        ds = load_raw_lerobot_dataset(root)
+        hf = ds.hf_dataset.select_columns(
+            [k for k in ds.hf_dataset.column_names if not k.startswith("observation.depth.")]
         )
         columns = {k: torch.stack(v).contiguous() for (k, v) in hf[:].items()}
         if not all((torch.isfinite(v).all() for v in columns.values() if v.is_floating_point())):
@@ -139,7 +133,7 @@ def main():
             json.loads(line) for line in (root / "meta/episodes.jsonl").read_text().splitlines()
         ]
         for ep in episodes:
-            relative = str(ds.native.meta.get_video_file_path(ep["episode_index"], IMAGE))
+            relative = str(ds.meta.get_video_file_path(ep["episode_index"], RGB_KEY))
             jobs.append((str(root), str(pending), ep["episode_index"], ep["length"], relative))
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=cli.workers, mp_context=multiprocessing.get_context("spawn")

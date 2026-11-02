@@ -4,6 +4,8 @@ Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.m
 
 SIMPLE now defaults to official `b75c6786` (including PR #29). Before simulation, verify the external checkout with `python3 tools/check_simple.py "$SIMPLE_HOME"` and review [version, assets and protocol compatibility](SIMPLE_OFFICIAL_20261030.md). CPU wire-format compatibility does not validate old-checkpoint behavior in the new simulator.
 
+SIMPLE message encoding lives in `rhsci.inference.protocol`; the native `psi.deploy.helpers` path reexports those classes for compatibility. ACT and the π/GR HTTP entry share `create_policy_app`, while prediction, error status and optional reset remain adapter-specific. EgoVLA keeps its standard-library HTTP service and reuses the NumPy codec. See the [shared interface map](ARCHITECTURE.md#simple-shared-interfaces-20261102).
+
 ## PSI0
 
 Copy `.env.sample` to an untracked `.env` and set paths as described in the [PSI0 guide](../baselines/psi0/README.md). Serve a checkpoint with the normal server arguments:
