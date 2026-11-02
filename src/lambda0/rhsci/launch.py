@@ -49,23 +49,24 @@ def run_training_guardian(args, argv, output):
                         output / "worker.json", dict(pid=worker_pid, command=command, log=str(log))
                     )
 
-                try:
-                    returncode = run_worker_process(
-                        command,
-                        stdout=stream,
-                        stderr=subprocess.STDOUT,
-                        env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus},
-                        # 守护遭 SIGKILL 时不能转发信号，worker 仍持锁，拒绝叠加启动。
-                        pass_fds=(lock.fileno(),),
-                        on_start=record_worker,
-                        on_wait=observe_worker,
-                    )
-                finally:
-                    if worker_pid is not None:
-                        remember_tree(worker_pid, tracked, process_table(), own_group=worker_pid)
+                def cleanup_worker(process):
+                    try:
+                        remember_tree(process.pid, tracked, process_table(), own_group=process.pid)
                         cleanup(tracked)
-                    # worker/rank 全部退出后才离开外层持锁块；前台 Ctrl+C 仍只退出 tail。
-                    print(reader.read(), end="", flush=True)
+                    finally:
+                        print(reader.read(), end="", flush=True)
+
+                returncode = run_worker_process(
+                    command,
+                    stdout=stream,
+                    stderr=subprocess.STDOUT,
+                    env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus},
+                    # 守护遭 SIGKILL 时不能转发信号，worker 仍持锁，拒绝叠加启动。
+                    pass_fds=(lock.fileno(),),
+                    on_start=record_worker,
+                    on_wait=observe_worker,
+                    on_exit=cleanup_worker,
+                )
             if returncode == 0:
                 complete = output / "training_complete.json"
                 if (

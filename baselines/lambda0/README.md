@@ -16,3 +16,5 @@ The environment lock records a known setup; runtime does not require every exact
 ## Guardian lifecycle (2026-11-02)
 
 The guardian forwards SIGTERM/SIGINT to its worker process group and waits for worker/rank cleanup before releasing the training lock. The worker inherits the lock FD, preventing another launch while it remains alive after a guardian SIGKILL; SIGKILL itself cannot be forwarded. Foreground Ctrl+C still exits only the log viewer. See the [source comparison, process tests and limits](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md).
+
+2026-11-03: [Lifecycle and readability review](../../docs/CODE_REVIEW_20261103.md). Stop-signal handling now spans Popen startup, launch-record callbacks and exit cleanup; rank cleanup finishes before the guardian releases its lock. Hard-kill protection still relies on the worker inheriting the lock.

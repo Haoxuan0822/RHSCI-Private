@@ -2,8 +2,6 @@
 
 import json
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def build_processor(args, paths):
     from gr00t.model.gr00t_n1d6.processing_gr00t_n1d6 import Gr00tN1d6Processor

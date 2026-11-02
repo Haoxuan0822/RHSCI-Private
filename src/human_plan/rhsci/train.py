@@ -21,8 +21,6 @@ from .trainer import create_trainer_class as create_trainer_class
 from .trainer import require_finite as require_finite
 from .worker import run_training_worker as run_training_worker
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def main():
     args = build_argument_parser().parse_args()

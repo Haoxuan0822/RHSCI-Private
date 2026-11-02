@@ -117,8 +117,11 @@ class Processing(unittest.TestCase):
 
 
 class Synthetic(Dataset):
+    def __init__(self, samples=32):
+        self.samples = samples
+
     def __len__(self):
-        return 32
+        return self.samples
 
     def __getitem__(self, index):
         epoch, index = index if isinstance(index, tuple) else (0, index)
@@ -168,14 +171,19 @@ class Resume(unittest.TestCase):
     def test_persistent_workers_second_epoch_resume(self):
         self.run_resume(2)
 
-    def run_resume(self, workers):
+    def test_partial_accumulation_tail_resume(self):
+        for workers in (0, 2):
+            with self.subTest(workers=workers):
+                self.run_resume(workers, samples=19, max_steps=9, stop=4)
+
+    def run_resume(self, workers, samples=32, max_steps=8, stop=5):
         from transformers import TrainerCallback, set_seed
 
         from act.rhsci.checkpoints import checkpoint_ok, publish
 
-        class StopAtFive(TrainerCallback):
+        class StopAtStep(TrainerCallback):
             def on_step_end(self, args, state, control, **kwargs):
-                if state.global_step == 5:
+                if state.global_step == stop:
                     control.should_save = True
                     control.should_training_stop = True
 
@@ -190,7 +198,7 @@ class Resume(unittest.TestCase):
                 "--num-workers",
                 str(workers),
                 "--max-steps",
-                "8",
+                str(max_steps),
             ]
         )
         with tempfile.TemporaryDirectory() as temp:
@@ -203,21 +211,24 @@ class Resume(unittest.TestCase):
                 return create_trainer_class()(
                     model=TinyModel(),
                     args=arguments,
-                    train_dataset=Synthetic(),
+                    train_dataset=Synthetic(samples),
                     launch_contract={"test": "identical"},
                     callbacks=[callback] if callback else [],
                 )
 
             continuous = build("continuous")
             continuous.train()
-            interrupted = build("resume", StopAtFive())
+            self.assertEqual(continuous.state.global_step, max_steps)
+            expected_rng = torch.get_rng_state().clone()
+            interrupted = build("resume", StopAtStep())
             interrupted.train()
-            self.assertEqual(interrupted.state.global_step, 5)
-            path = Path(temp) / "resume/checkpoint-5"
+            self.assertEqual(interrupted.state.global_step, stop)
+            path = Path(temp) / f"resume/checkpoint-{stop}"
             publish(path, 1, "test-digest")
             self.assertTrue(checkpoint_ok(path, 1, "test-digest", verify=True))
             resumed = build("resume")
             resumed.train(resume_from_checkpoint=str(path))
+            self.assertEqual(resumed.state.global_step, max_steps)
             self.assertEqual(continuous.model.trace, interrupted.model.trace + resumed.model.trace)
             assert_state_equal(self, continuous.model.state_dict(), resumed.model.state_dict())
             assert_state_equal(
@@ -227,6 +238,7 @@ class Resume(unittest.TestCase):
                 self, continuous.lr_scheduler.state_dict(), resumed.lr_scheduler.state_dict()
             )
             self.assertEqual(resumed.model.frozen_buffer.item(), 7.0)
+            torch.testing.assert_close(torch.get_rng_state(), expected_rng, rtol=0, atol=0)
 
 
 if __name__ == "__main__":

@@ -7,8 +7,6 @@ from rhsci.runtime.environment import get_env
 
 from .checkpoints import sha256
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def check_data(args, paths):
     import numpy as np

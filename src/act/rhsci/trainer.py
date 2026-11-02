@@ -12,8 +12,6 @@ from .checkpoints import atomic_json
 
 build_checkpoint_callback = partial(shared_checkpoint_callback, protocol=checkpoint_protocol)
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def create_optimizer(model, *, cpu=False):
     import torch
@@ -29,19 +27,22 @@ def create_trainer_class():
     import torch
     from transformers import Trainer
 
-    from rhsci.runtime.hf_resume import epoch_safe_training_loop
+    from rhsci.runtime.hf_resume import isolate_worker_rng, tail_safe_training_loop
 
     from .checkpoints import finite_state, load_model_state
     from .data import EpochSampler
 
     class ACTTrainer(Trainer):
-        _inner_training_loop = epoch_safe_training_loop(Trainer)
+        _inner_training_loop = tail_safe_training_loop(Trainer)
 
         def __init__(self, *args, launch_contract=None, **kwargs):
             super().__init__(*args, **kwargs)
             self.launch_contract = launch_contract
             # 模型返回的是每微批mean；必须由HF按累计次数缩放，不能因**batch误判为自带分母。
             self.model_accepts_loss_kwargs = False
+
+        def get_train_dataloader(self):
+            return isolate_worker_rng(super().get_train_dataloader(), self.args.seed)
 
         def _get_train_sampler(self, train_dataset=None):
             return EpochSampler(

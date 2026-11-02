@@ -1,17 +1,19 @@
 """gr00t: 骨干Trainer、数值门禁与完整断点回调。"""
 
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
-
 def create_resume_trainer_class():
     """返回保留 epoch、采样顺序与数据消费位置的 Trainer 子类，不实例化模型。"""
     from transformers import Trainer
 
-    from rhsci.runtime.hf_resume import epoch_safe_training_loop, isolate_worker_rng
+    from rhsci.runtime.hf_resume import (
+        isolate_worker_rng,
+        tail_safe_training_loop,
+        tail_safe_training_values,
+    )
 
     class ResumeTrainer(Trainer):
-        _inner_training_loop = epoch_safe_training_loop(Trainer)
+        _inner_training_loop = tail_safe_training_loop(Trainer)
+        set_initial_training_values = tail_safe_training_values(Trainer)
 
         def _get_train_sampler(self, train_dataset=None):
             from .data import EpochSampler

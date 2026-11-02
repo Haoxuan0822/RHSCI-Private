@@ -10,8 +10,6 @@ from rhsci.runtime.processes import run_worker_process
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def run_training_guardian(args, paths, value, digest):
     """运行持锁守护并等待 worker；仅从通过校验的完整断点恢复，失败后保留日志。"""

@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import TrainerCallback, TrainingArguments, set_seed
 
-from gr00t.rhsci.train import create_resume_trainer_class
+from gr00t.rhsci.trainer import create_resume_trainer_class
 
 
 class Samples(Dataset):
@@ -35,9 +35,12 @@ class Model(torch.nn.Module):
         return dict(loss=(self.net(x) - labels).square().mean())
 
 
-class StopAtSeven(TrainerCallback):
+class StopAtStep(TrainerCallback):
+    def __init__(self, step):
+        self.step = step
+
     def on_step_end(self, args, state, control, **kwargs):
-        if state.global_step == 7:
+        if state.global_step == self.step:
             control.should_training_stop = True
 
 
@@ -66,7 +69,19 @@ class ResumeTests(unittest.TestCase):
             self.assertTrue((Path(tmp) / "NUMERICAL_FAILURE.json").is_file())
 
     def test_mid_second_epoch_accumulation_resume_matches_continuous(self):
+        self.compare_resume(accumulation=2, max_steps=12, stop=7, workers=0)
+
+    def test_partial_accumulation_tail_resume_matches_continuous(self):
+        for workers in (0, 2):
+            with self.subTest(workers=workers):
+                self.compare_resume(accumulation=4, max_steps=9, stop=4, workers=workers)
+
+    def test_epoch_budget_includes_partial_accumulation_group(self):
+        self.compare_resume(accumulation=4, max_steps=-1, stop=4, workers=2)
+
+    def compare_resume(self, *, accumulation, max_steps, stop, workers):
         torch.set_num_threads(1)
+        expected_steps = 9 if max_steps < 0 else max_steps
         with tempfile.TemporaryDirectory() as temporary:
 
             def trainer(name, callbacks=()):
@@ -74,16 +89,16 @@ class ResumeTests(unittest.TestCase):
                 arguments = TrainingArguments(
                     output_dir=str(Path(temporary) / name),
                     use_cpu=True,
-                    max_steps=12,
+                    max_steps=max_steps,
                     per_device_train_batch_size=2,
-                    gradient_accumulation_steps=2,
+                    gradient_accumulation_steps=accumulation,
                     learning_rate=1e-3,
-                    save_steps=7,
+                    save_steps=stop,
                     report_to="none",
                     disable_tqdm=True,
                     seed=292285,
-                    dataloader_num_workers=0,
-                    dataloader_persistent_workers=False,
+                    dataloader_num_workers=workers,
+                    dataloader_persistent_workers=workers > 0,
                     remove_unused_columns=False,
                     save_safetensors=True,
                 )
@@ -98,15 +113,22 @@ class ResumeTests(unittest.TestCase):
 
             full = trainer("full")
             full.train()
-            interrupted = trainer("resume", [StopAtSeven()])
+            self.assertEqual(full.state.global_step, expected_steps)
+            expected_rng = torch.get_rng_state().clone()
+            interrupted = trainer("resume", [StopAtStep(stop)])
             interrupted.train()
-            self.assertEqual(interrupted.state.global_step, 7)
+            self.assertEqual(interrupted.state.global_step, stop)
             resumed = trainer("resume")
-            resumed.train(resume_from_checkpoint=str(Path(temporary) / "resume/checkpoint-7"))
-            self.assertEqual(resumed.state.global_step, 12)
+            resumed.train(resume_from_checkpoint=str(Path(temporary) / f"resume/checkpoint-{stop}"))
+            self.assertEqual(resumed.state.global_step, expected_steps)
             self.assertEqual(full.model.seen, interrupted.model.seen + resumed.model.seen)
             for name, parameter in full.model.state_dict().items():
                 self.assertTrue(torch.equal(parameter, resumed.model.state_dict()[name]), name)
+            torch.testing.assert_close(
+                full.optimizer.state_dict(), resumed.optimizer.state_dict(), rtol=0, atol=0
+            )
+            self.assertEqual(full.lr_scheduler.state_dict(), resumed.lr_scheduler.state_dict())
+            torch.testing.assert_close(torch.get_rng_state(), expected_rng, rtol=0, atol=0)
 
 
 if __name__ == "__main__":

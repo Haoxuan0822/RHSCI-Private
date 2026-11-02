@@ -5,8 +5,6 @@ from pathlib import Path
 
 from .checkpoints import atomic_json, sha256
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def asset_files(root):
     """冻结基础目录的完整文件集合；不能漏过加载优先级更高的新增文件。"""

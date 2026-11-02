@@ -17,13 +17,32 @@ import pathlib, subprocess, sys
 from types import SimpleNamespace
 from unittest.mock import patch
 from lambda0.rhsci.launch import run_training_guardian
+from lambda0.rhsci import launch
 root = pathlib.Path(sys.argv[1])
 real_popen = subprocess.Popen
 def worker(command, **options):
     child = real_popen([sys.executable, '-u', str(root / 'worker.py'), str(root)], **options)
     (root / 'leader.json').write_text(str(child.pid))
+    if (root / 'pause-spawn').exists():
+        (root / 'spawn-ready').touch()
+        import time
+        time.sleep(0.5)
     return child
-with patch('subprocess.Popen', side_effect=worker):
+real_atomic_json = launch.atomic_json
+def record(path, value):
+    if (root / 'pause-record').exists():
+        (root / 'record-ready').touch()
+        import time
+        time.sleep(0.5)
+    return real_atomic_json(path, value)
+real_cleanup = launch.cleanup
+def cleanup(tracked):
+    if (root / 'pause-cleanup').exists():
+        (root / 'cleanup-ready').touch()
+        import time
+        time.sleep(0.5)
+    return real_cleanup(tracked)
+with patch('subprocess.Popen', side_effect=worker), patch.object(launch, 'atomic_json', record), patch.object(launch, 'cleanup', cleanup):
     run_training_guardian(SimpleNamespace(gpus='0', max_steps=2), [], root)
 """
 WORKER = """
@@ -136,6 +155,25 @@ class GuardianProcessTests(unittest.TestCase):
             finally:
                 self.clean_guardian(guardian, workers)
 
+    def test_stop_during_spawn_or_record_still_cleans_workers(self):
+        for phase in ("spawn", "record"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "worker.py").write_text(WORKER)
+                (root / f"pause-{phase}").touch()
+                guardian = self.start_guardian(root)
+                workers = []
+                try:
+                    workers = self.wait_ready(root, guardian)
+                    self.assertTrue((root / f"{phase}-ready").exists())
+                    guardian.terminate()
+                    _, errors = guardian.communicate(timeout=10)
+                    self.assertEqual(guardian.returncode, 143, errors)
+                    self.assertFalse(any(alive(pid) for pid in workers))
+                    self.assertTrue(lock_available(root))
+                finally:
+                    self.clean_guardian(guardian, workers)
+
     def test_worker_record_failure_reaps_child_before_unlocking(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -167,6 +205,33 @@ class GuardianProcessTests(unittest.TestCase):
                 _, errors = guardian.communicate(timeout=10)
                 self.assertEqual(guardian.returncode, 0, errors)
                 workers = json.loads((root / "workers.json").read_text())
+                self.assertFalse(any(alive(pid) for pid in workers))
+                self.assertTrue(lock_available(root))
+            finally:
+                self.clean_guardian(guardian, workers)
+
+    def test_stop_during_exit_cleanup_does_not_release_lock_early(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script, _ = WORKER.rsplit("while True: time.sleep(0.1)", 1)
+            script += (
+                "(root / 'training_complete.json').write_text(json.dumps({'global_step': 2}))\n"
+            )
+            (root / "worker.py").write_text(script)
+            (root / "pause-cleanup").touch()
+            guardian = self.start_guardian(root)
+            workers = []
+            try:
+                deadline = time.monotonic() + 10
+                while not (root / "cleanup-ready").exists():
+                    if guardian.poll() is not None or time.monotonic() > deadline:
+                        self.fail("Guardian did not reach exit cleanup")
+                    time.sleep(0.01)
+                workers = json.loads((root / "workers.json").read_text())
+                self.assertFalse(lock_available(root))
+                guardian.terminate()
+                _, errors = guardian.communicate(timeout=10)
+                self.assertEqual(guardian.returncode, 143, errors)
                 self.assertFalse(any(alive(pid) for pid in workers))
                 self.assertTrue(lock_available(root))
             finally:

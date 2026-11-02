@@ -5,6 +5,7 @@
 - 项目名称统一为 RHSCI，当前 Python 包/模块名为 `rhsci`，类名采用 `RHSCI`。旧权重键、配置字段和产物文件名保留兼容。六个模型包统一放在 `src/<原生包名>/`，扩展放在包内 `rhsci/`；`src/rhsci` 放跨模型公共工具。沿用对应骨干的处理器、算法和配方；ACT 使用 EGQ-AE，无 Reader。
 - 可复用的算法和基础设施优先放公共层，模型只声明实际差异；已共享函数见[架构表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。函数用明确的动作与对象命名，同类职责保持一致；关键逻辑用中文说明输入、返回值及副作用。目录与命名见[指南](docs/DIRECTORY_STRUCTURE.md)。
 - 进程管理、检查点重试、SIMPLE 消息及 HTTP 路由优先复用[公共接口](docs/ARCHITECTURE.md#simple-shared-interfaces-20261102)。模型提供命令、校验与预测函数；不同训练配方、原生协议和前向保留对应实现。公共缓存构建直接读取 LeRobot，不依赖 ACT 训练入口。
+- 继续审查恢复/守护或整理可读性前，参考[2026-11-03复查](docs/CODE_REVIEW_20261103.md)：四个HF骨干统一累计尾恢复和worker RNG隔离；公共停止信号作用域覆盖Popen前、启动回调和退出清理。新代码直接从实际所属模块导入，旧CLI重导出保留兼容；Ψ/λ较大入口及HF内部适配仍有阅读成本。
 - 解释架构、迁移后续 PSI0-RAW 方法或宣称复现前，阅读[2026-11-02 函数与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)。当前 Ψ0 VGQ-VLM 是 Reader 后二次语言前向，不能当作 PSI0-RAW 后续四原图直接 VLM Query；GR00T 初始化与固定 SIMPLE 预设不同。CPU 回归不代表官方全模型等价或 GPU 闭环通过。
 - 修改 π0.5 恢复前，读[完整恢复修复](docs/PI05_CORRECTNESS_20261102.md)：按用户最新要求仅修复第二点，保留原有 v2 归一化、训练配方和推理公式。π/GR 共用 epoch 恢复和 worker RNG 隔离；完整标记不证明样本进度正确，CPU 默认累计 1 验证不覆盖 worker 内随机噪声或八卡长跑。
 - 修改 λ₀ 守护或解释 π/Ego 精确恢复前，读[官方对照及三项修复](docs/GUARDIAN_RECOVERY_AUDIT_20261102.md)：2026-11-03用户更正对照对象为SIMPLE官方，不能用PSI0-RAW同源问题作为保留理由。λ信号转发/子孙清理后释锁、worker继承锁；π/Ego共用累计尾恢复，Ego也隔离worker RNG。SIMPLE客户端没有对应训练实现，不称官方全模型恢复已验证；worker内部随机变换、多卡逐位等价未验。

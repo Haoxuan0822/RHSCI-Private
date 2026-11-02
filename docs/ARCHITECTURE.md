@@ -87,7 +87,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 - `rhsci.runtime.losses.masked_auxiliary_loss` / `masked_ardy_loss` 统一有效标签与 DDP 全局有效数归一化；各骨干保留各自动作损失。
 - `runtime.contracts.training_configuration` / `reuse_run_contract` 比较模型、数据和配方；源码及依赖版本摘要作为审计记录保留，不再作为运行门槛。
 - `runtime.hf_full_state.HFCheckpointProtocol` / `HFTrainerCheckpointProtocol` 统一 ACT、Ego、π、GR 的完整点发布、发现与轮换；Ψ、λ保留原生断点集成。
-- `runtime.numerics.require_finite` 和 `runtime.processes.wait_worker` 复用数值异常传播与子进程回收。ACT/π/GR/Ego 复用 `epoch_safe_training_loop`；π/Ego 再共用公共 `tail_safe_training_loop` 处理恢复后的 epoch 尾部累计，π/GR/Ego 共用 `isolate_worker_rng`。
+- `runtime.numerics.require_finite` 和 `runtime.processes.wait_worker` 复用数值异常传播与子进程回收。ACT/π/GR/Ego 经公共 `tail_safe_training_loop` 组合 epoch 恢复与累计尾更新，四者也共用 `isolate_worker_rng`。2026-11-03进一步补齐ACT/GR的累计尾部遗漏。
 
 剩余结构问题按影响排序：
 
@@ -100,6 +100,8 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 7. **恢复实现有依赖版本耦合。** 公共 `tail_safe_training_loop` 通过读取 HF 源码并替换一行同步条件修复π/Ego尾部恢复；匹配失败会报错。它有回归覆盖，但维护时仍需检查对应 HF 内部实现，不能等同于稳定公共 API。
 
 旧 `rsci_*` 权重键、配置名和产物名用于读取已有模型，不是另一套重复源码；本轮不因命名清理破坏兼容。
+
+2026-11-03继续审查的[现状与函数职责](CODE_REVIEW_20261103.md)补齐四骨干共同恢复和λ启动/清理窗口的停止处理，并区分已改善的可读性与仍偏大的入口、兼容导出和HF内部耦合。
 
 ### 是否严格复现
 

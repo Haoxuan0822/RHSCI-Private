@@ -8,8 +8,6 @@ from .contract import build_training_contract
 from .preflight import validate_run
 from .trainer import build_checkpoint_callback, create_trainer_class
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def run_training_worker(args, paths, processor, dataset, digest):
     """在当前分布式 worker 内装配模型、数据与 Trainer，恢复完整状态并执行训练。"""

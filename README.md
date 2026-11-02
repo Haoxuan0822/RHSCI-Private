@@ -14,6 +14,8 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-03：[SIMPLE 官方对照及守护/恢复修复](docs/GUARDIAN_RECOVERY_AUDIT_20261102.md)。纠正此前将PSI0-RAW当作官方的对照范围；λ₀守护清理、π累计尾更新及Ego持久worker RNG隔离均已修复并经CPU对照，不代表官方全模型/GPU等价。
 
+2026-11-03：[继续检查与可读性复查](docs/CODE_REVIEW_20261103.md)。补齐ACT/GR累计尾恢复和λ启动/清理阶段停止处理，列明公共函数职责及剩余阅读成本。
+
 ## Getting started
 
 Use Linux, NVIDIA GPUs, Git LFS and [uv](https://docs.astral.sh/uv/getting-started/installation/). Run from the checkout root. Keep data, weights and environments outside it. These examples use the SIMPLE box-hugging task and eight training GPUs. Repeat the path exports in each terminal.

@@ -8,8 +8,6 @@ from rhsci.data.state_noise import validate_scale
 from rhsci.paths import add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def build_argument_parser():
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""

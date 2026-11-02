@@ -1,6 +1,7 @@
 """恢复 HF 训练的数据 epoch、累计尾更新，并隔离 worker 与模型随机流。"""
 
 import inspect
+import math
 import textwrap
 from functools import update_wrapper
 from types import FunctionType
@@ -16,6 +17,7 @@ def isolate_worker_rng(dataloader, seed):
 
 
 def skip_preserving_epoch(dataloader, num_batches=0):
+    """跳过已消费批次，返回在首次预取前恢复原 epoch 的 Accelerate loader。"""
     from accelerate import skip_first_batches
 
     epoch = getattr(dataloader, "iteration", None)
@@ -55,7 +57,12 @@ def epoch_safe_training_loop(trainer_class):
 
 
 def tail_safe_training_loop(trainer_class):
-    """在已恢复 epoch 的循环上保留不足累计组的更新；仅修改派生 Trainer。"""
+    """返回同时修复 epoch 和累计尾部的 HF 循环，不修改依赖的全局实现。
+
+    HF 的 step 从恢复后的首批重新计数，steps_in_epoch 仍是整轮批数。
+    比如整轮10批、累计4、已跳过4批，尾批step+1是6，真实轮内位置是10；
+    同步判断必须加steps_skipped，否则最后2批只有反向而没有optimizer更新。
+    """
     original = epoch_safe_training_loop(trainer_class)
     source = textwrap.dedent(inspect.getsource(trainer_class._inner_training_loop))
     old = "do_sync_step = (step + 1) % args.gradient_accumulation_steps == 0 or (step + 1) == steps_in_epoch"
@@ -70,3 +77,36 @@ def tail_safe_training_loop(trainer_class):
     namespace = dict(original.__globals__)
     exec(compile(source.replace(old, new), "<rhsci-local-epoch-tail>", "exec"), namespace)
     return update_wrapper(namespace[original.__name__], original)
+
+
+def tail_safe_training_values(trainer_class):
+    """让每轮更新预算包含尾部不足累计组，避免HF4.51按floor定位恢复epoch。
+
+    复用上游样本统计与配置处理；只有旧版floor和实际ceil更新数不同时重算步数。
+    HF4.53已用ceil，此时直接返回原结果。与tail_safe_training_loop配套使用。
+    """
+    original = trainer_class.set_initial_training_values
+
+    def training_values(self, args, dataloader, total_train_batch_size):
+        values = original(self, args, dataloader, total_train_batch_size)
+        (
+            epochs,
+            updates_per_epoch,
+            examples,
+            samples,
+            epoch_based,
+            batches_per_epoch,
+            max_steps,
+        ) = values
+        if batches_per_epoch is None:
+            return values  # 无长度loader仍由显式max_steps控制。
+        actual_updates = max(math.ceil(batches_per_epoch / args.gradient_accumulation_steps), 1)
+        if actual_updates == updates_per_epoch:
+            return values
+        if epoch_based:
+            max_steps = math.ceil(args.num_train_epochs * actual_updates)
+        elif batches_per_epoch:
+            epochs = math.ceil(max_steps / actual_updates)
+        return epochs, actual_updates, examples, samples, epoch_based, batches_per_epoch, max_steps
+
+    return update_wrapper(training_values, original)

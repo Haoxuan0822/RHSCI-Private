@@ -12,8 +12,6 @@ from .checkpoints import atomic_json
 
 build_checkpoint_callback = partial(shared_checkpoint_callback, protocol=checkpoint_protocol)
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def create_trainer_class():
     """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。"""

@@ -30,7 +30,7 @@
 
 ## λ₀ 最终调用链
 
-`lambda0.rhsci.launch.run_training_guardian` 持有 guardian.lock → `runtime.processes.run_worker_process` 建立独立 worker 进程组 → `wait_worker` 转发 SIGTERM/SIGINT 并回收直接子进程 → λ₀ 的 finally 按 PID/启动时间清理已观察的同组 rank/子孙 → 全部退出后离开外层持锁块。
+`lambda0.rhsci.launch.run_training_guardian` 持有 guardian.lock → `runtime.processes.run_worker_process` 从Popen前接管停止信号并建立独立worker进程组 → 公共等待/回收直接子进程 → 同一信号作用域内调用λ `cleanup_worker`，按PID/启动时间清理已观察的同组rank/子孙 → 全部退出后离开持锁块。2026-11-03继续检查发现旧启动/退出回调尚有信号窗口，已进一步修复，见[复查记录](CODE_REVIEW_20261103.md)。
 
 - `run_worker_process` 增加可选 `on_start(process)` / `on_wait()`，供 λ₀ 原子写 worker.json、持续转发训练日志和观察子进程；ACT/Ego/π/GR 原调用方式不变。
 - 即使启动记录或日志回调异常，公共 finally 也会终止并等待直接 worker；λ₀ 的 finally 继续清理同组子孙，避免异常路径提前释放锁。

@@ -6,8 +6,6 @@ from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
 from .checkpoints import sha256
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def build_training_contract(args, paths):
     """根据模型、数据与配方生成恢复身份；源码编辑和依赖版本不作为恢复门槛。返回 (契约字典, SHA256)。"""

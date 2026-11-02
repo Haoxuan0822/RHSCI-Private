@@ -16,8 +16,6 @@ from .preflight import validate_training_data
 from .trainer import create_resume_trainer_class as create_resume_trainer_class
 from .worker import run_training_worker as run_training_worker
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def main():
     import fcntl

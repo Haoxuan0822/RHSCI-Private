@@ -3,8 +3,6 @@
 from .checkpoints import atomic_json
 from .config import simple_lr_multiplier
 
-# 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
-
 
 def create_trainer_class():
     """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。
@@ -21,8 +19,8 @@ def create_trainer_class():
     class RHSCITrainer(Trainer):
         _inner_training_loop = tail_safe_training_loop(Trainer)
 
-        def __init__(self, *a, **kw):
-            super().__init__(*a, **kw)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.model_accepts_loss_kwargs = False
             self._rsci_loaders = []
             clip = self.accelerator.clip_grad_norm_
@@ -42,21 +40,21 @@ def create_trainer_class():
             self._rsci_loaders.append(loader)
             return loader
 
-        def train(self, *a, **kw):
+        def train(self, *args, **kwargs):
             try:
-                return super().train(*a, **kw)
+                return super().train(*args, **kwargs)
             finally:
                 # 沿用 Psi0 已有清理，避免持久视频 worker 在解释器退出时 abort。
                 close_dataloaders(*self._rsci_loaders)
                 self._rsci_loaders.clear()
 
-        def _wrap_model(self, *a, **kw):
-            wrapped = super()._wrap_model(*a, **kw)
+        def _wrap_model(self, *args, **kwargs):
+            wrapped = super()._wrap_model(*args, **kwargs)
             if self.accelerator.ddp_handler is not None:
                 self.accelerator.ddp_handler.gradient_as_bucket_view = True
             return wrapped
 
-        def _rotate_checkpoints(self, *a, **kw):
+        def _rotate_checkpoints(self, *args, **kwargs):
             pass
 
         def create_optimizer(self):
