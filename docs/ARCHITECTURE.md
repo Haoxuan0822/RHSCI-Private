@@ -38,6 +38,91 @@ Native Reader layouts, model execution, normalization, action losses, optimizer/
 Validation for this refactor uses the existing CPU backbone suites, a two-rank CPU/Gloo loss-versus-centralized-gradient comparison, empty-label gradients, epoch/RNG independence, schema-2 sharded checkpoint compatibility, native package resolution and real CLI help. Actual results from `fdd7edf` plus this refactor: Ψ0 43, π0.5 37, GR00T 32, ACT 29 CPU tests passed. Shared suite: 37 passed and 2 SIMPLE tests initially skipped without `SIMPLE_HOME`; those 2 were then run against the existing pinned checkout and passed. The four new shared tests include the real two-rank CPU/Gloo comparison. λ₀ source-audit tests: 2 passed, including relocated-package changes. All 12 module/shell training help calls passed. Python/shell syntax, Ruff, package discovery, source inventories and documentation links were checked without installation. Counts overlap across suites and are not a unique-test total. Full GPU training/old large-model resume remain untested. EgoVLA's existing missing FlashAttention and λ₀'s missing Qwen3.5 API remain environment limitations.
 
 
+<a id="function-audit-20261102"></a>
+
+## 函数调用链与复现审查（2026-11-02）
+
+本节按 RHSCI-Private `78a100d` 的实际调用审查，更新上述历史验证记录的当前适用边界。结论：包目录已统一，共用损失与完整断点基础设施已落地，但训练守护和推理接口仍分叉；不能将当前仓库整体称为“严格复现官方实验”或“与最新 PSI0-RAW 完全一致”。本轮仅检查源码、运行现有 CPU 回归并更正文档，不改变模型算法或现有训练。
+
+### 入口与训练职责
+
+```text
+scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择模式、环境与脚本
+    └─ scripts/train/<backbone>.sh                  也可直接调用，设置各骨干环境
+         └─ <native_package>.rhsci.train/launch::main()
+              ├─ 参数与路径 → 数据/资产检查 → 训练契约
+              ├─ guardian：持锁、选择完整点、启动/等待 worker
+              └─ worker：构建数据/模型/Trainer → 正式训练
+```
+
+这是一套共同职责，并非六个模型都调用同一个总控制器。`--check-data`、`--check`、`--dry-run` 分支按骨干定义，也不是所有模式都执行上面的完整链路。
+
+| 骨干 | 实际函数入口与训练链路 | 模型和数据的所有者 |
+| --- | --- | --- |
+| Ψ0 | `psi.rhsci.train.main` → `resolve_training_plan` / `run_training_preflight` / `build_training_contract` → `run_training_guardian` → 原生 `scripts/train.py::train` → `RHSCIFinetuneTrainer` | `psi.rhsci.model` 扩展方法；原生 `psi.models.psi0`、`psi.trainers.finetune` 和 LeRobot 数据层保留接入钩子 |
+| π0.5 | `openpi.rhsci.train.main` → `resolve_training_paths` / `run_training_preflight` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `openpi.rhsci.data` / `processing` / `model`；底层复用原生 PaliGemma 与 Action Expert 模块 |
+| GR00T | `gr00t.rhsci.train.main` → `resolve_training_paths` / `run_training_preflight` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `gr00t.rhsci.data` / `config`；研究前向和 `VisualStateQuery` 仍位于原生 `gr00t.model.gr00t_n1d6` |
+| EgoVLA | `human_plan.rhsci.launch.main` → `train.main` → `resolve_training_paths` / `check_data` / `assets` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `human_plan.rhsci.data` / `processing` / `model`；VILA/LLM 依赖保留独立环境 |
+| λ₀ | `lambda0.rhsci.launch.main` / `run_training_guardian` → `train.main` → `build_training_config` / `validate_training_data` → `execute_training` → 原生引擎＋`RHSCITrainingBackend` | `lambda0.rhsci.model` / `data` / `runtime`；后端负责原生模型、优化器、数据游标和保存/恢复的适配 |
+| ACT | `act.rhsci.launch.main` → `train.main` → `resolve_training_paths` → `launch.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class`；检查分支使用 `check_data` | `act.rhsci.data` / `processing` / `model`；原生 LeRobot ACT 执行动作分支 |
+
+四个 HF 骨干的 `config.py` 负责参数、路径和 `TrainingArguments`，`preflight.py` 负责数据/资产检查，`contract.py` 记录模型/数据/配方，`worker.py` 组装训练对象，`trainer.py` 定义优化器、损失、回调及恢复适配。`train.py` 目前仍重导出一批旧函数，阅读实现应进入实际所属模块。
+
+### 模型前向，精确到核心函数
+
+| 骨干 | 核心函数与数据流 | 推理路径 |
+| --- | --- | --- |
+| Ψ0 | `RHSCIPolicyMixin._rhsci_forward` 取得当前 VLM 特征并调用原生动作头；`_rhsci_visual_memory` 编码历史帧；`RHSCIQuery.memory` 形成四帧 memory；`_rhsci_query_latent` 复用 AE blocks 或再次调用语言 Transformer；辅助预测进入 ARDY 损失 | `_rhsci_inference_features`：无星号方法跳过 Query/历史；带星号方法将 latent 加入动作条件，`rhsci_history_from_request` 要求真实历史协议 |
+| π0.5 | `Pi05RHSCI.forward` → `encode` → `memory_cache` / `expert` 计算 flow 动作损失；`encode_history` → `Reader.forward` → 共享 `expert` 计算 Query 辅助损失 | `sample_actions` 执行 10 步去噪；`serve.Server.predict_action` 反归一化 30×36，再返回前 24 步；不执行辅助支路 |
+| GR00T | 原生 `Gr00tN1d6` 前向中接入 `VisualStateQuery.memory` / `forward`；每帧图像/文本 Reader 适配原生 DiT 交替注意力，Query 复用 DiT，再加辅助损失 | `rhsci.serve.build_server` 绑定 HTTP 服务；动作使用原生模型路径，辅助监督不作为部署输入 |
+| EgoVLA | `EgoVLARHSCI.forward` → `_encode` → `action_prediction` / `decode_latents` 计算动作；历史编码 → `Reader.forward` → 同一 decoder 的 Query → ARDY | `sample_actions` 只执行动作路径；`serve.predict` 处理当前观测与响应 |
+| λ₀ | `Lambda0RHSCI.forward_vlm` 捕获当前特征；`forward` 保留父类动作前向并调用 `auxiliary` → `HistoryReader.forward` → 共享 expert blocks → ARDY | 原生推理链路，保留其 RTC；服务入口为 `lambda0.rhsci.serve.main` |
+| ACT | `RHSCIACT.forward` → 原生 `policy.model`，保留 masked L1＋10×KL；`auxiliary_prediction` 用原生 ResNet 的四帧特征、共享 encoder/decoder Query 加 0.1×ARDY | `predict_action` / `select_action` / `reset`；latent=0，输出 16×36；EGQ-AE 没有 Reader 或语言模型 |
+
+四帧历史按 50 Hz 的 `[-6,-4,-2,0]` 取样；标签来自 sidecar，不能把监督标签当动作条件。上述为当前各方法的主干职责，不表示不同 Reader、注意力或动作损失可互换。
+
+### 已复用与仍然分叉的基础设施
+
+- `rhsci.data.ardy_sidecar.ArdySidecarReader` 读取 ARDY 与有效位；`RawInputCache` 读取原始 uint8/小张量；`EpochRandomSampler` / `EpochSampler` 提供 epoch 采样。增强和特征在训练时计算。
+- `rhsci.runtime.losses.masked_auxiliary_loss` / `masked_ardy_loss` 统一有效标签与 DDP 全局有效数归一化；各骨干保留各自动作损失。
+- `runtime.contracts.training_configuration` / `reuse_run_contract` 比较模型、数据和配方；源码及依赖版本摘要作为审计记录保留，不再作为运行门槛。
+- `runtime.hf_full_state.HFCheckpointProtocol` / `HFTrainerCheckpointProtocol` 统一 ACT、Ego、π、GR 的完整点发布、发现与轮换；Ψ、λ保留原生断点集成。
+- `runtime.numerics.require_finite` 和 `runtime.processes.wait_worker` 复用数值异常传播与子进程回收。ACT/GR/Ego 复用 `epoch_safe_training_loop`，Ego 再加 `tail_safe_training_loop` 处理恢复后的 epoch 尾部累计。
+
+剩余结构问题按影响排序：
+
+1. **方法名不能标识实际架构版本。** 当前 Ψ0 `VGQ-VLM` 与 PSI0-RAW 后续同名方法架构不同，见下表。应先记录明确的方法版本与权重结构，避免按同名直接迁移实验或 checkpoint。
+2. **扩展边界仍有穿插。** GR00T Query 前向位于原生模型目录；Ψ0 原生模型、Trainer 和数据层有接入钩子。只看 `rhsci/model.py` 无法覆盖全部研究逻辑。应列出原生接入点，并让新增研究实现尽量由明确接口调用。
+3. **守护/启动流程结构重复。** 多个 `train` / `launch` / `guardian` 各自处理后台日志、锁、参数转发和 worker 重启。公共完整断点协议已共享，进程生命周期尚未统一；下一步可抽取它，保留各模型的 worker 命令及配方构建。
+4. **推理服务接口分散。** π/GR 使用公共 HTTP 层，ACT 独立 FastAPI，Ego 使用 `BaseHTTPRequestHandler`，Ψ/λ保留各自服务。可复用请求编解码、错误响应和 reset 协议，采样本身留在模型侧。
+5. **公共缓存构建反向依赖 ACT。** `scripts/data/build_raw_input_cache.py` 从 `act.rhsci.data` 和 `act.rhsci.train` 导入 Dataset/参数工具。通用原始数据读取应归入公共数据层，避免其他骨干构建缓存时依赖 ACT 的训练入口。
+6. **推理资产仍与训练集耦合。** π `serve.Server.__init__` 核对整个训练集的内容指纹，Processor 从数据目录加载统计；尚非仅凭模型＋独立处理器资产就能部署。应导出独立统计/处理器资产并兼容旧点。
+7. **恢复实现有依赖版本耦合。** Ego `tail_safe_training_loop` 通过读取 HF 源码并替换一行同步条件修复尾部恢复；匹配失败会报错。它有回归覆盖，但维护时仍需检查对应 HF 内部实现，不能等同于稳定公共 API。
+
+旧 `rsci_*` 权重键、配置名和产物名用于读取已有模型，不是另一套重复源码；本轮不因命名清理破坏兼容。
+
+### 是否严格复现
+
+严格复现需要同时说明参照版本、模型结构、初始化权重、数据与预处理、损失、采样、优化器/调度/有效 batch、恢复和部署协议。保留官方模块或若干超参数，只能证明这些部分的来源或对齐；本轮 CPU 回归不是官方全模型等价测试，也不能证明最终成功率相同。
+
+| 对象 | 已确认差异或验证边界 | 当前能作的结论 |
+| --- | --- | --- |
+| SIMPLE | 固定官方 `b75c6786` 的源码/子模块已核验；level-2 两份公开 ZIP 实际文件相同，不能由此证明 PR 所述物体修正已实施或从未实施 | 源码固定版本对齐；[评测数据修正仍未核验](SIMPLE_OFFICIAL_20261030.md#eval-layout-audit-20261101)，未做物理仿真闭环 |
+| Ψ0 最新研究实现 | 当前 `_rhsci_visual_memory` 逐帧取 VLM 输出，默认 Reader 后 `_rhsci_query_latent` 再进语言 Transformer；生产 `RSCI/psi0_controls/methods.py::policy_class` 对 VGQ-VLM 不建旧 Reader，而由 `vlm_query.four_frame_inputs` / `query_output` 将四原图与 Query 直接送入 VLM。关闭当前 Reader 也不会变成后者 | **不是最新 PSI0-RAW 同名方法的严格复现**；后续 State-Reconstruction 等方法也不在当前通用入口中。不能按方法名认定权重兼容 |
+| GR00T SIMPLE | 固定官方 [finetune_simple.yaml](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/baselines/gr00t-n1.6/presets/train/finetune_simple.yaml) 指向 `pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000`，本仓默认 NVIDIA N1.6-3B；另有 map-style 完整动作窗口采样、Query、ZeRO-1 FP32 Adam 和 DiT 重算适配 | 初始化明确不同；优化超参数对齐不等于实验严格复现。已纠正 GR00T README 原“初始化相同”的表格 |
+| π0.5 | 复用原生底层模型，但 `encode` / `expert` / `forward` / `sample_actions` 是 RHSCI 自己组织的路径；safe 归一化对退化范围的处理不同；HTTP 用当前实测 STATE 并返回前 24 步，不复刻原生 WebSocket 的预测尾部状态回填 | 当前 RHSCI 适配；尚无完整官方前向/梯度/部署逐项等价验收，不能称严格原版 |
+| ACT | 使用当前 SIMPLE 脚本的 16 步配置与原生动作损失，加 EGQ-AE 辅助目标。历史公开 ACT checkpoint 的 100 步配置不是本配置 | 可说明与指定 16 步配方对齐；不能泛称与所有已发布 ACT 权重或实验相同 |
+| EgoVLA | 复用 VILA/动作 decoder，但显式组织编码与无 proprio 解码；添加辅助支路与恢复尾部适配。115 epoch 配方需显式 `--preset simple-115epoch`，通用默认不是该配方 | 原生模块上的 RHSCI 扩展；需分别核对预设、数据与执行，尚不能证明全模型等价 |
+| λ₀ | 保留父类动作前向和原生 RTC；增加 Reader/Query 与恢复后端；`prepare.safe_bundle` 对变化维度但退化 quantile 范围回退到观测 min/max | 明确存在预处理扩展；当前无配套环境的全模型验证，不能判定严格复现通过 |
+
+“与官方 baseline 一致”和“实现 RHSCI 研究方法”是两个需要分别验收的目标。辅助损失是设计变更，本身不构成实现错误；但必须标明参照方法和版本。本轮未擅自把较新生产方法迁入，也未以文档更正替代算法修复。
+
+### 本轮实际验证
+
+使用本机已有环境，执行 `tools/test_cpu.py --backbone <name>`，离线 CPU 模式，不安装依赖。Ψ0 43、π0.5 37、GR00T 32、ACT 29 项通过；这些套件按 helper 规则排除分布式用例。EgoVLA 29 项中 28 通过，1 项因缺少 `flash_attn` 报错。λ₀没有找到配套环境，在现有 π 环境（Transformers 4.53.2）执行时，3 项轻量测试通过、3 个模型测试模块因缺 `Qwen3_5Config` 导入失败；该骨干锁文件要求 Transformers 5.14.1，不能把不匹配环境的失败判成模型缺陷。
+
+本轮未做六骨干完整官方权重的前向/梯度对照、GPU 正式训练、生产大断点恢复或 SIMPLE 物理闭环。此前生产实验的通过记录不能直接转移为 RHSCI-Private 当前代码的验收。
+
 ## Development
 
 Maintained RHSCI code, launch tools and tests use Python 3.10 syntax, four-space indentation, double quotes, sorted imports and a 100-character target line length. `ruff.toml` scopes these checks; native source retains upstream style.

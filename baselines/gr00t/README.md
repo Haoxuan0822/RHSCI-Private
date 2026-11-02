@@ -21,10 +21,12 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 | Learning rate / warmup ratio / weight decay | `1e-4` / `0.05` / `1e-5` | Same |
 | Color jitter: brightness, contrast, saturation, hue | `0.3`, `0.4`, `0.5`, `0.08` | Same |
 | GPU layout | 2 GPUs | 8 GPUs × batch 3; accumulation 1 |
-| Initialization |Public `nvidia/GR00T-N1.6-3B`| Same |
+| Initialization | `./checkpoints/pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000` | Public `nvidia/GR00T-N1.6-3B` |
 | Checkpoint saving | Every 10000 steps; limit 4 | Every 1000 steps; retain 10000-step anchors and the latest rolling checkpoint |
 
 RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
+
+The reference initialization above is the literal path in the pinned SIMPLE preset, not an assertion that its weights are NVIDIA's public checkpoint. See the [function and reproduction audit](../../docs/ARCHITECTURE.md#function-audit-20261102) for sampling and execution differences and the limits of current validation.
 
 Use matching Eagle initialization assets and the task's RGB/ARDY dataset. `--dry-run` resolves the configuration; `--check-data` checks data without loading the complete backbone. GPU memory and distributed behavior require their own validation.
 

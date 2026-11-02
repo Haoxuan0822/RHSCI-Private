@@ -14,24 +14,24 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "932573f61cb9db1242b6ce9f17fbd4cc046ce1a6f38b7bf01ab25fde7906b02a",
-      "bytes": 2919
+      "export_sha256": "6af8edbfa4a62023ed62888869ecb4692ebdf4dbe9997233f48fb763dbefc096",
+      "bytes": 3295
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "0d03d9234a2e96b9db9ac42242c9a2bb471ce1f6b0f2f5d8667d677812f504d9",
-      "bytes": 14184
+      "export_sha256": "fcced3d282a7c9ad4ecb3f035e44357aec3c7cabdf6adb65d58c6e8048e4f5b9",
+      "bytes": 14487
     },
     "THIRD_PARTY_NOTICES.md": {
       "export_sha256": "d6c1f710f1c094ff761621c591051d320cfc8b07186a856ade698f1ecbbf243c",
       "bytes": 3971
     },
     "baselines/act/README.md": {
-      "export_sha256": "9f984e459cbaf6757fb15dca86fd2314e155f4b3871d244c43da117eaf5a8fdc",
-      "bytes": 4760
+      "export_sha256": "5bf8a8739c0cc62ae3f0d4918246f5dd569531ecad2b84590386cde4dd0f75e9",
+      "bytes": 4890
     },
     "baselines/beingh05/README.md": {
       "export_sha256": "5e66561ac4c590eb38cf2d77b15ff0c5a1665e812a7beabbf23e98d092056b9a",
@@ -62,8 +62,8 @@
       "bytes": 843
     },
     "baselines/gr00t/README.md": {
-      "export_sha256": "f9ea6248aa7174964e500dcf826bcae519a64329019fc3af7c72f97e027961ca",
-      "bytes": 3197
+      "export_sha256": "2f1cbd5b511b02277fed6188955b4722cfa18e0783a8fdbe9520897918bd9711",
+      "bytes": 3587
     },
     "baselines/gr00t/requirements.txt": {
       "export_sha256": "3dc2aca713ea3c1e2d963db472d4fa5892b55050250294ff729bd1db9b81044c",
@@ -130,8 +130,8 @@
       "bytes": 1147
     },
     "docs/ARCHITECTURE.md": {
-      "export_sha256": "a24489614941c97a8313506f1587d87451c79f8588e12b979c4ccb780e14fd9a",
-      "bytes": 8410
+      "export_sha256": "9ae3b6f015a770511561487dd256be85baba0c959767ab08bb127ad205728b9d",
+      "bytes": 21591
     },
     "docs/ASSETS.md": {
       "export_sha256": "9ac19cc9b6c5c2f11375dca97ff7a113fdadc6717c68e0bd3ad820562051fe78",
