@@ -4,11 +4,11 @@ import argparse
 from pathlib import Path
 
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
-from rhsci.paths import add_data_arguments, dataset_paths
+from rhsci.paths import CheckpointTrainingPaths, add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
 
-def build_argument_parser():
+def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
@@ -60,7 +60,7 @@ def build_argument_parser():
     return argument_parser
 
 
-def resolve_training_paths(args):
+def resolve_training_paths(args: argparse.Namespace) -> CheckpointTrainingPaths:
     """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     import re
 
@@ -83,9 +83,9 @@ def resolve_training_paths(args):
     runtime = Path(get_env("PSI_RUNTIME_ROOT", "/opt/rsci-data"))
     if args.max_steps < 1:
         raise ValueError("max-steps must be positive")
-    paths = dataset_paths(args)
-    paths["input_cache"] = resolve_input_cache(args)
-    paths.update(
+    paths = CheckpointTrainingPaths(
+        **dataset_paths(args),
+        input_cache=resolve_input_cache(args),
         checkpoint=args.checkpoint or runtime / "cache/checkpoints/GR00T-N1.6-3B",
         output=args.output_dir
         or runtime
@@ -128,7 +128,9 @@ def optimization_kwargs():
     return values
 
 
-def build_training_arguments(args, paths, *, validation_steps=0):
+def build_training_arguments(
+    args: argparse.Namespace, paths: CheckpointTrainingPaths, *, validation_steps=0
+):
     """从已解析参数和输出路径构造本骨干原生 TrainingArguments，返回参数对象。
 
     生产和CPU回归共用同一TrainingArguments构造入口。"""

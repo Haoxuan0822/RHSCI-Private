@@ -333,7 +333,7 @@ class ArchitectureTests(unittest.TestCase):
             Gr00tN1d6Config(rsci_variant="VGQ-AE", tune_llm=True)
 
     def test_simple_default_batch_follows_world_and_accumulation(self):
-        from gr00t.rhsci.train import build_argument_parser, resolve_training_paths
+        from gr00t.rhsci.config import build_argument_parser, resolve_training_paths
 
         for gpus, accumulation, batch in (
             ("0,1,2,3,4,5,6,7", 1, 3),

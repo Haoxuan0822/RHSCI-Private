@@ -53,7 +53,7 @@ def trainer_ddp_worker(rank, rendezvous, output, port):
     from transformers import TrainingArguments
 
     from openpi.rhsci.processing import collate
-    from openpi.rhsci.train import build_checkpoint_callback, create_trainer_class
+    from openpi.rhsci.trainer import build_checkpoint_callback, create_trainer_class
 
     # CPU 多 rank 默认设备 cpu:0 无法由 torch2.7 恢复；仅测试显式选择标准 cpu。
     os.environ.update(
@@ -420,7 +420,7 @@ class CheckpointTests(unittest.TestCase):
         from transformers import TrainingArguments
 
         from openpi.rhsci.processing import collate
-        from openpi.rhsci.train import build_checkpoint_callback, create_trainer_class
+        from openpi.rhsci.trainer import build_checkpoint_callback, create_trainer_class
 
         Trainer = create_trainer_class()
         model, batch = fixture()
@@ -515,7 +515,7 @@ class NumericalTests(unittest.TestCase):
     def test_production_trainer_rejects_loss_and_backward_overflow_before_update(self):
         from transformers import TrainingArguments
 
-        from openpi.rhsci.train import create_trainer_class
+        from openpi.rhsci.trainer import create_trainer_class
         from rhsci.runtime.numerics import FAILURE
 
         class InfiniteBackward(torch.autograd.Function):
@@ -568,7 +568,8 @@ class NumericalTests(unittest.TestCase):
 
 class QueueTests(unittest.TestCase):
     def test_preflight_rejects_other_tasks_stale_run_and_zero_restart(self):
-        from openpi.rhsci.train import build_argument_parser, validate_run
+        from openpi.rhsci.config import build_argument_parser
+        from openpi.rhsci.preflight import validate_run
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

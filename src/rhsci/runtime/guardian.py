@@ -2,29 +2,39 @@
 
 import os
 import time
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Protocol
 
 from .artifacts import atomic_json
 from .numerics import reject_numerical_failure
 from .processes import run_worker_process
 
 
+class CheckpointValidator(Protocol):
+    """适配器负责解释其检查点格式；完整重试时要求支持显式哈希核验。"""
+
+    def __call__(self, path: Path, *, verify_hash: bool = False) -> bool: ...
+
+
 def run_checkpoint_guardian(
-    output,
+    output: str | Path,
     *,
-    max_steps,
-    resume,
-    latest_checkpoint,
-    checkpoint_ok,
-    validate_run,
-    build_command,
-    label,
-    pass_fds=(),
-):
+    max_steps: int,
+    resume: str | Path | None,
+    latest_checkpoint: Callable[[], Path | None],
+    checkpoint_ok: CheckpointValidator,
+    validate_run: Callable[[], None],
+    build_command: Callable[[Path | None], Sequence[str]],
+    label: str,
+    pass_fds: tuple[int, ...] = (),
+) -> None:
     """最多执行四次 worker；仅从本 run 的完整点恢复，不重复回放无进展的断点。
 
-    latest_checkpoint/validate_run 不接收参数；checkpoint_ok 接收路径及 verify_hash；
-    build_command 接收恢复路径。锁由调用方持有，模型/配方与断点格式由适配器定义。
+    validate_run 校验当前运行，失败应抛异常；latest_checkpoint 找不到完整点时返回 None。
+    checkpoint_ok 校验路径并返回布尔值；build_command 接收恢复路径或 None，返回命令。
+    成功返回 None，恢复耗尽或无进展时抛异常。会写启动标记并创建子进程；运行锁和
+    pass_fds 的生命周期由调用方持有，模型/配方与断点格式由适配器定义。
     """
     output = Path(output)
     initial_resume, previous_step = resume, -1

@@ -10,11 +10,8 @@ import torch
 from torch import nn
 from transformers import set_seed
 
-from human_plan.rhsci.train import (
-    build_argument_parser,
-    build_training_arguments,
-    create_trainer_class,
-)
+from human_plan.rhsci.config import build_argument_parser, build_training_arguments
+from human_plan.rhsci.trainer import create_trainer_class
 
 
 class TinyPolicy(nn.Module):

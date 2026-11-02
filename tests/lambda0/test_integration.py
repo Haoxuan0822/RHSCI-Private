@@ -406,7 +406,7 @@ class IntegrationTests(unittest.TestCase):
         )
 
     def test_launcher_coordination_is_not_a_checkpoint_or_training_run(self):
-        from lambda0.rhsci.train import validate_output_directory
+        from lambda0.rhsci.preflight import validate_output_directory
 
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)

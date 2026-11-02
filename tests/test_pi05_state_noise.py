@@ -10,9 +10,9 @@ import numpy as np
 import torch
 from test_pi05_rsci import TinyBackbone, fixture
 
+from openpi.rhsci.config import build_argument_parser, resolve_training_paths
 from openpi.rhsci.model import Pi05RHSCI
 from openpi.rhsci.processing import Processor
-from openpi.rhsci.train import build_argument_parser, resolve_training_paths
 from rhsci.inference.state_noise import RequestStateNoise
 
 

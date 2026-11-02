@@ -1,9 +1,12 @@
 """Dataset and output arguments shared by the LeRobot RHSCI adapters."""
 
+import argparse
 import re
 import sys
 from pathlib import Path
+from typing import TypedDict
 
+from rhsci.data.cache_config import InputCacheConfig
 from rhsci.runtime.environment import get_env
 
 # 代码根由共用模块定位，不依赖各骨干原生包不同的目录深度。
@@ -19,7 +22,29 @@ BACKBONE_MODULES = {
 }
 
 
-def add_data_arguments(parser):
+class DatasetPaths(TypedDict):
+    """解析后的数据身份；STATE/NO-STATE 的 sidecar 可以为空。"""
+
+    task: str
+    dataset: Path
+    sidecar: Path | None
+
+
+class TrainingPaths(DatasetPaths):
+    """四个 HF 骨干共用的数据、缓存选择及运行目录。"""
+
+    input_cache: InputCacheConfig
+    output: Path
+
+
+class CheckpointTrainingPaths(TrainingPaths):
+    """GR00T/EgoVLA 另需的初始化权重目录；不改变字典存取方式。"""
+
+    checkpoint: Path
+
+
+def add_data_arguments(parser: argparse.ArgumentParser) -> None:
+    """向调用方的解析器添加公共路径选项；不解析参数或访问数据。"""
     parser.add_argument(
         "--dataset", type=Path, help="LeRobot dataset directory containing meta/, data/ and videos/"
     )
@@ -31,8 +56,8 @@ def add_data_arguments(parser):
     )
 
 
-def dataset_paths(args):
-    """Resolve explicit dataset and label paths without machine-specific task aliases."""
+def dataset_paths(args: argparse.Namespace) -> DatasetPaths:
+    """返回解析后的 task/dataset/sidecar 字典；不修改参数、不读取数据文件。"""
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.task):
         raise ValueError("task must be a plain identifier")
     dataset = getattr(args, "dataset", None)
@@ -41,7 +66,7 @@ def dataset_paths(args):
         raise ValueError("Provide --dataset; task names do not select private dataset paths")
     if args.model not in ("STATE", "NO-STATE") and sidecar is None:
         raise ValueError("Query datasets require --sidecar")
-    return dict(
+    return DatasetPaths(
         task=args.task, dataset=dataset.resolve(), sidecar=sidecar.resolve() if sidecar else None
     )
 

@@ -10,8 +10,9 @@ from test_rsci import inputs, policy, sample
 
 from psi.config.transform import ActionStateTransform
 from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
+from psi.rhsci.contract import build_training_contract
 from psi.rhsci.model import RHSCIQuery, RHSCISpec, masked_auxiliary_loss
-from psi.rhsci.train import build_argument_parser, build_training_contract, resolve_training_plan
+from psi.rhsci.training_config import build_argument_parser, resolve_training_plan
 from psi.trainers.finetune import FinetuneTrainer
 from rhsci.data.ardy_future import ardy_target_at_offset, supervision_counts
 from rhsci.data.ardy_sidecar import ArdySidecarReader

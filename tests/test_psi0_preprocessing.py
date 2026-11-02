@@ -13,7 +13,7 @@ from PIL import Image
 from psi.config.augmentation import CenterCrop, ColorJitter, ResizeImage
 from psi.config.transform import Psi0ModelTransform
 from psi.rhsci.config import load_run_config
-from psi.rhsci.train import build_argument_parser, resolve_training_plan
+from psi.rhsci.training_config import build_argument_parser, resolve_training_plan
 
 
 class ImageTransform(Psi0ModelTransform):

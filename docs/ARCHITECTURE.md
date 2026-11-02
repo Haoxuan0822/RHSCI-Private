@@ -59,11 +59,11 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 
 | 骨干 | 实际函数入口与训练链路 | 模型和数据的所有者 |
 | --- | --- | --- |
-| Ψ0 | `psi.rhsci.train.main` → `resolve_training_plan` / `run_training_preflight` / `build_training_contract` → `run_training_guardian` → 原生 `scripts/train.py::train` → `RHSCIFinetuneTrainer` | `psi.rhsci.model` 扩展方法；原生 `psi.models.psi0`、`psi.trainers.finetune` 和 LeRobot 数据层保留接入钩子 |
+| Ψ0 | `psi.rhsci.train.main` → `training_config.resolve_training_plan` / `preflight.run_training_preflight` / `contract.build_training_contract` → `guardian.run_training_guardian` → 原生 `scripts/train.py::train` → `RHSCIFinetuneTrainer` | `psi.rhsci.model` 扩展方法；原生 `psi.models.psi0`、`psi.trainers.finetune` 和 LeRobot 数据层保留接入钩子 |
 | π0.5 | `openpi.rhsci.train.main` → `resolve_training_paths` / `run_training_preflight` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `openpi.rhsci.data` / `processing` / `model`；底层复用原生 PaliGemma 与 Action Expert 模块 |
 | GR00T | `gr00t.rhsci.train.main` → `resolve_training_paths` / `run_training_preflight` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `gr00t.rhsci.data` / `config`；研究前向和 `VisualStateQuery` 仍位于原生 `gr00t.model.gr00t_n1d6` |
 | EgoVLA | `human_plan.rhsci.launch.main` → `train.main` → `resolve_training_paths` / `check_data` / `assets` / `build_training_contract` → `guardian.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class` | `human_plan.rhsci.data` / `processing` / `model`；VILA/LLM 依赖保留独立环境 |
-| λ₀ | `lambda0.rhsci.launch.main` / `run_training_guardian` → `train.main` → `build_training_config` / `validate_training_data` → `execute_training` → 原生引擎＋`RHSCITrainingBackend` | `lambda0.rhsci.model` / `data` / `runtime`；后端负责原生模型、优化器、数据游标和保存/恢复的适配 |
+| λ₀ | `lambda0.rhsci.launch.main` / `run_training_guardian` → `train.main` → `config.build_training_config` / `preflight.validate_training_data` → `worker.execute_training` → 原生引擎＋`RHSCITrainingBackend` | `lambda0.rhsci.model` / `data` / `runtime`；后端负责原生模型、优化器、数据游标和保存/恢复的适配 |
 | ACT | `act.rhsci.launch.main` → `train.main` → `resolve_training_paths` → `launch.run_training_guardian` → `worker.run_training_worker` → `trainer.create_trainer_class`；检查分支使用 `check_data` | `act.rhsci.data` / `processing` / `model`；原生 LeRobot ACT 执行动作分支 |
 
 四个 HF 骨干的 `config.py` 负责参数、路径和 `TrainingArguments`，`preflight.py` 负责数据/资产检查，`contract.py` 记录模型/数据/配方，`worker.py` 组装训练对象，`trainer.py` 定义优化器、损失、回调及恢复适配。`train.py` 目前仍重导出一批旧函数，阅读实现应进入实际所属模块。
@@ -197,3 +197,8 @@ ACT, π0.5, GR00T and EgoVLA use `config`, `preflight`, `contract`, `trainer`, `
 ## λ₀ 守护与恢复对照（2026-11-02）
 
 [官方对照与守护修复](GUARDIAN_RECOVERY_AUDIT_20261102.md)更新公共进程管理接入：λ₀ 也使用 `run_worker_process` / `wait_worker`，通过可选启动/等待回调保留日志、记录PID并跟踪子孙，清理后释放锁；torchrun继承锁FD。2026-11-03用户更正对照对象为SIMPLE官方，撤回此前按PSI0-RAW同源而保留π/Ego问题的决定：π复用公共累计尾恢复，Ego接公共worker RNG隔离与loader清理。两者真实Trainer CPU恢复一致；原始归一化及各骨干训练配方保持，不外推到worker随机变换或全模型GPU。
+
+
+## SIMPLE-inspired explicit interfaces (2026-11-03)
+
+Ψ/λ training entries now separate configuration, preflight and execution. Common HTTP serving declares a minimal `ActionPolicy`; the checkpoint guardian declares its validation and command callbacks. HF path dictionaries, λ JSON configuration and the Ψ training plan expose named, typed fields while retaining their previous dictionary/tuple access. CLI reexports remain compatible; maintained callers import the owning module. See the [module/function map and validation](CODE_REVIEW_20261103.md#参考-simple-的职责与接口整理2026-11-03). The existing native recipes, normalization, checkpoint identities and recovery algorithms are unchanged.

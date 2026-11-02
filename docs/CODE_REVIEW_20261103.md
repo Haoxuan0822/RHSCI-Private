@@ -40,14 +40,39 @@
 
 仍然较难读的地方：
 
-1. `psi.rhsci.train` 约466行、`lambda0.rhsci.train` 约422行，各自混合参数、配置、预检和执行。可以沿现有职责拆分，但应单独核对原生调用及CLI兼容；本轮没有为缩短文件改动它们。
+1. 首轮审查时 `psi.rhsci.train` 为466行、`lambda0.rhsci.train` 为422行，各自混合参数、配置、预检和执行；后续按下节拆分，现为103/37行。原生模型接入仍需沿各骨干调用链阅读。
 2. 四个HF `train.py` 保留旧函数重导出以兼容既有导入。查实现应直接进入 `config` / `preflight` / `trainer`，新调用不再借CLI模块访问底层工具；不能直接删除已有导出。
 3. `hf_resume` 通过局部函数绑定和一处源码替换适配HF内部循环。比复制整份Trainer更少，但依赖上游内部实现，仍是最需要解释和回归测试的公共代码；没有把它包装成不透明的通用Trainer。
 4. Ψ模型/Trainer/数据与GR原生模型内仍有RHSCI接入钩子；仅看包内 `rhsci/model.py` 不足以理解全部前向，参见[架构中的原生接入表](ARCHITECTURE.md#simple-shared-interfaces-20261102)。
-5. `args` 与 `paths` 多为Namespace/字典，不同骨干返回项稍异，阅读时需要跳到配置函数。后续新增接口宜明确输入/返回值；不为形式统一把各模型配方塞进一个大型基类。
+5. CLI `args` 仍是Namespace；四个HF骨干的路径字典、λ原生配置和Ψ启动计划现已声明字段类型，见下节。模型原生配置和HF内部适配仍需具体阅读，没有进行全仓严格静态类型检查。
 
 ## 验证与边界
 
 ACT/GR新增真实Trainer恢复测试覆盖19样本、batch2、累计4、checkpoint4以及0/2持久worker，比较样本、最终参数、Adam、调度器和Torch主RNG。π/Ego沿用上轮真实恢复对照。λ真实CPU子进程覆盖正常退出残留rank、SIGTERM/SIGINT、SIGKILL继承锁、写记录失败、Popen未返回/记录回调中的停止，以及退出清理阶段的停止和锁顺序。
 
 本轮CPU回归：π39、GR34、ACT30、Ψ54项通过；λ真实进程6项及既有预算1项、公共CLI11项通过。Ego29项中28项通过，另1项仍因缺少 `flash_attn` 报错；恢复对照通过。GR恢复用例分别在独立HF4.51.3/Accelerate1.10.1与π环境HF4.53.2/Accelerate1.7.0核验，后者已有ceil行为未改变。Ruff按根 `ruff.toml` 范围通过；原生子项目保留各自格式，不混入本轮修改。未正式训练、安装依赖、运行GPU/仿真或读取生产大检查点；PSI0-RAW只同步文档入口，不改生产代码/环境/进程/断点。独立generator不等于保存worker内部随机增强状态，CPU结果不保证全模型多卡逐位等价。仅本地提交，不自动推送。
+
+
+## 参考 SIMPLE 的职责与接口整理（2026-11-03）
+
+参考固定官方 SIMPLE `b75c6786` 的 [PolicyLike / EvalConfig / 策略适配器](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/src/simple/evals/env_runner.py)：借鉴小接口、明确配置字段和就近适配。SIMPLE此处负责评测与客户端，不能用其客户端的行数衡量RHSCI完整训练实现，也不把 `get_action` 生搬成训练接口。
+
+| 所属模块 | 当前职责与返回值 |
+| --- | --- |
+| `psi.rhsci.training_config` | `build_argument_parser`、`resolve_training_plan`；返回有名字段 `TrainingPlan(config, command, output, ranks)`，仍可按原四元组索引/解包 |
+| `psi.rhsci.contract` | 训练组合准入和 `build_training_contract`；返回原有配置身份字典 |
+| `psi.rhsci.preflight` | `run_training_preflight`；真实数据处理检查，通过返回None，失败抛异常 |
+| `psi.rhsci.guardian` | `latest_checkpoint`、`run_training_guardian`；保留原生检查点布局和进程清理 |
+| `lambda0.rhsci.config` | 参数与 `build_training_config`；`LambdaTrainingConfig` / `LambdaTrainingSettings` 明确原生JSON配置字段 |
+| `lambda0.rhsci.preflight` | 数据、输出目录与 `run_model_preflight`；后者仅在显式模型检查分支调用 |
+| `lambda0.rhsci.worker` | `execute_training`；装配原生resolver、运行身份和后端，分派模型预检或训练 |
+| 两者 `train.main` | CLI分派；Ψ保留原来的后台启动/日志查看，λ仍通过原守护入口启动训练 |
+| `rhsci.paths` | `DatasetPaths`、`TrainingPaths`、`CheckpointTrainingPaths` 声明公共路径字段；π专有词表字段在其 `config.Pi05TrainingPaths` |
+| `rhsci.inference.http_app` | `ActionPolicy` 明确策略仅需 `predict_action(payload) -> dict`；共享工厂标出预测/健康/reset/锁/错误回调边界 |
+| `rhsci.runtime.guardian` | `CheckpointValidator` 和回调类型明确路径、校验、命令和失败语义；算法及锁生命周期保持原有行为 |
+
+四个HF骨干仍返回普通字典；λ配置仍可直接JSON序列化，没有新增配置转换器、启动门槛或依赖。Ψ现有 `config.py` 负责读取已保存运行配置，故CLI配置名为 `training_config.py`，避免混合训练解析与部署回载。所有原有训练函数从CLI继续重导出以保留兼容；内部λ守护与现有测试直接从函数实际所属模块导入。新代码优先沿实际模块查实现，不再经训练CLI绕行。
+
+验证：Ψ54、π39、GR34、ACT30项既有CPU套件通过；Ego针对路径/配方/预算和累计尾恢复5项通过；λ真实进程/预算7项、源码核验2项，以及公共CLI11项通过。另对拆分前后Ψ/λ各4种参数组合核对help、解析值及配置/命令/身份，结果一致；13个迁移函数经去类型标注、同义字典/元组构造和模型预检提取还原后，AST执行体一致。Ruff、Python3.10语法、文档链接和公开源码清单通过。
+
+未重跑Ego全模型套件或λ真实Qwen3.5模型预检；前者仍有原FlashAttention环境限制，后者当前环境缺相应API。源码等价核对不替代真实模型/GPU验收。本次整理没有改变前向、归一化、训练配方、检查点字段和已修的恢复/信号算法；没有正式训练、GPU评测或生产检查点读取。HF内部循环适配和各骨干原生模型钩子仍是阅读时需要背景知识的部分。仅本地提交，不自动推送。

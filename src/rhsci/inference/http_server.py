@@ -6,11 +6,11 @@ import os
 from pathlib import Path
 
 from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run
-from rhsci.inference.http_app import create_policy_app
+from rhsci.inference.http_app import ActionPolicy, create_policy_app
 from rhsci.inference.state_noise import RequestStateNoise, add_arguments
 
 
-def create_app(server):
+def create_app(server: ActionPolicy):
     """为策略对象构造 HTTP 应用；请求处理沿用该策略的动作预测与异常检查。"""
     return create_policy_app(server.predict_action)
 

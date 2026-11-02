@@ -11,7 +11,7 @@ import torch
 from transformers import Trainer, TrainingArguments
 
 from gr00t.configs.training.training_config import TrainingConfig
-from gr00t.rhsci.train import (
+from gr00t.rhsci.config import (
     build_argument_parser,
     build_training_arguments,
     resolve_training_paths,

@@ -23,7 +23,7 @@ from lambda0.rhsci.runtime import RHSCITrainingBackend
 
 class OptimizationTests(unittest.TestCase):
     def test_custom_bundle_paths_and_training_budget(self):
-        from lambda0.rhsci.train import build_argument_parser, build_training_config
+        from lambda0.rhsci.config import build_argument_parser, build_training_config
 
         args = build_argument_parser().parse_args(
             [
@@ -57,8 +57,8 @@ class OptimizationTests(unittest.TestCase):
         torch.set_num_threads(1)
 
     def test_all_four_actual_recipes_against_official_profile_and_parser(self):
+        from lambda0.rhsci.config import build_argument_parser, build_training_config
         from lambda0.rhsci.contracts import UPSTREAM
-        from lambda0.rhsci.train import build_argument_parser, build_training_config
         from lambda0.training import engine
         from lambda0.training.runner import resolve_experiment
 

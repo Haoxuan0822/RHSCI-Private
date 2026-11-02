@@ -8,13 +8,13 @@ from unittest.mock import patch
 import torch
 from test_pi05_rsci import TinyBackbone
 
-from openpi.rhsci.model import Pi05RHSCI
-from openpi.rhsci.train import (
+from openpi.rhsci.config import (
     build_argument_parser,
     build_training_arguments,
-    create_trainer_class,
     resolve_training_paths,
 )
+from openpi.rhsci.model import Pi05RHSCI
+from openpi.rhsci.trainer import create_trainer_class
 
 
 class OfficialRecipeTests(unittest.TestCase):
@@ -48,7 +48,7 @@ class OfficialRecipeTests(unittest.TestCase):
             ),
         ):
             self.assertEqual(build_training_arguments(args, paths).max_steps, 2000)
-        from openpi.rhsci.train import simple_lr_multiplier
+        from openpi.rhsci.config import simple_lr_multiplier
 
         self.assertAlmostEqual(simple_lr_multiplier(2000, 2000), 1e-4)
 

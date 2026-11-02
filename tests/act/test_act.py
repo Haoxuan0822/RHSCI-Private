@@ -10,7 +10,7 @@ import torch
 
 from act.models.act import ACTConfig
 from act.rhsci.model import RHSCIACT, masked_ardy_loss
-from act.rhsci.train import create_optimizer
+from act.rhsci.trainer import create_optimizer
 
 
 def config(state=False):

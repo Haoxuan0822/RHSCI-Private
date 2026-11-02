@@ -11,7 +11,7 @@ from pathlib import Path
 from rhsci.runtime.artifacts import atomic_json
 from rhsci.runtime.processes import cleanup, process_table, remember_tree, run_worker_process
 
-from .train import build_argument_parser, build_training_config
+from .config import build_argument_parser, build_training_config
 
 
 def run_training_guardian(args, argv, output):

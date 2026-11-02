@@ -24,17 +24,16 @@ from human_plan.rhsci.checkpoints import (
     prune,
     publish,
 )
-from human_plan.rhsci.model import EgoVLARHSCI, decode_latents, masked_ardy_loss
-from human_plan.rhsci.processing import Collator, Processor
-from human_plan.rhsci.train import (
-    CODE,
-    assets,
+from human_plan.rhsci.config import (
     build_argument_parser,
-    build_checkpoint_callback,
     build_training_arguments,
-    create_trainer_class,
     resolve_training_paths,
 )
+from human_plan.rhsci.contract import CODE
+from human_plan.rhsci.model import EgoVLARHSCI, decode_latents, masked_ardy_loss
+from human_plan.rhsci.preflight import assets
+from human_plan.rhsci.processing import Collator, Processor
+from human_plan.rhsci.trainer import build_checkpoint_callback, create_trainer_class
 
 
 def native_decoder(width=16):

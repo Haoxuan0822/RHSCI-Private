@@ -100,7 +100,7 @@ GR00T's `validate_training_data` and EgoVLA's `validate_model_and_worker_preproc
 
 The [2026-11-02 SIMPLE interface refactor](ARCHITECTURE.md#simple-shared-interfaces-20261102) maps actual shared callers and native model hooks. `rhsci.inference.protocol` owns SIMPLE messages; the old native `psi.deploy.helpers` import reexports the same classes. Distinct native protocols and model algorithms remain separate.
 
-The [2026-11-03 code review](CODE_REVIEW_20261103.md) records current readability and recovery/lifecycle ownership. All four HF adapters use the shared epoch-tail recovery and worker RNG isolation. Read implementation in its owning module; existing CLI reexports remain for compatibility. The larger Ψ/λ entry modules and the HF internal-loop adapter still require more context than the other modules.
+The [2026-11-03 code review](CODE_REVIEW_20261103.md) records current readability and recovery/lifecycle ownership. All four HF adapters use the shared epoch-tail recovery and worker RNG isolation. Read implementation in its owning module; existing CLI reexports remain for compatibility. Ψ/λ now also separate CLI configuration, preflight and execution/guardian duties; see the [SIMPLE-inspired interface map](CODE_REVIEW_20261103.md#参考-simple-的职责与接口整理2026-11-03). Ψ uses `training_config.py` because its existing `config.py` reads saved run configurations. Typed path dictionaries and the named Ψ training plan expose return fields while retaining their existing dictionary/tuple use. The HF internal-loop adapter and native model hooks still require more context.
 
 ## External resources
 

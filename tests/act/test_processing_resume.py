@@ -8,13 +8,9 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from act.rhsci.config import build_argument_parser, build_training_arguments, resolve_training_paths
 from act.rhsci.data import IMAGE, ACTDataset, Processor
-from act.rhsci.train import (
-    build_argument_parser,
-    build_training_arguments,
-    create_trainer_class,
-    resolve_training_paths,
-)
+from act.rhsci.trainer import create_trainer_class
 
 
 def stats():

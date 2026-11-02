@@ -39,3 +39,5 @@ Query variants also accept `--no-reader` and `--ardy-offset N`, independently or
 ## Inference
 
 Use `scripts/deploy/serve_psi0_simple.sh` to serve a checkpoint and the official SIMPLE runtime to evaluate it. `bash scripts/deploy/serve_psi0_simple.sh --help` lists server arguments. See [Inference](../../docs/INFERENCE.md) for the four-frame client protocol required by starred variants.
+
+2026-11-03: The CLI stays at `psi.rhsci.train`; configuration/planning lives in `training_config`, checks in `preflight`, run identity in `contract`, and recovery in `guardian`. Its named `TrainingPlan` retains four-value unpacking. See the [interface map and compatibility checks](../../docs/CODE_REVIEW_20261103.md#参考-simple-的职责与接口整理2026-11-03).

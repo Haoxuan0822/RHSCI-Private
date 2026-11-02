@@ -6,11 +6,11 @@ import re
 from pathlib import Path
 
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
-from rhsci.paths import add_data_arguments, dataset_paths
+from rhsci.paths import TrainingPaths, add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
 
-def build_argument_parser():
+def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
@@ -44,7 +44,7 @@ def build_argument_parser():
     return argument_parser
 
 
-def resolve_training_paths(args):
+def resolve_training_paths(args: argparse.Namespace) -> TrainingPaths:
     """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     if (
         not re.fullmatch(r"\d+(,\d+)*", args.gpus)
@@ -55,11 +55,13 @@ def resolve_training_paths(args):
     ):
         raise ValueError("Invalid GPU list, tag, batch, accumulation, steps or workers")
     runtime = Path(get_env("PSI_RUNTIME_ROOT", "/opt/rsci-data")).resolve()
-    paths = dataset_paths(args)
-    paths["input_cache"] = resolve_input_cache(args)
-    paths["output"] = (
-        args.output_dir
-        or runtime / "runs/act" / args.task / args.model / f"seed-{args.seed}" / args.run_tag
+    paths = TrainingPaths(
+        **dataset_paths(args),
+        input_cache=resolve_input_cache(args),
+        output=(
+            args.output_dir
+            or runtime / "runs/act" / args.task / args.model / f"seed-{args.seed}" / args.run_tag
+        ),
     )
     args.torch_home = (
         args.torch_home or Path(get_env("TORCH_HOME", str(runtime / "cache/act/torch")))
@@ -68,7 +70,7 @@ def resolve_training_paths(args):
     return paths
 
 
-def build_training_arguments(args, paths, *, cpu=False):
+def build_training_arguments(args: argparse.Namespace, paths: TrainingPaths, *, cpu=False):
     """从已解析参数和输出路径构造本骨干原生 TrainingArguments，返回参数对象。"""
     from transformers import TrainingArguments
 
