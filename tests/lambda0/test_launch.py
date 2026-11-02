@@ -28,8 +28,7 @@ class GuardianTests(unittest.TestCase):
                     (output / "training_complete.json").write_text(
                         json.dumps(dict(global_step=recorded))
                     )
-                process = SimpleNamespace(pid=123, poll=lambda: 0, wait=lambda: 0)
-                with patch("lambda0.rhsci.launch.subprocess.Popen", return_value=process):
+                with patch("lambda0.rhsci.launch.run_worker_process", return_value=0):
                     if recorded == budget:
                         run_training_guardian(
                             SimpleNamespace(gpus="0", max_steps=budget), [], output

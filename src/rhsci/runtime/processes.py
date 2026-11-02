@@ -10,20 +10,36 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
-def run_worker_process(command, **options):
-    """启动独立 worker 进程组并等待退出；转发终止信号、回收子进程，返回退出码。"""
+def run_worker_process(command, *, on_start=None, on_wait=None, **options):
+    """启动独立 worker 进程组；转发终止信号、回收子进程，返回退出码。
+
+    on_start(process) 可记录子进程身份；on_wait() 在等待间隙读取日志或观察子孙。
+    回调异常同样进入清理，不另建日志监控进程。
+    """
     process = subprocess.Popen(command, start_new_session=True, **options)
     try:
-        return wait_worker(process)
+        if on_start is not None:
+            on_start(process)
+        return wait_worker(process, on_wait=on_wait)
     finally:
         # 仅清理由本次 Popen 创建的进程组，不能影响其他训练。
         try:
             os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
+        # 启动回调或日志读取异常也要回收直接子进程，不能仅发信号后释放训练锁。
+        if process.poll() is None:
+            try:
+                process.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
 
 
-def wait_worker(process, grace=30):
+def wait_worker(process, grace=30, *, on_wait=None):
     """Wait for a session-leading worker; forward signals without reentering Popen.wait."""
     requested = None
 
@@ -41,6 +57,8 @@ def wait_worker(process, grace=30):
     previous = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
     try:
         while True:
+            if on_wait is not None:
+                on_wait()
             try:
                 result = process.wait(timeout=1)
             except subprocess.TimeoutExpired:

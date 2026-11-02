@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-02",
+  "scope": "Read-only comparison against the current PSI0-RAW working tree, including uncommitted code; no production runs or checkpoints modified.",
+  "original_head": "9ceb57802f1dd8c0326c5ffed170c17e1776025d",
+  "original_files": {
+    "src/rsci_pi05/train.py": "36b00d2f26cb0979500544b43ec7c4ee14f1ef5b3f011454c9519f688685842a",
+    "RSCI/egovla/rsci_egovla/train.py": "a557109b2ea2ca1737aad40bea0945d92929ac275d575cef75502001ccafa556",
+    "RSCI/egovla/rsci_egovla/resume_tail.py": "668f332d1e4542673dcbf78cdb54a766fe8688090b974ae9b00f061d135a94ff",
+    "RSCI/egovla/rsci_egovla/resume.py": "ee8fd1147910aee9c31ba70e640e77bba82f68238d352e99608eaca63ce63973"
+  },
+  "probe": {
+    "trainer_modules": [
+      "rsci_pi05.train.trainer_class",
+      "rsci_egovla.train.trainer_type"
+    ],
+    "transformers": "4.53.2",
+    "accelerate": "1.7.0",
+    "device": "cpu",
+    "dataset": "19 deterministic scalar indices",
+    "batch": 2,
+    "epochs": 3,
+    "gradient_accumulation_steps": 4,
+    "interrupt_step": 4,
+    "seed": 42,
+    "checkpoint_scope": "Tiny actual Trainer/HF model and optimizer saves in TemporaryDirectory; not production weights or a full-size CUDA run."
+  },
+  "results": [
+    {
+      "backbone": "pi05",
+      "workers": 0,
+      "gradient_accumulation_steps": 4,
+      "continuous_steps": 9,
+      "resumed_steps": 8,
+      "same_samples": true,
+      "same_forward_torch_rng": true,
+      "same_parameters": false
+    },
+    {
+      "backbone": "egovla",
+      "workers": 2,
+      "gradient_accumulation_steps": 4,
+      "continuous_steps": 9,
+      "resumed_steps": 9,
+      "same_samples": true,
+      "same_forward_torch_rng": false,
+      "same_parameters": false
+    }
+  ],
+  "lambda0_comparison": "No matching RHSCI guardian in the current PSI0-RAW tree. Its RSCI/lambda0 and src/openlambda/lambda0/lambda0/rsci paths are absent; the integration record identifies lambda0 as a target-only adapter."
+}

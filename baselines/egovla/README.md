@@ -66,3 +66,5 @@ Serving uses `python -m human_plan.rhsci.serve` in the same environment, with a 
 Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
 
 2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
+
+2026-11-02: [Original-source recovery audit](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md) confirms that both PSI0-RAW and this adapter lack worker/model RNG isolation for persistent-worker reconstruction. Sample order alone does not establish exact resumed parameters. This issue remains under the user's current scope.

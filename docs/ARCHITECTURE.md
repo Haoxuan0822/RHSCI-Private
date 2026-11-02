@@ -191,3 +191,7 @@ ACT, π0.5, GR00T and EgoVLA use `config`, `preflight`, `contract`, `trainer`, `
 ## π0.5 完整恢复修复（2026-11-02）
 
 [完整恢复修复](PI05_CORRECTNESS_20261102.md)按用户最新要求仅保留第二点：`create_trainer_class` 接入公共 `epoch_safe_training_loop`，π/GR 共用 `isolate_worker_rng`。原归一化、v4 训练契约、模型配置、部署反变换及命令行恢复为本轮修改前的版本，不引入 v3 或 min/max 回退。完整标记不能代替样本进度验证；实际 Trainer CPU 对照覆盖单次、多次与 epoch 边界恢复，八卡长跑/噪声 worker 逐位等价未验证。
+
+## λ₀ 守护与恢复对照（2026-11-02）
+
+[原仓库对照与守护修复](GUARDIAN_RECOVERY_AUDIT_20261102.md)更新公共进程管理接入：λ₀ 也使用 `run_worker_process` / `wait_worker`，通过可选启动/等待回调保留日志、记录PID并跟踪子孙，清理后释放锁；torchrun继承锁FD。π累计>1尾部更新和Ego持久worker RNG扰动在原仓库实际Trainer也可复现，按用户范围不改，不构成迁移独有遗漏。原始归一化及各骨干训练配方保持。

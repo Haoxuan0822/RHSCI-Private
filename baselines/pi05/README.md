@@ -52,3 +52,5 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 ## 2026-11-02 resume fixes
 
 The Trainer now preserves the sampler epoch when skipping resumed batches and isolates worker seed generation from the model RNG. Per the user's final scope, normalization, the training recipe, checkpoint configuration and inference formulas retain their previous behavior; the proposed v3 normalization and CLI option were withdrawn. Existing runs do not need a new run-tag or preprocessing migration for this recovery fix. See the [resume comparison and CPU validation limits](../../docs/PI05_CORRECTNESS_20261102.md).
+
+2026-11-02: [Original-source recovery audit](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md) confirms that accumulation greater than one can still lose an epoch-tail optimizer update after mid-epoch resume, also in PSI0-RAW. The previous default-accumulation-1 validation does not cover this case; this issue remains under the user's current scope.

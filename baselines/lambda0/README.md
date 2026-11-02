@@ -12,3 +12,7 @@ The source manifest supports an explicit audit of vendored files against their S
 VGQ-AE reports `flow + 0.1 × ARDY` as total loss in both training and validation. STATE reports native flow loss. Validation uses local masked ARDY reduction before the native metric aggregation, so uneven validation ranks do not enter collectives inside the model forward pass. Inference runs only the native action branch.
 
 The environment lock records a known setup; runtime does not require every exact package version. Model/API compatibility is determined by native loading. See [runtime check policy](../../docs/RUNTIME_CHECKS_20261031.md).
+
+## Guardian lifecycle (2026-11-02)
+
+The guardian forwards SIGTERM/SIGINT to its worker process group and waits for worker/rank cleanup before releasing the training lock. The worker inherits the lock FD, preventing another launch while it remains alive after a guardian SIGKILL; SIGKILL itself cannot be forwarded. Foreground Ctrl+C still exits only the log viewer. See the [source comparison, process tests and limits](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md).

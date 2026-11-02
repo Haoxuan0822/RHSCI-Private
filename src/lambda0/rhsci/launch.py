@@ -8,6 +8,9 @@ import sys
 import time
 from pathlib import Path
 
+from rhsci.runtime.artifacts import atomic_json
+from rhsci.runtime.processes import cleanup, process_table, remember_tree, run_worker_process
+
 from .train import build_argument_parser, build_training_config
 
 
@@ -30,26 +33,39 @@ def run_training_guardian(args, argv, output):
             ]
             if attempt:
                 command.extend(["--resume", "auto"])
-            with log.open("wb", buffering=0) as stream:
-                process = subprocess.Popen(
-                    command,
-                    stdout=stream,
-                    stderr=subprocess.STDOUT,
-                    env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus},
-                    start_new_session=True,
-                )
-                (output / "worker.json").write_text(
-                    json.dumps(dict(pid=process.pid, command=command, log=str(log)))
-                )
-                # 守护日志包含训练实时输出；前台 Ctrl+C 只停止 tail。
-                with log.open() as reader:
-                    while process.poll() is None:
-                        text = reader.read()
-                        if text:
-                            print(text, end="", flush=True)
-                        time.sleep(0.5)
+            with log.open("wb", buffering=0) as stream, log.open(errors="replace") as reader:
+                worker_pid = None
+                tracked = {}
+
+                def observe_worker():
+                    remember_tree(worker_pid, tracked, process_table(), own_group=worker_pid)
                     print(reader.read(), end="", flush=True)
-                returncode = process.wait()
+
+                def record_worker(process):
+                    nonlocal worker_pid
+                    worker_pid = process.pid
+                    observe_worker()
+                    atomic_json(
+                        output / "worker.json", dict(pid=worker_pid, command=command, log=str(log))
+                    )
+
+                try:
+                    returncode = run_worker_process(
+                        command,
+                        stdout=stream,
+                        stderr=subprocess.STDOUT,
+                        env={**os.environ, "CUDA_VISIBLE_DEVICES": args.gpus},
+                        # 守护遭 SIGKILL 时不能转发信号，worker 仍持锁，拒绝叠加启动。
+                        pass_fds=(lock.fileno(),),
+                        on_start=record_worker,
+                        on_wait=observe_worker,
+                    )
+                finally:
+                    if worker_pid is not None:
+                        remember_tree(worker_pid, tracked, process_table(), own_group=worker_pid)
+                        cleanup(tracked)
+                    # worker/rank 全部退出后才离开外层持锁块；前台 Ctrl+C 仍只退出 tail。
+                    print(reader.read(), end="", flush=True)
             if returncode == 0:
                 complete = output / "training_complete.json"
                 if (
