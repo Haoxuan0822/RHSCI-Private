@@ -119,11 +119,8 @@ class StateNoiseTests(unittest.TestCase):
         batch = {key: data[key][0] for key in ("tokens", "token_mask")}
         batch["images"] = data["images"][0, -1:]
 
-        class FixedProcessor(Processor):
+        class FixedProcessor:
             stats = {"action": dict(q01=[-1.0] * 36, q99=[1.0] * 36)}
-
-            def __init__(self):
-                pass
 
             def __call__(self, sample):
                 return batch

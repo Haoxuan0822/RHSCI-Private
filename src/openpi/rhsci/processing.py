@@ -10,13 +10,6 @@ from PIL import Image
 
 from rhsci.data.state_noise import InferenceStateNoise, add_measurement_noise, validate_scale
 
-from .normalization import (
-    LEGACY_NORMALIZATION,
-    NORMALIZATION_VERSION,
-    build_normalization_ranges,
-    validate_normalization_ranges,
-)
-
 
 class Processor:
     def __init__(
@@ -26,11 +19,10 @@ class Processor:
         variant,
         *,
         state_measurement_noise_std_rad=0.0,
-        normalization=NORMALIZATION_VERSION,
-        normalization_ranges=None,
+        normalization="simple-quantile-zero-span-clipped-v2",
     ):
         self.variant = variant
-        if normalization not in ("simple-quantile-v1", LEGACY_NORMALIZATION, NORMALIZATION_VERSION):
+        if normalization not in ("simple-quantile-v1", "simple-quantile-zero-span-clipped-v2"):
             raise ValueError(f"Unsupported π0.5 normalization: {normalization}")
         self.normalization = normalization
         self.state_measurement_noise_std_rad = validate_scale(
@@ -39,27 +31,10 @@ class Processor:
         self.inference_state_noise = InferenceStateNoise()
         self.tokenizer = sentencepiece.SentencePieceProcessor(model_file=str(tokenizer))
         self.stats = json.loads((Path(root) / "meta/stats.json").read_text())
-        if normalization == NORMALIZATION_VERSION:
-            self.normalization_ranges = (
-                build_normalization_ranges(self.stats)
-                if normalization_ranges is None
-                else normalization_ranges
-            )
-            validate_normalization_ranges(self.normalization_ranges)
 
     def normalize(self, value, key):
-        if getattr(self, "normalization", LEGACY_NORMALIZATION) == NORMALIZATION_VERSION:
-            low, high = self._effective_bounds(key)
-            value = np.asarray(value, np.float32)
-            if not np.isfinite(value).all():
-                raise ValueError(f"Nonfinite raw value: {key}")
-            constant = high == low
-            span = np.where(constant, 1.0, high - low)
-            return np.clip(np.where(constant, 0.0, (value - low) / span * 2 - 1), -1, 1).astype(
-                np.float32
-            )
         stats = self.stats[key]
-        # 历史断点保持原语义；v2 的退化分位数置零不能用于新训练。
+        # 沿用本仓库 SIMPLE/OpenPI 的 quantile 保护；不能修改共享统计数组。
         lo, hi = np.asarray(stats["q01"], np.float32), np.asarray(stats["q99"], np.float32)
         value = np.asarray(value, np.float32)
         if not (np.isfinite(value).all() and np.isfinite(lo).all() and np.isfinite(hi).all()):
@@ -76,20 +51,6 @@ class Processor:
         span = np.where(ill, 1.0, hi - lo)
         result = np.where(ill, 0.0, (value - lo) / (span + 1e-6) * 2 - 1)
         return np.clip(result, -1, 1).astype(np.float32)
-
-    def _effective_bounds(self, key):
-        return tuple(
-            np.asarray(self.normalization_ranges[key][name], np.float32) for name in ("low", "high")
-        )
-
-    def denormalize(self, value, key="action"):
-        """与训练共用保存的范围；旧 v1/v2 断点保留旧的反变换。"""
-        value = np.asarray(value, np.float32)
-        if getattr(self, "normalization", LEGACY_NORMALIZATION) == NORMALIZATION_VERSION:
-            low, high = self._effective_bounds(key)
-            return ((value + 1) / 2 * (high - low) + low).astype(np.float32)
-        low, high = (np.asarray(self.stats[key][name], np.float32) for name in ("q01", "q99"))
-        return ((value + 1) / 2 * (high - low + 1e-6) + low).astype(np.float32)
 
     def __call__(
         self, sample, *, state_inference_measurement_noise_std_rad=0.0, state_noise_seed=None

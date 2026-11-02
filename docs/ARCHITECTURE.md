@@ -188,6 +188,6 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 
 ACT, π0.5, GR00T and EgoVLA use `config`, `preflight`, `contract`, `trainer`, `worker` and guardian modules. `train.py` remains the compatible CLI entry and reexports existing helpers. See the [responsibility map and validation](TRAINING_STRUCTURE_20261030.md). Raw input caches use explicit `InputCacheConfig`; environment defaults are read only by the CLI.
 
-## π0.5 训练正确性更正（2026-11-02）
+## π0.5 完整恢复修复（2026-11-02）
 
-[归一化与完整恢复修复](PI05_CORRECTNESS_20261102.md)覆盖上方 π0.5 预处理及恢复的旧现状。`normalization.build_normalization_ranges` 构建并保存有效 action/STATE 范围，`Processor.normalize` / `denormalize` 共用范围；训练契约/worker/服务保留相同版本。`create_trainer_class` 已接入公共 `epoch_safe_training_loop`，π/GR 共用 `isolate_worker_rng`。归一化缺陷在 PSI0-RAW 也存在，epoch 接入则为迁移遗漏；完整标记不证明取样正确。新训练默认 v3，旧 v2 仅显式沿用历史语义，不能只改部署修复旧训练。真实数据审计和实际 Trainer CPU 对照已完成，八卡长跑/噪声 worker 逐位等价未验证。
+[完整恢复修复](PI05_CORRECTNESS_20261102.md)按用户最新要求仅保留第二点：`create_trainer_class` 接入公共 `epoch_safe_training_loop`，π/GR 共用 `isolate_worker_rng`。原归一化、v4 训练契约、模型配置、部署反变换及命令行恢复为本轮修改前的版本，不引入 v3 或 min/max 回退。完整标记不能代替样本进度验证；实际 Trainer CPU 对照覆盖单次、多次与 epoch 边界恢复，八卡长跑/噪声 worker 逐位等价未验证。

@@ -8,8 +8,6 @@ from rhsci.data.state_noise import validate_scale
 from rhsci.paths import add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
-from .normalization import LEGACY_NORMALIZATION, NORMALIZATION_VERSION
-
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
 
@@ -49,12 +47,6 @@ def build_argument_parser():
     argument_parser.add_argument("--run-tag", default="main")
     argument_parser.add_argument("--max-steps", type=int, default=40000)
     argument_parser.add_argument("--seed", type=int, default=292285)
-    argument_parser.add_argument(
-        "--normalization",
-        choices=(NORMALIZATION_VERSION, LEGACY_NORMALIZATION),
-        default=NORMALIZATION_VERSION,
-        help="Default v3 preserves rare variation; v2 is only for continuing historical runs",
-    )
     argument_parser.add_argument("--tokenizer", type=Path)
     argument_parser.add_argument("--checkpoint", type=Path)
     argument_parser.add_argument("--resume", type=Path)

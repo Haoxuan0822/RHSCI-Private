@@ -23,7 +23,6 @@ class Server:
         from safetensors.torch import load_file
 
         from openpi.rhsci.model import Pi05RHSCI
-        from openpi.rhsci.normalization import NORMALIZATION_VERSION
         from openpi.rhsci.processing import Processor
         from rhsci.data.ardy_sidecar import dataset_content_fingerprint
         from rhsci.inference.action_noise import RequestActionNoise
@@ -54,14 +53,6 @@ class Server:
                     "Historical π0.5 checkpoint has no recognized preprocessing contract"
                 )
             normalization = "simple-quantile-v1"
-        normalization_ranges = saved.get("normalization_ranges")
-        if contract.get("normalization", normalization) != normalization:
-            raise ValueError("Saved π0.5 normalization version differs from training contract")
-        if normalization == NORMALIZATION_VERSION:
-            if normalization_ranges is None or normalization_ranges != contract.get(
-                "normalization_ranges"
-            ):
-                raise ValueError("Saved π0.5 normalization ranges differ from training contract")
         self.model = Pi05RHSCI(
             contract["model"],
             execution=contract.get("execution", "reference"),
@@ -83,11 +74,7 @@ class Server:
         self.device = torch.device(device)
         self.model.to(self.device).eval()
         self.processor = Processor(
-            dataset,
-            tokenizer,
-            contract["model"],
-            normalization=normalization,
-            normalization_ranges=normalization_ranges,
+            dataset, tokenizer, contract["model"], normalization=normalization
         )
         self.variant = contract["model"]
 
@@ -138,7 +125,9 @@ class Server:
                 num_steps=10,
                 **noise_kwargs,
             )
-        actions = self.processor.denormalize(normalized[0].float().cpu().numpy())
+        stats = self.processor.stats["action"]
+        low, high = np.asarray(stats["q01"], np.float32), np.asarray(stats["q99"], np.float32)
+        actions = (normalized[0].float().cpu().numpy() + 1) / 2 * (high - low + 1e-6) + low
         if actions.shape != (30, 36) or not np.isfinite(actions).all():
             raise ValueError("Invalid π0.5 action shape or nonfinite values")
         response = JSONResponse(ResponseMessage(actions[:24].astype(np.float32), 0.0).serialize())

@@ -190,7 +190,3 @@ Latest input-cache and training-recovery changes are documented in the [integrat
 ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables. See [training structure and compatibility](TRAINING_STRUCTURE_20261030.md).
 
 Runtime checks were simplified on 2026-10-31; see the [scope and reference comparison](RUNTIME_CHECKS_20261031.md). Complete optimizer/scheduler/RNG and numerical checks still apply to automatic training recovery.
-
-## π0.5 normalization and resume versions
-
-New π0.5 training defaults to v3 normalization with saved effective action/STATE ranges; start a new run-tag when adopting it. Continuing an existing v2 run requires explicit `--normalization simple-quantile-zero-span-clipped-v2`, which preserves the historical preprocessing, including its rare-variation defect. Sampler epoch recovery and worker/model RNG isolation apply to both modes. See [the fixes and validation boundaries](PI05_CORRECTNESS_20261102.md); a complete checkpoint does not by itself establish an unchanged sample sequence.

@@ -35,7 +35,6 @@ def run_training_preflight(args, paths):
             paths["tokenizer"],
             args.model,
             state_measurement_noise_std_rad=args.state_measurement_noise_std_rad,
-            normalization=args.normalization,
         )
     else:
         processor = None

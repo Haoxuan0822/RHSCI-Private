@@ -6,7 +6,7 @@
 - 可复用的算法和基础设施优先放公共层，模型只声明实际差异；已共享函数见[架构表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。函数用明确的动作与对象命名，同类职责保持一致；关键逻辑用中文说明输入、返回值及副作用。目录与命名见[指南](docs/DIRECTORY_STRUCTURE.md)。
 - 进程管理、检查点重试、SIMPLE 消息及 HTTP 路由优先复用[公共接口](docs/ARCHITECTURE.md#simple-shared-interfaces-20261102)。模型提供命令、校验与预测函数；不同训练配方、原生协议和前向保留对应实现。公共缓存构建直接读取 LeRobot，不依赖 ACT 训练入口。
 - 解释架构、迁移后续 PSI0-RAW 方法或宣称复现前，阅读[2026-11-02 函数与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)。当前 Ψ0 VGQ-VLM 是 Reader 后二次语言前向，不能当作 PSI0-RAW 后续四原图直接 VLM Query；GR00T 初始化与固定 SIMPLE 预设不同。CPU 回归不代表官方全模型等价或 GPU 闭环通过。
-- 修改 π0.5 归一化、恢复或部署前，读[稀有变化与恢复修复](docs/PI05_CORRECTNESS_20261102.md)：新训练默认 v3，以真实 min/max 区分恒定与稀有变化，范围随契约/断点保存；v2 仅显式沿用历史语义。π/GR 共用 epoch 恢复和 worker RNG 隔离；完整标记不证明样本进度正确，CPU 默认累计 1 验证不覆盖 worker 内随机噪声或八卡长跑。
+- 修改 π0.5 恢复前，读[完整恢复修复](docs/PI05_CORRECTNESS_20261102.md)：按用户最新要求仅修复第二点，保留原有 v2 归一化、训练配方和推理公式。π/GR 共用 epoch 恢复和 worker RNG 隔离；完整标记不证明样本进度正确，CPU 默认累计 1 验证不覆盖 worker 内随机噪声或八卡长跑。
 - 数据、权重、环境和训练输出放在检出目录外。此机器默认数据根 `/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data`，权重与日志为同根 `checkpoints`；显式路径优先。
 - 缓存保存原始 RGB/小张量。续训核对模型、数据、配方和完整训练状态；源码摘要、注释、重命名和依赖精确版本不作为启动门槛。旧收据可保留作记录。
 - 推理加载配置、处理器/归一化及模型权重，不要求优化器、调度器、RNG、训练源码快照或完整训练标记。资产清单与全量 SHA 审计用于显式核验。

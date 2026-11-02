@@ -193,5 +193,6 @@
       "src/rsci_pi05/processing.py": "93150bf6a771cf7db2b37e0fc43f68a7ec877c445d436bb1a70c221aab81f124",
       "src/rsci_pi05/train.py": "36b00d2f26cb0979500544b43ec7c4ee14f1ef5b3f011454c9519f688685842a"
     }
-  }
+  },
+  "status": "Historical audit of the withdrawn v3 prototype; not enabled in current code. User requested resume-only changes."
 }
