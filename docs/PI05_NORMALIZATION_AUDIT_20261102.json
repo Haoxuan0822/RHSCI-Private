@@ -1,0 +1,197 @@
+{
+  "date": "2026-11-02",
+  "scope": "Read-only CPU audit of action/state Parquet columns; no images or checkpoints read.",
+  "normalization": "simple-quantile-rare-range-clipped-v3",
+  "datasets": [
+    {
+      "dataset": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/simple-oven-repaired-training-h264-20261015/G1WholebodyOpenOvenTeleop-v0",
+      "stats_sha256": "73a92473fb4ab9daa6a3b489daf836917aeea2731edb227504c2a30fd1f408f2",
+      "frames": 37903,
+      "episodes": 99,
+      "fields": {
+        "action": {
+          "rare_dimensions": [
+            {
+              "dimension": 31,
+              "q01": 0.7400000095367432,
+              "q99": 0.7400000095367432,
+              "minimum": 0.41999998688697815,
+              "maximum": 0.7400000095367432,
+              "erased_frames_v2": 376,
+              "erased_frames_above_1e_6": 376,
+              "roundtrip_max_error_v3": 0.0,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000000",
+                  "frames": 376
+                }
+              ]
+            }
+          ],
+          "erased_frames_v2": 376,
+          "actual_extrema_match_metadata": true
+        },
+        "states": {
+          "rare_dimensions": [
+            {
+              "dimension": 31,
+              "q01": 0.7400000095367432,
+              "q99": 0.7400000095367432,
+              "minimum": 0.41999998688697815,
+              "maximum": 0.7400000095367432,
+              "erased_frames_v2": 375,
+              "erased_frames_above_1e_6": 375,
+              "roundtrip_max_error_v3": 0.0,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000000",
+                  "frames": 375
+                }
+              ]
+            }
+          ],
+          "erased_frames_v2": 375,
+          "actual_extrema_match_metadata": true
+        }
+      }
+    },
+    {
+      "dataset": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/simple-between-tables-new-training-h264/G1WholebodyLocomotionPickBetweenTablesTeleop-v0",
+      "stats_sha256": "77b1544365067325d1a4f64fd15e6665f33b141850e86c7b7f889c15a203e0ca",
+      "frames": 58637,
+      "episodes": 91,
+      "fields": {
+        "action": {
+          "rare_dimensions": [
+            {
+              "dimension": 0,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": 0.0,
+              "maximum": 0.5,
+              "erased_frames_v2": 53,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 5.587935447692871e-09,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 53
+                }
+              ]
+            },
+            {
+              "dimension": 1,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": 0.0,
+              "maximum": 0.699999988079071,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 7.450580596923828e-09,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            },
+            {
+              "dimension": 2,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": 0.0,
+              "maximum": 0.699999988079071,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 7.450580596923828e-09,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            },
+            {
+              "dimension": 3,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": -1.5,
+              "maximum": 0.0,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 1.4901161193847656e-08,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            },
+            {
+              "dimension": 4,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": -1.5,
+              "maximum": 0.0,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 1.4901161193847656e-08,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            },
+            {
+              "dimension": 5,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": -0.6000000238418579,
+              "maximum": 0.0,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 7.450580596923828e-09,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            },
+            {
+              "dimension": 6,
+              "q01": 0.0,
+              "q99": 0.0,
+              "minimum": -1.5,
+              "maximum": 0.0,
+              "erased_frames_v2": 52,
+              "erased_frames_above_1e_6": 52,
+              "roundtrip_max_error_v3": 1.4901161193847656e-08,
+              "affected_episodes": [
+                {
+                  "episode": "episode_000030",
+                  "frames": 52
+                }
+              ]
+            }
+          ],
+          "erased_frames_v2": 53,
+          "actual_extrema_match_metadata": true
+        },
+        "states": {
+          "rare_dimensions": [],
+          "erased_frames_v2": 0,
+          "actual_extrema_match_metadata": true
+        }
+      }
+    }
+  ],
+  "original_repository_evidence": {
+    "scope": "Current PSI0-RAW working tree; not asserted to be a clean committed snapshot",
+    "files": {
+      "src/rsci_pi05/processing.py": "93150bf6a771cf7db2b37e0fc43f68a7ec877c445d436bb1a70c221aab81f124",
+      "src/rsci_pi05/train.py": "36b00d2f26cb0979500544b43ec7c4ee14f1ef5b3f011454c9519f688685842a"
+    }
+  }
+}

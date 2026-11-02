@@ -5,6 +5,7 @@ from rhsci.paths import CODE_ROOT as CODE_ROOT
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
 from .checkpoints import sha256
+from .normalization import NORMALIZATION_VERSION, load_normalization_ranges
 
 # 中文说明：仅拆分职责；模型、优化器和断点格式由各骨干独立定义。
 
@@ -48,6 +49,13 @@ def build_training_contract(args, paths):
         else None,
         tokenizer=sha256(paths["tokenizer"]),
     )
+    if args.normalization == NORMALIZATION_VERSION:
+        identity.update(
+            recipe="SIMPLE-pi05-default-v5",
+            preprocessing="RGB-bilinear-pad224-quantile-rare-range-clipped-v3",
+            normalization=NORMALIZATION_VERSION,
+            normalization_ranges=load_normalization_ranges(paths["dataset"]),
+        )
     if args.model == "VGQ-AE":
         identity["sidecar"] = sha256(paths["sidecar"] / "manifest.json")
     identity = reuse_run_contract(identity, paths["output"])

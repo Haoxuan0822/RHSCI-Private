@@ -30,6 +30,9 @@ def run_training_worker(args, paths, processor, dataset, digest):
         state_measurement_noise_std_rad=args.state_measurement_noise_std_rad,
     )
     model.load_initial(paths["checkpoint"])
+    model.rsci_config["normalization"] = processor.normalization
+    if hasattr(processor, "normalization_ranges"):
+        model.rsci_config["normalization_ranges"] = processor.normalization_ranges
     world = len(args.gpus.split(","))
     identity = build_training_contract(args, paths)[0]
     resume = validate_run(args, paths, identity, digest, allow_started=True)

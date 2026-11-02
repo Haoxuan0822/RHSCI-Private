@@ -12,6 +12,7 @@ from transformers.models.gemma import modeling_gemma
 from rhsci.runtime.losses import masked_auxiliary_loss
 
 from .augmentation import AUGMENTATION_VERSION, augment_training_images
+from .normalization import NORMALIZATION_VERSION
 
 
 def time_embedding(time, width):
@@ -100,7 +101,7 @@ class Pi05RHSCI(nn.Module):
             history=[-6, -4, -2, 0],
             ardy_weight=0.1,
             reader="16-per-frame-KV-projection-v1",
-            normalization="simple-quantile-zero-span-clipped-v2",
+            normalization=NORMALIZATION_VERSION,
             training_augmentation=AUGMENTATION_VERSION,
             inference_compile="max-autotune" if compile_inference else "disabled",
             execution=execution,

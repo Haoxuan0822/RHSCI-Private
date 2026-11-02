@@ -48,3 +48,7 @@ STATE accepts `--state-measurement-noise-std-rad S` for raw measured-joint train
 Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
 
 2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
+
+## 2026-11-02 correctness fixes
+
+New training defaults to `simple-quantile-rare-range-clipped-v3`: degenerate quantiles fall back to true min/max, and the effective action/STATE ranges are saved for training and inference. Only truly constant dimensions are zeroed. Use a new run-tag for v3. Explicit `--normalization simple-quantile-zero-span-clipped-v2` continues historical v2 runs with their original preprocessing behavior; old inference also retains its saved version. The Trainer now preserves resumed sampler epochs and isolates worker seed generation from model RNG. See the [original-repository comparison, real-data audit and CPU validation limits](../../docs/PI05_CORRECTNESS_20261102.md).

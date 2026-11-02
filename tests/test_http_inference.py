@@ -251,7 +251,7 @@ class Pi05HTTPTests(unittest.TestCase):
                     "openpi.rhsci.model.Pi05RHSCI",
                     side_effect=lambda *a, **k: nn.Linear(2, 2),
                 ),
-                patch("openpi.rhsci.processing.Processor"),
+                patch("openpi.rhsci.processing.Processor") as processor,
                 patch(
                     "rhsci.data.ardy_sidecar.dataset_content_fingerprint", return_value="fixture"
                 ),
@@ -260,6 +260,30 @@ class Pi05HTTPTests(unittest.TestCase):
                 self.assertFalse(server.model.training)
                 for name, value in expected.items():
                     torch.testing.assert_close(server.model.state_dict()[name], value)
+                from openpi.rhsci.normalization import NORMALIZATION_VERSION
+
+                ranges = {
+                    key: {"low": [-1.0] * width, "high": [1.0] * width}
+                    for key, width in (("action", 36), ("states", 32))
+                }
+                saved = json.loads((root / "rsci_config.json").read_text())
+                saved.update(normalization=NORMALIZATION_VERSION, normalization_ranges=ranges)
+                contract.update(normalization=NORMALIZATION_VERSION, normalization_ranges=ranges)
+                (root / "rsci_config.json").write_text(json.dumps(saved))
+                Server(root, contract, root, tokenizer, "cpu")
+                processor.assert_called_with(
+                    root,
+                    tokenizer,
+                    "VGQ-AE",
+                    normalization=NORMALIZATION_VERSION,
+                    normalization_ranges=ranges,
+                )
+                del saved["normalization_ranges"]
+                (root / "rsci_config.json").write_text(json.dumps(saved))
+                with self.assertRaisesRegex(ValueError, "normalization ranges"):
+                    Server(root, contract, root, tokenizer, "cpu")
+                saved["normalization_ranges"] = ranges
+                (root / "rsci_config.json").write_text(json.dumps(saved))
                 save_file({"unexpected": expected["bias"]}, root / "second.safetensors")
                 with self.assertRaises(RuntimeError):
                     Server(root, contract, root, tokenizer, "cpu")

@@ -8,7 +8,7 @@ def create_resume_trainer_class():
     """返回保留 epoch、采样顺序与数据消费位置的 Trainer 子类，不实例化模型。"""
     from transformers import Trainer
 
-    from rhsci.runtime.hf_resume import epoch_safe_training_loop
+    from rhsci.runtime.hf_resume import epoch_safe_training_loop, isolate_worker_rng
 
     class ResumeTrainer(Trainer):
         _inner_training_loop = epoch_safe_training_loop(Trainer)
@@ -21,13 +21,7 @@ def create_resume_trainer_class():
             )
 
         def get_train_dataloader(self):
-            import torch
-
-            loader = super().get_train_dataloader()
-            # worker重建/跳batch不能消耗动作噪声与dropout使用的主线程RNG。
-            base = getattr(loader, "base_dataloader", loader)
-            base.generator = torch.Generator().manual_seed(self.args.seed)
-            return loader
+            return isolate_worker_rng(super().get_train_dataloader(), self.args.seed)
 
     return ResumeTrainer
 

@@ -332,6 +332,7 @@ class ProcessingTests(unittest.TestCase):
         import numpy as np
 
         processor = object.__new__(Processor)
+        processor.normalization = "simple-quantile-zero-span-clipped-v2"
         processor.stats = {"action": dict(q01=[0.0, -2.0, 1.0], q99=[0.0, 2.0, 1.00001])}
         original = json.dumps(processor.stats)
         values = np.array([[1.5, -20.0, 1.0], [-0.5, 20.0, 1.00002]], dtype=np.float32)

@@ -29,6 +29,8 @@ PATTERNS = {
         "test_pi05_augmentation.py",
         "test_pi05_official_recipe.py",
         "test_pi05_rsci.py",
+        "test_pi05_resume_progress.py",
+        "test_pi05_normalization.py",
         "test_pi05_speed.py",
         "test_pi05_state_noise.py",
     ),

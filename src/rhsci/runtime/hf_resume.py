@@ -4,6 +4,15 @@ from functools import update_wrapper
 from types import FunctionType
 
 
+def isolate_worker_rng(dataloader, seed):
+    """将 worker 启动/重建的种子生成与模型噪声、dropout 的主 RNG 分离。"""
+    import torch
+
+    base = getattr(dataloader, "base_dataloader", dataloader)
+    base.generator = torch.Generator().manual_seed(seed)
+    return dataloader
+
+
 def skip_preserving_epoch(dataloader, num_batches=0):
     from accelerate import skip_first_batches
 
