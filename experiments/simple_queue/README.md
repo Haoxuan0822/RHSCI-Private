@@ -26,7 +26,7 @@ python -u experiments/simple_queue/run.py
 
 实际运行时二者为并行后台进程，日志在运行根 `logs/followup-preparation.log` 与 `logs/followup-queue-active.log`。准备不占 GPU。用户最新限定只下载所列评测模型；全量下载调度、自动重试器和无关权重传输均已停止，保留分片，准备结束也不恢复它们。复用已在进行的同一路径传输，不并发写同一个 `.parts`。
 
-当前流量暂停：日本 Y05/Y06 下载专用节点均未连通，准备进程 PID 267176 和烤箱下载 PID 267262/267263 已 SIGSTOP，续传现场保留；队列仍等待，当前 400 次评测继续。π0.5 NO-STATE 已完整准备；GR00T 交接/水龙头 STATE 归档均已下载校验，交接在解包。只在专用节点实际验证可用后核对 PID 再 SIGCONT，不重新创建写同一路径的下载。详细代理规则和错误见必读工作/错误记录。
+当前下载已恢复：日本 Y05/Y06 专用线路端口均未连通，用户最新要求优先保证下载、必要时换回。下载组已切香港 Y01，真实权重 64 KiB Range 验证正确返回 206，再核对身份并 SIGCONT 原准备 PID 267176、烤箱下载 PID 267262/267263，保留分片续传，不重建任务。π0.5 NO-STATE、GR00T 交接 STATE 已完整准备；水龙头 STATE 归档已下载校验，其他指定权重继续。当前 400 次评测及等待队列始终运行。详细路由、DNS/端口故障证据见必读工作/错误记录。
 
 每个模型四难度分别占四张卡；GR00T 每任务 STATE 占 GPU 0–3，VGQ-AE 占 4–7。CPU 资源沿用每实例 8 个 Carbonite/TBB 工作线程。完整 worker 参数由 `plan.worker_command()` 声明，实际绝对命令另存每个模型目录的 `command-gpu*.sh`，每轮完整 SIMPLE 命令仍为 `repeat-*/command.sh`。
 

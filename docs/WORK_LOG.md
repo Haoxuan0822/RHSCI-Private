@@ -25,8 +25,8 @@
 
 - 用户追加 7 组：π0.5 NO-STATE 两桌，及 GR00T 开烤箱/交接/开水龙头各 STATE、VGQ-AE；每组仍 5 轮、200 次，共新增 1400 次。先等当前 8 路均完成 50 次且逐轮核验结果，再按任务接续。
 - 配置与来源、完整命令见已登记的 `experiments/simple_queue/README.md`：π0.5 30/30、40k；GR00T 16/16、20k，全部无 RTC。各任务使用自己的官方时限与成功判定，不套两桌参数。
-- CPU 准备进程 `experiments/simple_queue/prepare.py` PID 267176，日志 `<运行目录>/logs/followup-preparation.log`。π0.5 NO-STATE 已完成下载/SHA256/解包及 horizon=30 核对，收据 `evals/followup-pi05-gr00t-5cycles-20261104/preparation/pi05-NO-STATE-between.json`。GR00T 交接 STATE、水龙头 STATE 归档也已下载/SHA256 通过，交接在解包。其余 4 份尚未全部就绪。用户限定只下载指定模型；全量调度 PID 86344、重试器 96854 及四个无关传输已结束，源码已取消自动恢复。
-- **当前下载暂停，不能误认已继续：** 用户指出流量消耗后，SIGSTOP 准备进程 267176 和两个烤箱下载进程 267262、267263，保留文件/分片/解包现场。代理专用节点目前不可用，待专用线路实际连通后再 SIGCONT 这些经身份核对的进程；不要重新开下载写同一个 `.parts` 或重建已有 `.extracting`。当前评测及等待队列不暂停。
+- CPU 准备进程 `experiments/simple_queue/prepare.py` PID 267176，日志 `<运行目录>/logs/followup-preparation.log`。π0.5 NO-STATE 已完成下载/SHA256/解包及 horizon=30 核对，收据 `evals/followup-pi05-gr00t-5cycles-20261104/preparation/pi05-NO-STATE-between.json`。GR00T 交接 STATE 也已完整准备、horizon=16；水龙头 STATE 归档已下载/SHA256 通过。其余 4 份尚未全部就绪。用户限定只下载指定模型；全量调度 PID 86344、重试器 96854 及四个无关传输已结束，源码已取消自动恢复。
+- **当前下载已恢复：** 用户最新明确专用节点不可用就换回、以能下载为优先。已将下载组切回香港 Y01，真实烤箱 STATE 权重 Range 请求返回 206、`bytes 0-65535/17701737683`、65536 字节，约 1.35 秒；再核对 PID 身份后 SIGCONT 准备进程 267176 和两个烤箱下载进程 267262、267263，复用分片/解包现场，无重复下载任务。GR00T 交接 STATE 已完成解包及 horizon=16 核对。只继续指定权重，当前评测及等待队列始终未暂停。
 - 自动等待队列 `experiments/simple_queue/run.py` 已启动，日志 `<运行目录>/logs/followup-queue.log`；它等待当前真实 400 次及全部后续权重就绪。不会以进程退出码/health/预热代替 episode 完成。
 - 队列每小时调用本机 `xiancun pause 360` 续暂停空闲占卡程序，防止长评测中六小时暂停到期；队列结束停止续期，原监督服务不删除、不禁用。
 - GR00T 专用环境 Torch 2.7.0+cu128、Transformers 4.51.3、FlashAttention 2.7.4.post1 导入通过；后续真实 GPU 预热尚未执行，不能称已验证闭环。
@@ -41,6 +41,7 @@
 ## 下载代理与流量约定
 
 - Mihomo 配置 `/root/workspace/Haoxuan/mihomo/config/config.yaml` 已原生 `-t` 校验并通过本地 API 热加载；备份 `.before-download-route-20261104`。不要将代理密码、UUID、secret 或订阅链接复制进仓库/日志。
-- 新增“📥 下载专用” selector，仅含 `🇯🇵 日本Y05 | 下载专用 | x0.01`、`🇯🇵 日本Y06 | 下载专用 | x0.01`，默认 Y05。HF `huggingface.co`/`hf.co`、PyPI、Torch、NVIDIA 下载域和 GitHub release/codeload 域优先走该组；普通“🔰 选择节点”仍为香港 Y01。x0.01 仅是节点标注，不代表已查实际账单。配置重启时 Y05 为首选；更新订阅可能覆盖本地规则，更新后重查。
-- 节点实际检查：Y05 TCP 超时，Y06 DNS 解析失败；两节点 HF HEAD、HF robots 和 gstatic 测试均失败。未确认下载可用，故目前保持上述下载暂停，不回退香港普通线路。
+- “📥 下载专用” selector 现含香港 Y01、日本 Y05/Y06；**当前和重启默认均为香港 Y01**，按用户新授权优先保证可下载。HF `huggingface.co`/`hf.co`、PyPI、Torch、NVIDIA 下载域和 GitHub release/codeload 域继续走该组；普通“🔰 选择节点”仍为香港 Y01。x0.01 仅是日本节点标注，不代表已查实际账单。低倍率节点日后实际恢复再考虑切换；更新订阅可能覆盖本地规则，更新后重查。
+- 复查节点：Y05 可解析但目标端口 TCP 超时；Y06 本机 DNS 返回 -2，不过 Google 与 Cloudflare DoH 均返回 NOERROR/3 条答案，解析得到的 A 地址直连其端口仍超时，所以不只是本机 DNS。两节点 HF 延迟测试分别返回 504/503，尚不能区分服务端离线或中间线路屏蔽，不猜改凭据或协议。香港 Y01 TCP 成功、HF 延迟 311ms、真实权重 Range 通过，已据此恢复下载。
+- 恢复后连接审计已确认 `us.aws.cdn.hf.co` chains 为 `香港Y01 → 📥 下载专用`，且连接下载字节和烤箱权重分片数继续增加，不仅是进程处于运行状态。
 - 已断开 23 条旧 HF 代理连接，避免切节点后旧 TCP 会话继续走香港 Y01。已下载分片全部保留。恢复前先用小 HEAD/Range 验证实际 HF CDN 路由，再核对下载进程身份、续传并检查 `/connections` 的 chains。
