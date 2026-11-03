@@ -2,7 +2,7 @@
 
 Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.md). Preserve the saved run configuration and consult the historical-checkpoint compatibility notes below.
 
-SIMPLE now defaults to official `b75c6786` (including PR #29). Before simulation, verify the external checkout with `python3 tools/check_simple.py "$SIMPLE_HOME"` and review [version, assets and protocol compatibility](SIMPLE_OFFICIAL_20261030.md). CPU wire-format compatibility does not validate old-checkpoint behavior in the new simulator.
+SIMPLE now defaults to official `b75c6786` (including PR #29). Before simulation, verify the external checkout with `python3 tools/check_simple.py "$SIMPLE_HOME"` and review [version, assets and protocol compatibility](SIMPLE_OFFICIAL_20261030.md). CPU wire-format compatibility does not validate old-checkpoint behavior in the new simulator. Use the [current pinned evaluation assets](SIMPLE_UPDATES_20261103.md), including the instruction fixes in `SIMPLE-eval/fb67cd9a`; old ZIPs and the historical RHSCI handoff are different releases. Four advertised success-checker updates are absent from official `b75c6786`.
 
 SIMPLE message encoding lives in `rhsci.inference.protocol`; the native `psi.deploy.helpers` path reexports those classes for compatibility. ACT and the π/GR HTTP entry share `create_policy_app`, while prediction, error status and optional reset remain adapter-specific. EgoVLA keeps its standard-library HTTP service and reuses the NumPy codec. See the [shared interface map](ARCHITECTURE.md#simple-shared-interfaces-20261102).
 

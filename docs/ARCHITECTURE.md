@@ -109,7 +109,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 
 | 对象 | 已确认差异或验证边界 | 当前能作的结论 |
 | --- | --- | --- |
-| SIMPLE | 固定官方 `b75c6786` 的源码/子模块已核验；level-2 两份公开 ZIP 实际文件相同，不能由此证明 PR 所述物体修正已实施或从未实施 | 源码固定版本对齐；[评测数据修正仍未核验](SIMPLE_OFFICIAL_20261030.md#eval-layout-audit-20261101)，未做物理仿真闭环 |
+| SIMPLE | 固定官方 `b75c6786`；[2026-11-03](SIMPLE_UPDATES_20261103.md)已同步新版 ZIP 与 `SIMPLE-eval/fb67cd9a`，两桌 level-2 目标位姿及三难度出生位姿变化已核验 | 资产身份/CPU 解析通过，物理闭环未验；另四任务宣称的新版成功判定尚不在该官方代码中 |
 | Ψ0 最新研究实现 | 当前 `_rhsci_visual_memory` 逐帧取 VLM 输出，默认 Reader 后 `_rhsci_query_latent` 再进语言 Transformer；生产 `RSCI/psi0_controls/methods.py::policy_class` 对 VGQ-VLM 不建旧 Reader，而由 `vlm_query.four_frame_inputs` / `query_output` 将四原图与 Query 直接送入 VLM。关闭当前 Reader 也不会变成后者 | **不是最新 PSI0-RAW 同名方法的严格复现**；后续 State-Reconstruction 等方法也不在当前通用入口中。不能按方法名认定权重兼容 |
 | GR00T SIMPLE | 固定官方 [finetune_simple.yaml](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/baselines/gr00t-n1.6/presets/train/finetune_simple.yaml) 指向 `pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000`，本仓默认 NVIDIA N1.6-3B；另有 map-style 完整动作窗口采样、Query、ZeRO-1 FP32 Adam 和 DiT 重算适配 | 初始化明确不同；优化超参数对齐不等于实验严格复现。已纠正 GR00T README 原“初始化相同”的表格 |
 | π0.5 | 复用原生底层模型，但 `encode` / `expert` / `forward` / `sample_actions` 是 RHSCI 自己组织的路径；safe 归一化对退化范围的处理不同；HTTP 用当前实测 STATE 并返回前 24 步，不复刻原生 WebSocket 的预测尾部状态回填 | 当前 RHSCI 适配；尚无完整官方前向/梯度/部署逐项等价验收，不能称严格原版 |

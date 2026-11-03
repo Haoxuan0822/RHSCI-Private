@@ -2,6 +2,8 @@
 
 所属：RHSCI-Private/main 普通目录。替换 SIMPLE、安装仿真环境或比较新旧评测结果前必读。用户要求使用官方最新合并版本；本次仅本地提交，不推送远端。
 
+当前资产入口和搜索范围更正见 [2026-11-03 更新核验](SIMPLE_UPDATES_20261103.md)。下文日期记录保留历史范围；11 月 1 日“未核验到修正”的结论只适用于所查旧包，不能用于当前资源。
+
 ## 版本与来源
 
 - 官方：[physical-superintelligence-lab/SIMPLE](https://github.com/physical-superintelligence-lab/SIMPLE)。2026-10-30 只读核对 GitHub API 与远端 main，固定 `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`。
@@ -56,7 +58,7 @@ PR #29 另提及 level-2 episode 0/6/7/8/9 的初始手部与物体接触问题�
 
 ## 2026-11-01：level-2 位置修正的独立核验
 
-**当前公开包没有核验到 PR 所述的位置修正，不能标为“数据修正已同步”。** 本轮实际下载两份固定版本 ZIP，核对大小、完整 SHA256 和全部成员 CRC，再比较文件内容与每个 episode 的配置。不是仅按上传日期推断。
+**历史范围：当日仅核验下列旧发布包，两包均没有可识别的位置差异；本次搜索漏查了已存在的 `SIMPLE-org/data/eval-fixed/`。2026-11-03 已找到并同步新版，见[更正及新版坐标](SIMPLE_UPDATES_20261103.md)。** 本轮实际下载两份固定版本 ZIP，核对大小、完整 SHA256 和全部成员 CRC，再比较文件内容与每个 episode 的配置。不是仅按上传日期推断。
 
 | 来源 | 固定 revision | ZIP bytes | SHA256 |
 | --- | --- | ---: | --- |

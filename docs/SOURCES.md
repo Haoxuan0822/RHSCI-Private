@@ -22,3 +22,7 @@ The subsequent local [training structure refactor](TRAINING_STRUCTURE_20261030.m
 ## Official SIMPLE (2026-10-30)
 
 External SIMPLE now uses official commit `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`, including PR #29. Its MIT license and component notices remain in that checkout. The [source lock](../configs/simple/official.json) records file SHA256 and official submodules; see the [migration and validation record](SIMPLE_OFFICIAL_20261030.md). Runtime assets and environments are not bundled or certified by the source check.
+
+## SIMPLE resources (2026-11-03)
+
+The [release audit](SIMPLE_UPDATES_20261103.md) follows both `SIMPLE-org/data/{eval-fixed,data-fixed}` and the published `USC-PSI-Lab/{psi-data,SIMPLE-eval,SIMPLE-decoupled-wbc,psi-model,SIMPLE}` repositories. Code, scene assets, training data, evaluation snapshots and weights have independent revisions; an unchanged GitHub main does not establish that the resources are unchanged. [Evaluation identities](../configs/simple/eval_assets.json) and [upstream metadata](../configs/simple/upstream_audit_20261103.json) record the inspected versions.

@@ -16,6 +16,8 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-03：[继续检查与可读性复查](docs/CODE_REVIEW_20261103.md)。补齐ACT/GR累计尾恢复和λ启动/清理阶段停止处理；后续参考SIMPLE拆分Ψ/λ入口、明确路径字段及公共回调接口，列明函数职责和验证边界。
 
+2026-11-03：[官方代码与资源更新](docs/SIMPLE_UPDATES_20261103.md)。已同步新版两桌等 25 ZIP、最新独立评测库 17 任务，并更正源目录漏查；列明训练数据、权重新提交和四任务成功判定的配套缺口。
+
 ## Getting started
 
 Use Linux, NVIDIA GPUs, Git LFS and [uv](https://docs.astral.sh/uv/getting-started/installation/). Run from the checkout root. Keep data, weights and environments outside it. These examples use the SIMPLE box-hugging task and eight training GPUs. Repeat the path exports in each terminal.
@@ -36,6 +38,7 @@ export GROOT_RUN="$PSI_RUNTIME_ROOT/runs/gr00t/$TRAIN_TASK/VGQ-AE/top4/readme"
 export PSI0_PYTHON="$PSI_RUNTIME_ROOT/.venv-psi/bin/python"
 export GROOT_RHSCI_PYTHON="$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python"
 export SIMPLE_HOME="$PSI_RUNTIME_ROOT/external/SIMPLE-official-b75c6786"
+export SIMPLE_EVAL_ROOT="$PSI_RUNTIME_ROOT/SIMPLE-eval-20261103/snapshot-fb67cd9a"
 mkdir -p "$PSI_RUNTIME_ROOT"
 ```
 
@@ -166,16 +169,17 @@ bash scripts/install_curobo.sh
 python -c 'import simple; print(simple.__version__)'
 bash scripts/pre-minimal-download.sh
 
-hf download USC-PSI-Lab/psi-data "simple-eval/$SIM_TASK.zip" \
-  --revision e78fb93cc28912a3031a10b8656d32d7f0a2b867 --repo-type dataset --local-dir "$PSI_RUNTIME_ROOT/downloads"
-mkdir -p "$PSI_RUNTIME_ROOT/data/simple-eval"
-unzip "$PSI_RUNTIME_ROOT/downloads/simple-eval/$SIM_TASK.zip" \
-  -d "$PSI_RUNTIME_ROOT/data/simple-eval"
+# Latest pinned evaluation release, including the 2026-11-03 instruction fixes.
+python3 "$PSI_HOME/tools/sync_simple_eval.py" \
+  --output-root "$PSI_RUNTIME_ROOT/SIMPLE-eval-20261103" --task "$SIM_TASK"
+export SIMPLE_EVAL_ROOT="$PSI_RUNTIME_ROOT/SIMPLE-eval-20261103/snapshot-fb67cd9a"
 deactivate
 cd "$PSI_HOME"
 ```
 
-The clone commands above are for a fresh external directory. Keep existing runs and assets separate; check their revisions before evaluation. The [2026-11-01 data audit](docs/SIMPLE_OFFICIAL_20261030.md#eval-layout-audit-20261101) found all 75 files in the published two-table task ZIP identical to the historical RHSCI copy, including level-2 target poses for episodes 0/6/7/8/9. The public data has not been verified to include the position corrections mentioned in PR #29; updating the code alone does not establish this.
+The clone commands above are for a fresh external directory. The [2026-11-03 resource audit](docs/SIMPLE_UPDATES_20261103.md) supersedes the earlier search conclusion: the corrected two-table ZIP was already in `SIMPLE-org/data/eval-fixed/` on October 30, then mirrored to `psi-data/simple-eval/` on November 2. The pinned `SIMPLE-eval` snapshot also includes November 3 language fixes absent from those ZIPs. The sync tool checks file identities and keeps each release in its own directory. Run it without `--task` to fetch all 17 current tasks, or add `--verify-only` to check existing files.
+
+Four other tasks advertise success-checker changes that are absent from official SIMPLE `b75c6786`; their latest evaluation rules cannot yet be reproduced with that code. The examples below use between-tables / box-hugging, which are outside those four tasks. Asset parsing and CPU checks do not establish physical stability or success rates. Keep historical results and datasets under their original versions.
 
 ### Ψ0
 
@@ -193,8 +197,8 @@ cd "$SIMPLE_HOME"
 CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoupled_wbc \
   "simple/$SIM_TASK" psi0_decoupled_wbc level-0 \
   --host 127.0.0.1 --port 8124 --sim-mode mujoco_isaac --headless \
-  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/dr-level-0" \
-  --eval-dir "$PSI_RUNTIME_ROOT/evals/psi0/$TRAIN_TASK/VGQ-AE/step-40000/level-0" \
+  --data-format lerobot --data-dir "$SIMPLE_EVAL_ROOT/$SIM_TASK/dr-level-0" \
+  --eval-dir "$PSI_RUNTIME_ROOT/evals/psi0/$TRAIN_TASK/VGQ-AE/step-40000/eval-fb67cd9a/level-0" \
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
 
@@ -214,8 +218,8 @@ cd "$SIMPLE_HOME"
 CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoupled_wbc \
   "simple/$SIM_TASK" psi0_decoupled_wbc level-0 \
   --host 127.0.0.1 --port 8125 --sim-mode mujoco_isaac --headless \
-  --data-format lerobot --data-dir "$PSI_RUNTIME_ROOT/data/simple-eval/$SIM_TASK/dr-level-0" \
-  --eval-dir "$PSI_RUNTIME_ROOT/evals/gr00t/$TRAIN_TASK/VGQ-AE/step-20000/level-0" \
+  --data-format lerobot --data-dir "$SIMPLE_EVAL_ROOT/$SIM_TASK/dr-level-0" \
+  --eval-dir "$PSI_RUNTIME_ROOT/evals/gr00t/$TRAIN_TASK/VGQ-AE/step-20000/eval-fb67cd9a/level-0" \
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
 
