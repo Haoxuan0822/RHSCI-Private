@@ -74,7 +74,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 
 | 骨干 | 核心函数与数据流 | 推理路径 |
 | --- | --- | --- |
-| Ψ0 | `RHSCIPolicyMixin._rhsci_forward` 取得当前 VLM 特征并调用原生动作头；`_rhsci_visual_memory` 编码历史帧；`RHSCIQuery.memory` 形成四帧 memory；`_rhsci_query_latent` 复用 AE blocks 或再次调用语言 Transformer；辅助预测进入 ARDY 损失 | `_rhsci_inference_features`：无星号方法跳过 Query/历史；带星号方法将 latent 加入动作条件，`rhsci_history_from_request` 要求真实历史协议 |
+| Ψ0 | 当前 `VGQ-VLM` 的 `_rhsci_forward` → `four_frame_inputs` / `query_output` 走四原图完整 VLM 辅助路径；状态重建调用 `supervision.state_labels` / `controls.reconstruction_loss`。其他 Query 方法由 `RHSCIPolicyMixin._rhsci_forward` 取得当前 VLM 特征并调用原生动作头；`_rhsci_visual_memory` 编码历史帧；`RHSCIQuery.memory` 形成四帧 memory；`_rhsci_query_latent` 复用 AE blocks 或再次调用语言 Transformer；辅助预测进入 ARDY 损失 | `_rhsci_inference_features`：无星号方法跳过 Query/历史；带星号方法将 latent 加入动作条件，`rhsci_history_from_request` 要求真实历史协议 |
 | π0.5 | `Pi05RHSCI.forward` → `encode` → `memory_cache` / `expert` 计算 flow 动作损失；`encode_history` → `Reader.forward` → 共享 `expert` 计算 Query 辅助损失 | `sample_actions` 执行 10 步去噪；`serve.Server.predict_action` 反归一化 30×36，再返回前 24 步；不执行辅助支路 |
 | GR00T | 原生 `Gr00tN1d6` 前向中接入 `VisualStateQuery.memory` / `forward`；每帧图像/文本 Reader 适配原生 DiT 交替注意力，Query 复用 DiT，再加辅助损失 | `rhsci.serve.build_server` 绑定 HTTP 服务；动作使用原生模型路径，辅助监督不作为部署输入 |
 | EgoVLA | `EgoVLARHSCI.forward` → `_encode` → `action_prediction` / `decode_latents` 计算动作；历史编码 → `Reader.forward` → 同一 decoder 的 Query → ARDY | `sample_actions` 只执行动作路径；`serve.predict` 处理当前观测与响应 |
@@ -93,7 +93,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 
 剩余结构问题按影响排序：
 
-1. **方法名不能标识实际架构版本。** 当前 Ψ0 `VGQ-VLM` 与 PSI0-RAW 后续同名方法架构不同，见下表。应先记录明确的方法版本与权重结构，避免按同名直接迁移实验或 checkpoint。
+1. **旧同名权重兼容边界。** 2026-11-03已删除旧无星号 `VGQ-VLM`，后期四原图直接 Query 恢复该名称，状态重建已接入，状态教师蒸馏已删除。旧 Reader 权重不能按同名加载；当前结构及预处理核对见[方法清理](PSI0_METHODS_AND_PROCESSING_20261103.md)。
 2. **扩展边界仍有穿插。** GR00T Query 前向位于原生模型目录；Ψ0 原生模型、Trainer 和数据层有接入钩子。只看 `rhsci/model.py` 无法覆盖全部研究逻辑。应列出原生接入点，并让新增研究实现尽量由明确接口调用。
 3. **守护/启动流程结构重复。** 多个 `train` / `launch` / `guardian` 各自处理后台日志、锁、参数转发和 worker 重启。公共完整断点协议已共享，进程生命周期尚未统一；下一步可抽取它，保留各模型的 worker 命令及配方构建。
 4. **推理服务接口分散。** π/GR 使用公共 HTTP 层，ACT 独立 FastAPI，Ego 使用 `BaseHTTPRequestHandler`，Ψ/λ保留各自服务。可复用请求编解码、错误响应和 reset 协议，采样本身留在模型侧。
@@ -112,7 +112,7 @@ scripts/train/baseline.py::build_launch_plan()       可选公共入口：选择
 | 对象 | 已确认差异或验证边界 | 当前能作的结论 |
 | --- | --- | --- |
 | SIMPLE | 固定官方 `b75c6786`；[2026-11-03](SIMPLE_UPDATES_20261103.md)已同步新版 ZIP 与 `SIMPLE-eval/fb67cd9a`，两桌 level-2 目标位姿及三难度出生位姿变化已核验 | 资产身份/CPU 解析通过，物理闭环未验；另四任务宣称的新版成功判定尚不在该官方代码中 |
-| Ψ0 最新研究实现 | 当前 `_rhsci_visual_memory` 逐帧取 VLM 输出，默认 Reader 后 `_rhsci_query_latent` 再进语言 Transformer；生产 `RSCI/psi0_controls/methods.py::policy_class` 对 VGQ-VLM 不建旧 Reader，而由 `vlm_query.four_frame_inputs` / `query_output` 将四原图与 Query 直接送入 VLM。关闭当前 Reader 也不会变成后者 | **不是最新 PSI0-RAW 同名方法的严格复现**；后续 State-Reconstruction 等方法也不在当前通用入口中。不能按方法名认定权重兼容 |
+| Ψ0 最新研究实现 | 当前无星号 VGQ-VLM 经 `vlm_query.four_frame_inputs` / `query_output` 将四原图与 Query 直接送完整 VLM，不建旧 Reader；State-Reconstruction 复用四帧 Reader/AE 并输出31维关节标签；状态教师蒸馏移除 | 已按[方法清理及20组预处理配对](PSI0_METHODS_AND_PROCESSING_20261103.md)对齐所选原方法；真实小型 Qwen CPU 验证不等于完整 GPU/物理复现；旧同名 Reader 权重不兼容 |
 | GR00T SIMPLE | 固定官方 [finetune_simple.yaml](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/baselines/gr00t-n1.6/presets/train/finetune_simple.yaml) 指向 `pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000`，本仓默认 NVIDIA N1.6-3B；另有 map-style 完整动作窗口采样、Query、ZeRO-1 FP32 Adam 和 DiT 重算适配 | 初始化明确不同；优化超参数对齐不等于实验严格复现。已纠正 GR00T README 原“初始化相同”的表格 |
 | π0.5 | 复用原生底层模型，但 `encode` / `expert` / `forward` / `sample_actions` 是 RHSCI 自己组织的路径；safe 归一化对退化范围的处理不同；HTTP 用当前实测 STATE 并返回前 24 步，不复刻原生 WebSocket 的预测尾部状态回填 | 当前 RHSCI 适配；尚无完整官方前向/梯度/部署逐项等价验收，不能称严格原版 |
 | ACT | 使用当前 SIMPLE 脚本的 16 步配置与原生动作损失，加 EGQ-AE 辅助目标。历史公开 ACT checkpoint 的 100 步配置不是本配置 | 可说明与指定 16 步配方对齐；不能泛称与所有已发布 ACT 权重或实验相同 |

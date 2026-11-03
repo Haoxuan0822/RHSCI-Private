@@ -8,7 +8,7 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-01：六模型 Python 包统一为 `src/<包名>/rhsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。
 
-2026-11-02：[函数调用链与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)列出各骨干实际前向、剩余结构问题和验证边界。当前实现不能统称为严格复现官方实验或最新 PSI0-RAW 方法；其中 Ψ0 VGQ-VLM 架构和 GR00T 初始化存在明确差异。
+2026-11-02：[函数调用链与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)列出各骨干实际前向、剩余结构问题和验证边界。当前实现不能统称为严格复现官方实验或最新 PSI0-RAW 方法；其中旧 Ψ0 VGQ-VLM 差异已由[2026-11-03 方法清理](docs/PSI0_METHODS_AND_PROCESSING_20261103.md)替代：当前同名方法为四原图直接 Query，状态教师蒸馏已删除、状态重建保留，并核对原仓库颜色增强等处理；GR00T 初始化差异仍存在。
 
 2026-11-02：[参考 SIMPLE 的接口整理](docs/ARCHITECTURE.md#simple-shared-interfaces-20261102)：共用 π/GR 检查点重试、四骨干 worker 进程管理、ACT/π/GR HTTP 包装与 SIMPLE 消息编解码；公共缓存构建已解除 ACT 依赖，原生算法和协议各自保留。
 
@@ -231,7 +231,7 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 | Backbone | RHSCI variants implemented | Guide |
 | --- | --- | --- |
-| PSI0 | STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM* | [PSI0](baselines/psi0/README.md) |
+| PSI0 | STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM*, STATE-RECONSTRUCTION | [PSI0](baselines/psi0/README.md) |
 | π0.5 | STATE, NO-STATE, VGQ-AE | [π0.5](baselines/pi05/README.md) |
 | GR00T | STATE, NO-STATE, VGQ-AE | [GR00T](baselines/gr00t/README.md) |
 | EgoVLA | STATE, VGQ-AE | [EgoVLA](baselines/egovla/README.md) |

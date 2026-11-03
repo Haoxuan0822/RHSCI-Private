@@ -678,6 +678,12 @@ class FinetuneTrainer(Trainer):
         }
 
     def forward_and_loss(self, model, batch, eval_features=None) -> dict[str, torch.Tensor]:
+        from psi.rhsci.controls import CONTROL_VARIANTS, control_spec, forward_loss
+        if self.model_cfg.rsci_variant in CONTROL_VARIANTS:
+            return forward_loss(model, batch, control_spec(self.model_cfg),
+                loss_weights=self.loss_w,
+                diffusion_steps=self.train_diffusion_steps, rtc=self.model_cfg.rtc,
+                max_delay=self.model_cfg.max_delay, eval_features=eval_features)
         if eval_features is not None and model.training:
             raise ValueError("shared evaluation features cannot be used in training")
         bsz, Tp, Da = batch["actions"].shape

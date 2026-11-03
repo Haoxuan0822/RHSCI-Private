@@ -60,6 +60,16 @@ def run_training_preflight(cfg):
             3,
         ):
             raise ValueError("Invalid EGQ historical inputs")
+    if cfg.model.rsci_variant == "STATE-RECONSTRUCTION":
+        if batch["state_target"].shape != (1, 31) or batch["state_valid"].shape != (1, 31) or batch["states"].count_nonzero():
+            raise ValueError("Invalid state31 supervision or leaking student state")
+    if cfg.model.rsci_variant == "VGQ-VLM":
+        from transformers import AutoConfig
+        from .vlm_query import four_frame_inputs
+        current = {key: batch[key] for key in ("input_ids", "attention_mask", "pixel_values", "image_grid_thw")}
+        packed = four_frame_inputs([*batch["history_vlm_inputs"], current], AutoConfig.from_pretrained(str(vlm), local_files_only=True))
+        if packed["input_ids"].shape[1] + 1 > cfg.model.model_max_length:
+            raise ValueError("Direct four-image Query exceeds context budget")
     print(
         "RHSCI local assets, formal dataset gate and one CPU preprocessing/collation sample passed; no training started.",
         flush=True,

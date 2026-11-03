@@ -18,6 +18,8 @@ def validate_rhsci_training(variant, vlm_mode):
 def build_training_contract(cfg, ranks):
     """根据模型、数据与配方生成恢复身份；源码编辑和依赖版本不作为恢复门槛。返回契约字典。"""
     data = cfg.model_dump(mode="json")
+    # 新增默认字段不改变旧实验身份；显式新方法/执行仍完整绑定。
+    data["model"] = canonical_model_config(data["model"])
     train = dict(data["train"])
     for key in ("resume_from_checkpoint", "skip_resumed_steps"):
         train.pop(key, None)
@@ -32,3 +34,13 @@ def build_training_contract(cfg, ranks):
         ),
         cfg.train.output_dir,
     )
+
+
+def canonical_model_config(model):
+    """兼容旧run缺省字段；不改写旧配置，不吞掉显式非默认选择。"""
+    model = dict(model)
+    defaults = dict(rsci_execution="reference")
+    for key, value in defaults.items():
+        if model.get(key) == value:
+            model.pop(key, None)
+    return model

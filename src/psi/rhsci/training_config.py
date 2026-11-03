@@ -11,13 +11,14 @@ from rhsci.data.state_noise import validate_scale
 from rhsci.paths import CODE_ROOT
 from rhsci.runtime.environment import get_env
 
+from .controls import CONTROL_VARIANTS
 from .defaults import build_training_arguments
+from .model import VARIANTS
 
 if TYPE_CHECKING:
     from psi.config.train.finetune_simple_psi0_config import DynamicLaunchConfig
 
 CODE = CODE_ROOT
-VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
 class TrainingPlan(NamedTuple):
@@ -33,8 +34,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     argument_parser.add_argument(
-        "--model", choices=VARIANTS, required=True, help="带星号的方案请用引号，例如 'VGQ-VLM*'"
+        "--model", choices=(*VARIANTS, *CONTROL_VARIANTS), required=True, help="带星号的方案请用引号，例如 'VGQ-VLM*'"
     )
+    argument_parser.add_argument("--execution", choices=("reference", "logits", "both"), default="reference", help="VGQ-VLM execution only; both also disables VLM checkpointing")
     argument_parser.add_argument("--task", required=True, help="本地 SIMPLE repo/task 名")
     argument_parser.add_argument("--vlm", choices=("frozen", "lora"), default="frozen")
     argument_parser.add_argument("--gpus", default=get_env("CUDA_VISIBLE_DEVICES") or "0")
@@ -88,6 +90,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     """校验 CLI 参数并应用 Ψ0 配方；返回配置、启动命令、输出目录和进程数。"""
     noise = validate_scale(args.state_measurement_noise_std_rad, args.model)
+    if args.model in CONTROL_VARIANTS and (args.no_reader or args.ardy_offset):
+        raise ValueError("Controls use their fixed Reader/target-time protocol")
+    if args.execution != "reference" and args.model != "VGQ-VLM":
+        raise ValueError("Execution profiles require VGQ-VLM")
     if args.ardy_offset < 0 or (
         (args.ardy_offset or args.no_reader) and args.model in ("STATE", "NO-STATE")
     ):
@@ -109,6 +115,8 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
         raise ValueError("GPU indices must be unique, batch-size and num-workers positive")
     runtime = Path(get_env("PSI_RUNTIME_ROOT", "/opt/rsci-data")).resolve()
     model_slug = args.model.replace("*", "-star")
+    if args.execution != "reference":
+        model_slug += "-" + args.execution
     if args.no_reader:
         model_slug += "-no-reader"
     if args.ardy_offset:
@@ -141,6 +149,8 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
         "data.transform.field.state-measurement-noise-std-rad": noise,
         "data.rsci-ardy-offset-frames": args.ardy_offset,
     }
+    if args.model in CONTROL_VARIANTS:
+        updates["model.rsci-execution"] = args.execution
     query = args.model not in ("STATE", "NO-STATE")
     if query:
         updates["data.rsci-ardy-sidecar-root"] = (

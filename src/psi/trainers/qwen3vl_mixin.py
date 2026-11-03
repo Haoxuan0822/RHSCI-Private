@@ -162,7 +162,7 @@ class PaddedCollatorForTogether:
             output["history_vlm_inputs"] = [self([instance["history_vlm_inputs"][i] for instance in instances])
                                              for i in range(3)]
         for key in ("history_rgb_images", "history_valid", "ardy_target",
-                    "ardy_valid"):
+                    "ardy_valid", "state_target", "state_valid"):
             present = [key in instance for instance in instances]
             if any(present):
                 if not all(present):

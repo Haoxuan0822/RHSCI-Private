@@ -18,6 +18,7 @@ PATTERNS = {
         "test_rsci_trainer_safety.py",
         "test_rsci_switches.py",
         "test_psi0_preprocessing.py",
+        "test_psi0_controls.py",
         "test_guardian_processes.py",
         "test_guardian_recovery.py",
         "test_raw_cache_builder.py",

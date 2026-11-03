@@ -32,14 +32,14 @@ class PreprocessingTests(unittest.TestCase):
             actions=np.zeros((30, 36)),
             states=np.zeros((1, 36)),
         )
-        if variant.startswith(("VGQ-", "EGQ-")):
-            key = "history_vlm_images" if variant.startswith("VGQ-") else "history_rgb_images"
+        if variant not in ("STATE", "NO-STATE"):
+            key = "history_rgb_images" if variant.startswith("EGQ-") else "history_vlm_images"
             data[key] = np.repeat(rgb.transpose(2, 0, 1)[None], 4, axis=0)
             data.update(history_valid=np.ones(4, bool), ardy_target=np.zeros(128), ardy_valid=True)
         return data
 
     def test_all_training_image_paths_with_and_without_augmentation(self):
-        for variant in ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE"):
+        for variant in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-VLM", "EGQ-AE", "STATE-RECONSTRUCTION"):
             for enabled, no_aug in ((False, False), (True, False), (True, True)):
                 with self.subTest(variant=variant, enabled=enabled, no_aug=no_aug):
                     transform = ImageTransform(
@@ -79,10 +79,10 @@ class PreprocessingTests(unittest.TestCase):
         transform = ImageTransform(
             resize=ResizeImage(size=(10, 16)), center_crop=CenterCrop(size=(8, 10)), img_aug=True
         )
-        for variant in ("VGQ-AE", "EGQ-AE"):
+        for variant in ("VGQ-AE", "VGQ-VLM", "EGQ-AE", "STATE-RECONSTRUCTION"):
             output = transform(self.sample(variant))
             pixel = output["pixels"][0][0, 0]
-            if variant.startswith("VGQ-"):
+            if not variant.startswith("EGQ-"):
                 for frame in output["history_vlm_inputs"]:
                     np.testing.assert_array_equal(frame["pixels"][0][0, 0], pixel)
             else:

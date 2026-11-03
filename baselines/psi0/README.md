@@ -32,9 +32,11 @@ Use `"$PSI0_PYTHON" scripts/data/prepare_simple_stats.py --dataset /datasets/my_
 
 Use the [root quickstart](../../README.md#getting-started) for the complete VGQ-AE command. `--data-root` is the parent of the task dataset; `--task` is its exact local repo name. `--sidecar-root` points directly to that task's sidecars. `--dry-run` prints configuration; `--check` validates local assets. Remove the check option to train.
 
-Supported variants are STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM* and EGQ-VLM*. Nonstarred VLM query variants require `--vlm lora`. Quote starred names to prevent shell expansion. See [Training](../../docs/TRAINING.md) for launcher and runtime options.
+Supported variants are STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM* and STATE-RECONSTRUCTION. Nonstarred VLM query variants require `--vlm lora`. Quote starred names to prevent shell expansion. See [Training](../../docs/TRAINING.md) for launcher and runtime options.
 
-Query variants also accept `--no-reader` and `--ardy-offset N`, independently or together. STATE accepts `--state-measurement-noise-std-rad S` before normalization. See [experimental switches](../../docs/TRAINING.md#experimental-switches) for defaults, episode boundaries and checkpoint compatibility.
+VGQ-VLM is now the four-original-image direct VLM Query method, without a Reader; the early unstarred Reader implementation and state-teacher distillation are removed. STATE-RECONSTRUCTION keeps the four-frame VGQ-AE Reader/AE path and predicts 31 measured joints only as labels. Both use current targets and their fixed architecture, without `--no-reader` / `--ardy-offset`. Existing DIRECT-named saved runs are accepted by the saved-config loader; early same-named Reader weights are incompatible. See [methods and preprocessing audit](../../docs/PSI0_METHODS_AND_PROCESSING_20261103.md).
+
+Other Query variants also accept `--no-reader` and `--ardy-offset N`, independently or together. STATE accepts `--state-measurement-noise-std-rad S` before normalization. See [experimental switches](../../docs/TRAINING.md#experimental-switches) for defaults, episode boundaries and checkpoint compatibility.
 
 ## Inference
 

@@ -59,7 +59,7 @@ class ReaderSwitchTests(unittest.TestCase):
         self.assertEqual(frames[-1].grad[1, -2:].abs().sum().item(), 0)
 
     def test_all_query_variants_backpropagate_without_reader(self):
-        for variant in ("VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*"):
+        for variant in ("VGQ-AE", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*"):
             with self.subTest(variant=variant):
                 _, model = policy(
                     variant, mode="lora" if "VLM" in variant else "frozen", use_reader=False

@@ -87,8 +87,8 @@ python3 scripts/train/baseline.py --backbone lambda0 --mode rhsci \
 
 | Training option | Backbones | Default | Effect |
 | --- | --- | --- | --- |
-| `--no-reader` | PSI0 query variants | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
-| `--ardy-offset N` | PSI0 query variants | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
+| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
+| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
 | `--state-measurement-noise-std-rad S` | PSI0 and π0.5 STATE | `0` | Add Gaussian measurement noise with standard deviation `S` radians before normalization. The flag without a value selects `0.02`. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
@@ -102,6 +102,8 @@ bash scripts/train/psi0.sh --model VGQ-AE --task my_task \
 ```
 
 Remove `--dry-run` after asset preparation to train. Both switches can also be used independently. Visual history remains `[-6, -4, -2, 0]`: future images, states and actions are never added to the policy input. A target beyond the episode end is zero-filled and masked out of the auxiliary loss; the action sample remains in training. The future teacher validity mask and the current history validity mask must both pass. Asset preflight rejects a future offset with no valid supervision in the dataset.
+
+`VGQ-VLM` now selects the four-original-image direct Query, requires `--vlm lora`, and has no Reader. `STATE-RECONSTRUCTION` uses its fixed Reader/AE and state31 labels. Neither takes the Reader/future-target switches; see [current methods and preprocessing](PSI0_METHODS_AND_PROCESSING_20261103.md).
 
 STATE and NO-STATE reject Reader and ARDY switches. Reader selection is saved in the PSI0 model configuration; strict loading rejects mismatched Reader weights. Future offset is saved in the data configuration. Both alter the run contract and default output path.
 

@@ -12,7 +12,7 @@ from rhsci.paths import CODE_ROOT
 from rhsci.runtime.processes import cleanup, process_table, remember_tree
 
 from .checkpoints import checkpoint_ok
-from .contract import build_training_contract
+from .contract import build_training_contract, canonical_model_config
 
 CODE = CODE_ROOT
 
@@ -63,10 +63,15 @@ def run_training_guardian(args, cfg, command, output, ranks):
                 raise ValueError(
                     "Resume must be a complete checkpoint in this experiment's output directory"
                 )
+            if cfg.model.rsci_variant == "VGQ-VLM":
+                from .config import load_run_config
+
+                # 同名旧 Reader 点即使步数已满，也不能当作新四图方法完成或恢复。
+                load_run_config(resume.parent.parent, resume / "model.safetensors")
             saved = json.loads((resume.parent.parent / "run_config.json").read_text())
             saved_model = saved["model"]
             if (
-                saved_model != cfg.model_dump(mode="json")["model"]
+                canonical_model_config(saved_model) != canonical_model_config(cfg.model_dump(mode="json")["model"])
                 or saved["data"] != cfg.model_dump(mode="json")["data"]
             ):
                 raise ValueError(

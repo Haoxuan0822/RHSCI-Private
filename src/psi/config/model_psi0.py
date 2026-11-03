@@ -23,11 +23,12 @@ class Psi0ModelConfig(ModelConfig):
     n_cams: int = 1
     use_obs: str = "add_token"
     # RHSCI 用方案名选择结构；LoRA 是独立的实验消融轴。
-    rsci_variant: Optional[Literal["STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*"]] = None
+    rsci_variant: Optional[Literal["STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*", "STATE-RECONSTRUCTION"]] = None
     rsci_vlm_mode: Literal["frozen", "lora"] = "frozen"
     rsci_lora_rank: int = Field(default=8, gt=0)
     rsci_lora_alpha: float = Field(default=16, gt=0)
     rsci_use_reader: bool = True
+    rsci_execution: Literal["reference", "logits", "both"] = "reference"
     state_measurement_noise_std_rad: float = Field(default=0.0, ge=0, allow_inf_nan=False)
 
     rsci_ardy_weight: float = Field(default=0.1, gt=0, allow_inf_nan=False)
@@ -36,6 +37,12 @@ class Psi0ModelConfig(ModelConfig):
 
     @model_validator(mode="after")
     def validate_rhsci(self):
+        if self.rsci_execution != "reference" and self.rsci_variant != "VGQ-VLM":
+            raise ValueError("Execution profiles require VGQ-VLM")
+        if self.rsci_variant in ("VGQ-VLM", "STATE-RECONSTRUCTION") and self.noise_scheduler != "flow":
+            raise ValueError("VGQ-VLM and STATE-RECONSTRUCTION require flow matching")
+        if self.rsci_variant == "STATE-RECONSTRUCTION" and not self.rsci_use_reader:
+            raise ValueError("STATE-RECONSTRUCTION uses the VGQ-AE Reader")
         if not self.rsci_use_reader and self.rsci_variant in (None, "STATE", "NO-STATE"):
             raise ValueError("Disabling the Reader requires an RHSCI Query variant")
         if self.state_measurement_noise_std_rad > 0 and (self.rsci_variant != "STATE" or self.use_obs != "add_token"):

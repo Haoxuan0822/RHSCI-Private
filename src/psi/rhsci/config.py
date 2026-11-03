@@ -15,6 +15,9 @@ def load_run_config(run, checkpoint=None):
     module = importlib.import_module(f"psi.config.train.{argv[1]}")
     data = json.loads((run / "run_config.json").read_text())
     model = data["model"]
+    # 只兼容直接四图版本的旧保存名；早期同名 Reader 结构不能迁成新模型。
+    if model.get("rsci_variant") == "VGQ-VLM-DIRECT":
+        model["rsci_variant"] = "VGQ-VLM"
     for feature in ("use_depth", "v5_enabled", "psi0_ardy_aux", "depth_query_independent_rgb"):
         if model.get(feature):
             raise ValueError(f"Checkpoint uses an unsupported historical architecture: {feature}")
@@ -28,7 +31,16 @@ def load_run_config(run, checkpoint=None):
             if new in section and section[new] != section[old]:
                 raise ValueError(f"Conflicting saved configuration fields: {old}, {new}")
             section[new] = section.pop(old)
-    if checkpoint is not None and model.get("rsci_variant") not in (None, "STATE", "NO-STATE"):
+    if checkpoint is not None and model.get("rsci_variant") == "VGQ-VLM":
+        from safetensors import safe_open
+
+        with safe_open(checkpoint, framework="pt", device="cpu") as weights:
+            if "body_query" not in weights.keys():
+                raise ValueError(
+                    "Legacy VGQ-VLM Reader checkpoint is unsupported; "
+                    "VGQ-VLM now uses four original images and body_query."
+                )
+    elif checkpoint is not None and model.get("rsci_variant") not in (None, "STATE", "NO-STATE"):
         from safetensors import safe_open
 
         with safe_open(checkpoint, framework="pt", device="cpu") as weights:

@@ -45,9 +45,17 @@ class DataTransform(BaseModel):
     field: FieldTransform
 
     def __call__(self, data:dict[str, Any], **kwargs) -> dict[str, Any]:
+        variant = getattr(self.repack, "rsci_variant", None)
+        supervision = {}
+        if variant == "STATE-RECONSTRUCTION":
+            from psi.rhsci.supervision import supervision_fields
+            supervision = supervision_fields(variant, data["states"], self.field)
         data = self.repack(data, **kwargs)
         data = self.field(data, **kwargs)
         data = self.model(data, **kwargs)
+        if supervision:
+            data["states"] = np.zeros_like(data["states"])
+            data.update(supervision)
         return data
 
 class EgodexRepackTransform(BaseModel):

@@ -65,6 +65,11 @@ def tail_safe_training_loop(trainer_class):
     """
     original = epoch_safe_training_loop(trainer_class)
     source = textwrap.dedent(inspect.getsource(trainer_class._inner_training_loop))
+    if "steps_skipped" not in original.__code__.co_varnames:
+        # HF 4.57 已从消费位置初始化 step；再加旧版偏移既多余，也引用了已删除的变量。
+        if source.count("step = steps_trained_in_current_epoch - 1") == 1:
+            return original
+        raise RuntimeError("Unsupported HF epoch-tail loop; inspect native resume position")
     old = "do_sync_step = (step + 1) % args.gradient_accumulation_steps == 0 or (step + 1) == steps_in_epoch"
     new = (
         "do_sync_step = (step + 1 + steps_skipped) % args.gradient_accumulation_steps == 0 "

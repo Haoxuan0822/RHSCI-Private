@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from rhsci.runtime.losses import masked_auxiliary_loss as masked_auxiliary_loss
 
-VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
+VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
 @dataclass(frozen=True)
@@ -225,7 +225,13 @@ class RHSCIPolicyMixin:
         return model.to(device).eval()
 
     def _init_rhsci(self, cfg, restore):
-        self.rsci_spec = RHSCISpec(cfg.rsci_variant) if cfg.rsci_variant else None
+        self.rsci_method = cfg.rsci_variant
+        # 四图 VLM Query 的动作分支是单帧 NO-STATE；重建复用 VGQ-AE Reader/AE。
+        native_variant = {
+            "VGQ-VLM": "NO-STATE",
+            "STATE-RECONSTRUCTION": "VGQ-AE",
+        }.get(cfg.rsci_variant, cfg.rsci_variant)
+        self.rsci_spec = RHSCISpec(native_variant) if native_variant else None
         if self.rsci_spec is None:
             return
         self.rsci_lora_paths = configure_vlm(
@@ -246,6 +252,17 @@ class RHSCIPolicyMixin:
                 cfg.nhead,
                 use_reader=cfg.rsci_use_reader,
             )
+        if self.rsci_method == "STATE-RECONSTRUCTION":
+            # 保留共享参数初始化顺序，只替换监督头的末层128→31。
+            self.action_header.rsci.ardy_head[-1] = nn.Linear(cfg.hidden_dim, 31)
+        if self.rsci_method == "VGQ-VLM":
+            width = cfg.view_feature_dim
+            self.body_query = nn.Parameter(torch.randn(1, 1, width) / width**0.5)
+            self.body_query_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
+            self.control_max_length = cfg.model_max_length
+            from .controls import apply_execution
+
+            apply_execution(self.vlm_model, cfg.rsci_execution)
         if self.rsci_spec.encoder_guided:
             from psi.rhsci.rgb_encoder import DINOv2RGBAdapter
 
@@ -366,6 +383,31 @@ class RHSCIPolicyMixin:
     ):
         from psi.models.psi0 import HumanFoundationModelOutput
 
+        if getattr(self, "rsci_method", None) == "VGQ-VLM" and compute_rsci_aux:
+            from .vlm_query import four_frame_inputs, query_output
+
+            if vlm_hidden_states is not None:
+                raise ValueError("Direct VLM Query cannot use precomputed features")
+            if (
+                history_vlm_inputs is None or len(history_vlm_inputs) != 3
+                or history_valid is None or history_valid.shape != (len(input_ids), 4)
+                or not history_valid[:, -1].all()
+            ):
+                raise ValueError("Direct VLM Query requires three past frames and a valid current frame")
+            current_inputs = dict(
+                input_ids=input_ids, attention_mask=attention_mask,
+                pixel_values=pixel_values, image_grid_thw=image_grid_thw,
+            )
+            # 动作只看当前帧；历史与 Query 只经辅助损失更新共享 VLM。
+            action = self._rhsci_forward(
+                **current_inputs, action_samples=action_samples, states=states,
+                timestep=timestep, compute_rsci_aux=False, return_dict=return_dict,
+            )
+            packed = four_frame_inputs([*history_vlm_inputs, current_inputs], self.vlm_model.config)
+            latent = query_output(self.vlm_model, packed, self.body_query, self.control_max_length)
+            return HumanFoundationModelOutput(
+                action=action.action, ardy_prediction=self.body_query_head(latent.float())
+            )
         if vlm_hidden_states is not None and self.training:
             raise ValueError("precomputed VLM features are restricted to evaluation")
         current = vlm_hidden_states

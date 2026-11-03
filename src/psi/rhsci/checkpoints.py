@@ -8,8 +8,6 @@ from pathlib import Path
 
 from rhsci.runtime.checkpoints import check_tensors
 
-_CACHE = {}
-
 
 def validate_numerical_state(path):
     import torch
@@ -26,36 +24,16 @@ def validate_numerical_state(path):
 
 
 def numerical_checkpoint_ok(path):
-    """缓存仅复用同一inode/大小/mtime/ctime，文件变化必定重验；不写历史断点。"""
+    """读取实际张量；同大小文件在粗粒度文件时钟内被覆盖时，stat不足以标识内容。"""
     from safetensors import SafetensorError
 
-    path = Path(path)
     try:
-        files = [path / name for name in ("model.safetensors", "optimizer.bin", "scheduler.bin")]
-        signature = tuple(
-            (str(p), p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns, p.stat().st_ctime_ns)
-            for p in files
-        )
-        if signature in _CACHE:
-            return _CACHE[signature]
-        try:
-            validate_numerical_state(path)
-            result = True
-        except (
-            OSError,
-            ValueError,
-            RuntimeError,
-            EOFError,
-            TypeError,
-            KeyError,
-            pickle.UnpicklingError,
-            SafetensorError,
-        ):
-            result = False
-        _CACHE.clear() if len(_CACHE) > 128 else None
-        _CACHE[signature] = result
-        return result
-    except OSError:
+        validate_numerical_state(Path(path))
+        return True
+    except (
+        OSError, ValueError, RuntimeError, EOFError, TypeError, KeyError,
+        pickle.UnpicklingError, SafetensorError,
+    ):
         return False
 
 
