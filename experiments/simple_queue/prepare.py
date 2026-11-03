@@ -123,30 +123,33 @@ def main():
     assert manifest["revision"] == REVISION
     records = {record["rfilename"]: record for record in manifest["files"]}
     wanted = {str(MODEL_ROOT / run["archive"]).encode() for run in RUNS}
-    paused = []
-    # 暂停全量下载的调度和非优先传输；已在传的本次权重继续，避免重复写同一 .parts。
-    for pid, args in processes():
+    # 用户限定只下载本次评测权重：先结束全量重试器，再结束调度和无关传输。
+    # 保留全部分片；本次需要且已在传的文件继续，避免重复写同一 .parts。
+    running = list(processes())
+    running.sort(key=lambda item: b"download_rhsci_hf_supervisor.py" not in b" ".join(item[1]))
+    full_download_scripts = {
+        str(ROOT / name).encode()
+        for name in ("download_rhsci_hf.py", "download_rhsci_hf_supervisor.py")
+    }
+    for pid, args in running:
         if len(args) < 2:
             continue
-        if (args[1] == str(ROOT / "download_rhsci_hf.py").encode() and b"weights" in args) or (
+        if (args[1] in full_download_scripts and b"weights" in args) or (
             args[1] == str(ROOT / "download_wheel.py").encode()
             and len(args) > 3
             and args[3].startswith(str(MODEL_ROOT).encode())
             and args[3] not in wanted
         ):
-            os.kill(pid, signal.SIGSTOP)
-            paused.append((pid, args))
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-            futures = [pool.submit(prepare, run, records) for run in RUNS]
-            prepared = dict(future.result() for future in concurrent.futures.as_completed(futures))
-        (LOG / "READY.json").write_text(json.dumps(prepared, indent=2) + "\n")
-        print("ALL_FOLLOWUP_CHECKPOINTS_READY", flush=True)
-    finally:
-        current = dict(processes())
-        for pid, args in paused:
-            if current.get(pid) == args:
+            try:
+                os.kill(pid, signal.SIGTERM)
                 os.kill(pid, signal.SIGCONT)
+            except ProcessLookupError:
+                pass
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        futures = [pool.submit(prepare, run, records) for run in RUNS]
+        prepared = dict(future.result() for future in concurrent.futures.as_completed(futures))
+    (LOG / "READY.json").write_text(json.dumps(prepared, indent=2) + "\n")
+    print("ALL_FOLLOWUP_CHECKPOINTS_READY", flush=True)
 
 
 if __name__ == "__main__":

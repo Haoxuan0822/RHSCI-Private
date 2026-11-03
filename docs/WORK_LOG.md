@@ -14,7 +14,7 @@
 完整配置、来源和命令见 [实验说明](../experiments/pi05_between/README.md)，已在 `AGENTS.md` 登记为必读。
 
 - 用户指定 STATE 与 VGQ-AE，各 checkpoint-40000，预测 30 / 执行 30，无 RTC；四难度各 10 个初态重复 5 轮，每模型 200 次，总计 400 次。重复不是 200 个独立初态。
-- 模型 HF revision `59a1ea14d4346496d4e55c9fa58ea2f3330fd298`；上述两份推理权重已下载并 SHA256 验证。其余全量模型下载此前为优先下载暂停，现已恢复续传。
+- 模型 HF revision `59a1ea14d4346496d4e55c9fa58ea2f3330fd298`；上述两份推理权重已下载并 SHA256 验证。用户最新要求只下载已指定评测权重，其余全量下载调度、自动重试器和无关传输均已停止，保留已下载内容和分片，不自动恢复。
 - 用户指定 dataset revision `ea9d480ff1d95f34b63d7ea368b1bc72e353fd57`；eval-data 共 151 文件、8,045,136,314 字节已全部验证。实际初态用最新官方 `SIMPLE-eval/fb67cd9a309cb4f3ce8f9470fecb6fa6d82c60d4`，2993 文件已验证，与 RHSCI 镜像一致。
 - 匹配的两桌训练数据已下载、校验并解包，用于原处理器和统计；实际 fingerprint `b16d2e98348482834e282f2aa39ecc9154a60a6d6da4dad703f9ba9cc6141e2e` 与两份权重契约均匹配。不能用新版训练统计替换它。tokenizer SHA256 `8986bb4f423f07f8c7f70d0dbe3526fb2316056c17bae71b1ea975e77a168fc6` 已验证。
 - 已执行启动入口 `bash experiments/pi05_between/launch_8gpu.sh`。GPU 0–3 为 STATE 四难度，4–7 为 VGQ-AE 四难度；端口 8120–8127，DDS domain 100–107。首次尝试因 USD 诊断发现失效引用而主动停止；输出完整保留于同名 `-before-usd-repair` 目录，不计入正式 400 次。四难度渲染通过后已按相同命令重启，尚不能据此宣称完成物理评测。
@@ -25,7 +25,7 @@
 
 - 用户追加 7 组：π0.5 NO-STATE 两桌，及 GR00T 开烤箱/交接/开水龙头各 STATE、VGQ-AE；每组仍 5 轮、200 次，共新增 1400 次。先等当前 8 路均完成 50 次且逐轮核验结果，再按任务接续。
 - 配置与来源、完整命令见已登记的 `experiments/simple_queue/README.md`：π0.5 30/30、40k；GR00T 16/16、20k，全部无 RTC。各任务使用自己的官方时限与成功判定，不套两桌参数。
-- CPU 准备进程 `experiments/simple_queue/prepare.py` 已启动，PID 267176，日志 `<运行目录>/logs/followup-preparation.log`；固定 HF 下载复用旧传输，7 份权重尚未全部就绪。非优先全量下载暂时暂停，准备结束恢复。
+- CPU 准备进程 `experiments/simple_queue/prepare.py` 已启动，PID 267176，日志 `<运行目录>/logs/followup-preparation.log`；固定 HF 下载复用旧传输，7 份权重尚未全部就绪。用户限定只下载指定模型；已停止全量调度 PID 86344、重试器 96854 及四个无关传输，其余五个指定权重下载继续。运行中的旧准备进程末尾只能尝试恢复已经退出的 PID，不会重新创建下载任务；源码也已取消自动恢复。
 - 自动等待队列 `experiments/simple_queue/run.py` 已启动，日志 `<运行目录>/logs/followup-queue.log`；它等待当前真实 400 次及全部后续权重就绪。不会以进程退出码/health/预热代替 episode 完成。
 - 队列每小时调用本机 `xiancun pause 360` 续暂停空闲占卡程序，防止长评测中六小时暂停到期；队列结束停止续期，原监督服务不删除、不禁用。
 - GR00T 专用环境 Torch 2.7.0+cu128、Transformers 4.51.3、FlashAttention 2.7.4.post1 导入通过；后续真实 GPU 预热尚未执行，不能称已验证闭环。
