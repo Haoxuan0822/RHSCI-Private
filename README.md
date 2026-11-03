@@ -16,7 +16,7 @@ RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5,
 
 2026-11-03：[继续检查与可读性复查](docs/CODE_REVIEW_20261103.md)。补齐ACT/GR累计尾恢复和λ启动/清理阶段停止处理；后续参考SIMPLE拆分Ψ/λ入口、明确路径字段及公共回调接口，列明函数职责和验证边界。
 
-2026-11-03：[官方代码与资源更新](docs/SIMPLE_UPDATES_20261103.md)。已同步新版两桌等 25 ZIP、最新独立评测库 17 任务，并更正源目录漏查；列明训练数据、权重新提交和四任务成功判定的配套缺口。
+2026-11-03：[官方代码与资源更新](docs/SIMPLE_UPDATES_20261103.md)。已同步新版两桌等 25 ZIP、最新独立评测库 17 任务，并更正源目录漏查；列明训练数据、权重新提交和四任务成功判定的配套缺口。 [影响说明与遗漏教训](docs/SIMPLE_UPDATES_20261103.md#对当前实验的影响与遗漏教训)区分评测输入/判定代码，并说明何时重建 ARDY、缓存和统计。
 
 ## Getting started
 

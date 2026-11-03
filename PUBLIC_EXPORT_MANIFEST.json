@@ -14,16 +14,16 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "ffb015fd683409963594e3a2794c77e5b435a4b87ce1b6bd0f99c0690ee2e1af",
-      "bytes": 5521
+      "export_sha256": "7006b0a43d7699ca40984a7c53828b46e133d363b9ecd16d7ffff860366e9e94",
+      "bytes": 5857
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "cc50a616558fd81331d697e0d588e708b277f51cb9131bf324e2142bda7999a2",
-      "bytes": 16312
+      "export_sha256": "b94f511b8dccb64a712885a511b477a8e742dd5ab737056a75b326ff0664692f",
+      "bytes": 16496
     },
     "THIRD_PARTY_NOTICES.md": {
       "export_sha256": "d6c1f710f1c094ff761621c591051d320cfc8b07186a856ade698f1ecbbf243c",
@@ -202,8 +202,8 @@
       "bytes": 11096
     },
     "docs/SIMPLE_UPDATES_20261103.md": {
-      "export_sha256": "24e5a918b33d38024a2e2f9bc4bcb8baaa7b4dd4c4edb379bd545c40aa3a1cce",
-      "bytes": 11237
+      "export_sha256": "9ee56384b8a66dd3ba1d2722991db72f8f02108a3afc2c2ee2803ef9d33e87b1",
+      "bytes": 14291
     },
     "docs/SOURCES.md": {
       "export_sha256": "5ca7bf56986751d74557ad2955e2ea71f7235265219db4e148b8fb4ea86fec30",
