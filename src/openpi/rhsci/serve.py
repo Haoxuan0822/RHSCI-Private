@@ -130,7 +130,8 @@ class Server:
         actions = (normalized[0].float().cpu().numpy() + 1) / 2 * (high - low + 1e-6) + low
         if actions.shape != (30, 36) or not np.isfinite(actions).all():
             raise ValueError("Invalid π0.5 action shape or nonfinite values")
-        response = JSONResponse(ResponseMessage(actions[:24].astype(np.float32), 0.0).serialize())
+        # 无 RTC 时按本次评测配置执行完整 30 步，再获取新观测并重新预测。
+        response = JSONResponse(ResponseMessage(actions.astype(np.float32), 0.0).serialize())
         if action_noise is not None:
             action_noise.commit(payload, initial_noise)
         return response

@@ -194,8 +194,8 @@
       "bytes": 7587
     },
     "docs/INFERENCE.md": {
-      "export_sha256": "2e892260273ffb171c83102624c2f810af3fe0bff6672536dc68171d8c13b555",
-      "bytes": 13270
+      "export_sha256": "7c32ad29f11354b2229b5e485339673222f6eca209eab5ab39907624b3b555b2",
+      "bytes": 13431
     },
     "docs/NATIVE_PACKAGE_LAYOUT_20261031.md": {
       "export_sha256": "3c879c4d393646cc653ca88f6d6118c60460468c1741ade429e8d7812df9162e",
@@ -4098,8 +4098,8 @@
       "bytes": 5252
     },
     "src/openpi/rhsci/serve.py": {
-      "export_sha256": "b4556e3c9d10b2947224a8c3f8c8f975387e0b6a3d5f176dfe787a8da30acd52",
-      "bytes": 5814
+      "export_sha256": "03835f00f3ec8301f774fcfa2c0bf2682ee9aaba2383e09a79da84ae6eab9db9",
+      "bytes": 5910
     },
     "src/openpi/rhsci/train.py": {
       "export_sha256": "ea7246b56b511b331132493fefdf04c9dbd78cc59519131b2ef616d8457ad00b",
@@ -4742,8 +4742,8 @@
       "bytes": 8971
     },
     "tests/test_pi05_state_noise.py": {
-      "export_sha256": "4ef242f462ca3a7c5b2ad8ff198ab76ea6298df4cc789e7a75b8983db49c1ec0",
-      "bytes": 9675
+      "export_sha256": "f69cc0f6ad699de99b4024034ca3cb0dd051a72294606bcf515e2904299e0bcb",
+      "bytes": 9733
     },
     "tests/test_psi0_controls.py": {
       "export_sha256": "f629256e8f8efc8e2c917aaca13d0d2ff86095a591f35e1957835e46c9779016",

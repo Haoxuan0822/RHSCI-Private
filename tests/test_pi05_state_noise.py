@@ -149,6 +149,7 @@ class StateNoiseTests(unittest.TestCase):
             before = torch.get_rng_state().clone()
             response = server.predict_action(request.serialize())
             outputs.append(ResponseMessage.deserialize(json.loads(response.body)).action)
+            self.assertEqual(outputs[-1].shape, (30, 36))
             self.assertTrue(torch.equal(before, torch.get_rng_state()))
             with self.assertRaisesRegex(ValueError, "consecutive"):
                 server.predict_action(request.serialize())
