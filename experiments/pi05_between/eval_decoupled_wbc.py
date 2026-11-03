@@ -48,11 +48,14 @@ def main():
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
     parser.add_argument("--cpu-threads", type=int, default=8)
+    parser.add_argument("--trace-control", type=Path)
     args = parser.parse_args()
+    if args.trace_control is not None and args.num_episodes != 1:
+        parser.error("--trace-control requires --num-episodes 1 to keep step indices unambiguous")
     video = configure_video(args, Path.cwd())
     # 在 Kit 导入前记录实际配置；close() 可能提前结束 Python。
     (Path.cwd() / "effective_eval_config.json").write_text(
-        json.dumps({**vars(args), "video_policy": video}, indent=2) + "\n"
+        json.dumps({**vars(args), "video_policy": video}, indent=2, default=str) + "\n"
     )
     print("VIDEO_POLICY", json.dumps(video), flush=True)
     # 保留材质、纹理和 USD 引用警告，便于本次资源恢复验收。
@@ -67,6 +70,11 @@ def main():
     ]
     from simple.cli.eval_decoupled_wbc import _make_sonic_config, run_eval
     from simple.evals.api import EvalConfig
+
+    if args.trace_control is not None:
+        from trace_control import install_control_trace
+
+        install_control_trace(args.trace_control)
 
     sonic = _make_sonic_config()
     sonic["DOMAIN_ID"] = args.dds_domain_id

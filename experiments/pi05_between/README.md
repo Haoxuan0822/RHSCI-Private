@@ -102,7 +102,69 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 ## 资源与进度
 
+用户反馈动作卡顿后追加诊断：复用 GPU 6 现有 VGQ-AE 模型服务（端口 8126），另启独立仿真和 DDS 196，不加载第二个大模型；level-2 episode 3，预测/执行 30/30、无 RTC、10 步采样均不变。仅截取 120 控制步以记录前 4 块，保留视频，属于诊断而非正式成功率；`trace_control.py` 只包装原生方法记录每块动作、WBC 目标/输出、仿真时间和真实时间，不更改控制时钟。实际命令：
+
+后续两个输入对照沿用同一完整命令和 120 步，只替换输出目录、GPU/服务/DDS：`state-observation` = GPU 0、port 8120、DDS 197；`vgq-observation` = GPU 6、port 8126、DDS 198。新增记录每块实际输入状态/图像，以及 MuJoCo 与观测关节角；不更换场景资源。原诊断已完成 120 步，4 块推理约 0.068–0.082 秒，每步仿真 0.02 秒；双臂块间目标跳变 0.212/0.203/0.284 rad 的联合 L2，块内中位 0.010 rad，约 21 倍。CPU 原生插值器重放证明：换仿真时钟只会将边界尖峰后移一帧，不能解决模型目标回跳，不能据单个边界帧变小就声称时钟修复有效。
+
+三个诊断均已完成。输入对照中 STATE 的三次双臂边界跳变为 0.0224/0.0726/0.0404 rad，块内中位 0.00982 rad，边界中位约 4.12 倍；VGQ-AE 为 0.2364/0.2880/0.2086 rad，块内中位 0.01026 rad，约 23.04 倍。三份 trace 每个已执行动作的原始模型双臂值与 WBC 输入逐项完全相同，最大误差为 0，排除本样本的双臂队列错位或转换引入回跳。观测与 MuJoCo 双臂最大角度误差分别为 1.17e-6 / 5.66e-7 rad；实际输入图像已保存并人工查看，图像会随姿态更新。VGQ-AE 左肩 yaw 在第 29 步目标约 -0.116 rad，下一块起点约 -0.022 rad，真实关节随后也反向。这定位了已复现卡顿的直接机制：30 步块接续时模型目标不连续；尚不能据此断言权重、训练或所有输入兼容细节均无问题，也没有将其归因为已证实的场景资源错误。
+
+两个输入对照的初始状态逐项相同，但独立仿真渲染的初始图像并非逐像素相同，不能称严格同输入模型配对。VGQ-AE 相邻请求图像像素平均绝对差为 7.55/2.45/1.40（0–255），STATE 为 7.74/11.32/10.03；这是图像有更新的证据，不替代相机全链路时序验收，收据 `input-check.json`。归档 STATE 源码的 `encode/expert/sample_actions` AST 与当前一致，收据 `inference-source-comparison.json`；该归档不是经过身份核验的 VGQ 源码，也不替代全模型数值对照。
+
+未改变模型、30/30、RTC、正式评测、控制时钟或场景材质；没有加平滑掩盖回跳。根据用户最新顺序，原版场景资源替换仍作为最后手段，当前未执行。截短诊断的视频 failed 标签不计正式失败或成功率。仅解码/帧数正确不足以验证动作连续性，此前视频格式复查不能替代本次控制轨迹检查。
+
+数值与图在运行根 `evals/stutter-diagnostic-20261104/{original,state-observation,vgq-observation}/control_analysis.{json,png}`，输入拼图为同级 `input-comparison.png`。重算命令（simple 环境提供 NumPy/Matplotlib，无需安装新依赖）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_control_trace.py \
+  --trace /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-diagnostic-20261104/vgq-observation/control_trace.jsonl \
+  --plot
+```
+
+原始 120 步诊断的完整启动命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+mkdir -p "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/original"
+cd "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/original"
+CUDA_VISIBLE_DEVICES=6 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+  simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  psi0_decoupled_wbc train \
+  --data-format lerobot \
+  --data-dir "$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-2" \
+  --sim-mode mujoco_isaac --host 127.0.0.1 --port 8126 --headless \
+  --num-episodes 1 --episode-start 3 \
+  --max-episode-steps 120 --success-criteria 0.4 \
+  --eval-dir "$PWD/stats" --save-video \
+  --renderer-gpu 6 --dds-domain-id 196 --cpu-threads 8 \
+  --trace-control "$PWD/control_trace.jsonl"
+```
+
 视频保留规则：每个模型、每个难度保留 repeat-01 / repeat-02 的全部 10 个 episode，左右目均保存（每模型两轮共 160 个 MP4）。repeat-03–05 不录像，统计/日志/命令照常保留，不删除已有视频。`run_evaluation.py --video-rounds 2` 默认落实该规则，客户端显式接收 `--evaluation-round N --video-rounds 2`；为兼容仍在运行的旧 worker，客户端也可从 `repeat-NN` 工作目录推断轮次，无需中断当前评测。客户端在 Kit 导入前保存 `effective_eval_config.json` 和 `VIDEO_POLICY`，实际 `save_video` 以此为准。当前运行中的第一轮已按旧入口开启录像，之后新启动的每轮客户端读取新规则。
+
+追加独立编译数值对照：GPU 1，复用 VGQ-AE 权重和四张真实输入，固定噪声 seed=17，BF16、10 步采样、30 步输出，对比 eager 与 max-autotune；不接控制器，不计 episode，不更改在线服务。来源仍为本节已核对的保存配置与原 README；指令显式使用匹配训练数据 `meta/tasks.jsonl` 的 task-0 文本，不声称该独立对照重放了在线服务的原随机噪声。12 GiB 可用显存预检不通过则拒绝启动。实际命令：
+
+对照已正常结束。四张输入上双臂最大单关节误差 0.004512 rad、最大联合 L2 误差 0.009599 rad；有 BF16 执行差异，不是逐位相同。eager 第 30 步左肩下一块起点为 -0.03072 rad，此时实际观测为 -0.11909 rad，关闭编译后仍有明显反向目标。结果 `inference-mode-comparison.json`；不能把候选内核 cc=120 错误当成这次推理失败，完整输出已返回。额外进程已退出，显存已释放。
+
+同时只读核对 RHSCI 原资源 manifest：`hf/RHSCI/dataset-ea9d480f/eval-data/SIMPLE/assets-20261016/assets-manifest.json` 中当前 episode 场景 `102344022` 与全部 `vMaterials_2` 的 6014 个文件，与现用资源文件名集合及 SHA256 完全一致，缺少/多出/内容不同均为 0；收据 `original-scene-comparison.json`。这限定于该场景和材质，不替代原物体/机器人资产的比较。本轮没有更换资源或声称完成资源替换 A/B，也没有修改模型/RTC/控制时钟/30 步执行配置；诊断定位直接机制，并非已经修复某个已确认的代码错误。
+
+独立编译数值对照的完整启动命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=8 \
+TORCHINDUCTOR_COMPILE_THREADS=4 \
+TORCHINDUCTOR_CACHE_DIR="$PSI_RUNTIME_ROOT/cache/stutter-compile-check" \
+python -u experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/vgq-observation/control_trace.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --instruction " pick up the cracker box from table1,locomotion to table2,and place  on table2." \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/inference-mode-comparison.json"
+```
 
 实际录像路径为 `模型/难度/repeat-NN/data/evals/psi0_decoupled_wbc/任务/难度/episode_N/head_stereo_{left,right}_{success,failed}.mp4`。没有 success/failed 后缀的文件可能仍在写入，不能把未关闭的视频算作完整产物。
 
