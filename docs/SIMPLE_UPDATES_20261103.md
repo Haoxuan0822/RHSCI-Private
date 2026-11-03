@@ -63,6 +63,20 @@ SIMPLE [PR #31](https://github.com/physical-superintelligence-lab/SIMPLE/pull/31
 
 官方资产脚本和 `resolve_data_path()` 使用浮动 main，后者已有目录时不会自动刷新。这次以固定版本、独立目录和显式核验解决评测资源更新，未改第三方脚本，也没有将“目录存在”当版本正确的证据。历史 `ds1x/RHSCI` 资产交接不是这批新评测包。
 
+## 历史手指映射问题仍未随官方更新解决
+
+2026-11-03 用户追问后复核：当前官方 main 仍为 `b75c6786`。历史发现的 **WBC / MuJoCo 食指与中指顺序不一致**仍在当前 RHSCI 原生官方评测链路中，不能把本次资源同步当作它已修复。
+
+- `psi0_decoupled_wbc.py::get_action()` 把 WBC `get_hand_actuated_joints()` 返回值直接装入左右 `hand_q`；WBC supplemental info 的顺序为 thumb/index/middle。
+- `g1_sonic.py` 按 MJCF 遍历建立 `left_hand_index/right_hand_index`，`apply_action()` 直接按该数组做手部 PD，反馈 `prepare_obs()` 也按这个数组取值。历史实际 XML 的顺序为 thumb/middle/index，接口未按具名关节转换。
+- 当前固定资产库的 `robots_g1_sonic.zip` 为 23114187 bytes，HF LFS SHA256 `6c802053e1777f675068795d6100dd9c2b1e1853252ad31c0bf3c4285ef76b63`，与历史诊断记录完全相同。此处核发布身份，没有重新下载并重算整包摘要。
+
+[原生机器人代码](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/src/simple/robots/g1_sonic.py)及当前锁定的 WBC 子模块已直接读取。历史真实 XML / PD 测试证明食指目标可驱动另一手指；本次复核源码路径和相同资产身份，没有重跑物理或成功率测试。
+
+PSI0-RAW 历史本地 `scripts/eval_wbc_hand_order.py` 的 `wbc-hand-names-legacy-actions-v2` 是额外适配，处理目标/反馈具名映射及旧 checkpoint 动作兼容。用户要求 RHSCI 完全替换为官方 SIMPLE 时，该本地补丁没有迁入；当前 RHSCI 中也未找到它的安装调用。因此不能用“旧项目曾修复”作为当前入口已经修复的证据。
+
+这个控制接口问题与新版 **MP 训练数据 soft Dex3 手部动作重定向**不同。新训练包、语言或场景位置修正不会自动修复接口。它可能影响两桌、抱箱等使用该链路的任务；这两任务不属于前述四项成功判定更新，不代表它们没有其他已知问题。历史核验也没有证明本机训练转换新增了手指标签错位，不能据接口问题直接要求重训或交换训练标签。此次只补充缺陷记录，未改官方源码、训练数据或活动进程。
+
 ## 对当前实验的影响与遗漏教训
 
 25 份 ZIP 和独立仓库的 17 个任务是有重叠的两种发布，不是新增 42 个任务。前者保留发布包供对照，后者作为当前评测示例入口；17 个任务中大部分内容相同，两任务的指令又有后续修正。评测包指定开局环境、对象/机器人位姿和语言等输入；任务是否成功由仿真任务代码里的函数判断。下载新包不会自动改写这四任务的成功判定函数，也不等于模型已重新训练或完成新版评测。

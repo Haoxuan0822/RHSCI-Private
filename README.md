@@ -179,7 +179,7 @@ cd "$PSI_HOME"
 
 The clone commands above are for a fresh external directory. The [2026-11-03 resource audit](docs/SIMPLE_UPDATES_20261103.md) supersedes the earlier search conclusion: the corrected two-table ZIP was already in `SIMPLE-org/data/eval-fixed/` on October 30, then mirrored to `psi-data/simple-eval/` on November 2. The pinned `SIMPLE-eval` snapshot also includes November 3 language fixes absent from those ZIPs. The sync tool checks file identities and keeps each release in its own directory. Run it without `--task` to fetch all 17 current tasks, or add `--verify-only` to check existing files.
 
-Four other tasks advertise success-checker changes that are absent from official SIMPLE `b75c6786`; their latest evaluation rules cannot yet be reproduced with that code. The examples below use between-tables / box-hugging, which are outside those four tasks. Asset parsing and CPU checks do not establish physical stability or success rates. Keep historical results and datasets under their original versions.
+Four other tasks advertise success-checker changes that are absent from official SIMPLE `b75c6786`; their latest evaluation rules cannot yet be reproduced with that code. The examples below use between-tables / box-hugging, which are outside those four tasks. They still use the official controller with the [known finger-order mismatch](docs/SIMPLE_UPDATES_20261103.md#历史手指映射问题仍未随官方更新解决); the earlier PSI0-RAW compatibility patch is not installed in this checkout. Asset parsing and CPU checks do not establish physical stability or success rates. Keep historical results and datasets under their original versions.
 
 ### Ψ0
 

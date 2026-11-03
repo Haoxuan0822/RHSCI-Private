@@ -22,8 +22,8 @@
       "bytes": 626
     },
     "README.md": {
-      "export_sha256": "b94f511b8dccb64a712885a511b477a8e742dd5ab737056a75b326ff0664692f",
-      "bytes": 16496
+      "export_sha256": "e89d89555662d24fc8f78e08074f6eb4358e526d7b940d9a81e6803ff5156c5a",
+      "bytes": 16736
     },
     "THIRD_PARTY_NOTICES.md": {
       "export_sha256": "d6c1f710f1c094ff761621c591051d320cfc8b07186a856ade698f1ecbbf243c",
@@ -126,8 +126,8 @@
       "bytes": 95726
     },
     "configs/simple/upstream_audit_20261103.json": {
-      "export_sha256": "dcbd0e6b966e947004a59454692f1e9d82a574c27dc60c95bc18cd091ea4d2c0",
-      "bytes": 64131
+      "export_sha256": "0bafd160bb529820b3ef74dec2ac353ba77610eb4029202dcfbd3aaf6f1708c6",
+      "bytes": 64999
     },
     "configs/train/act.json": {
       "export_sha256": "ec4047e3c67b2b88aa5be1b5dbb7934af4623b36e4c63beb5730062c4c07f488",
@@ -166,8 +166,8 @@
       "bytes": 7587
     },
     "docs/INFERENCE.md": {
-      "export_sha256": "32df1db1746bd336c543ede16be483b9dfd5be3460e25e3cc4ce1f9f4f8ee1b6",
-      "bytes": 11956
+      "export_sha256": "2a05a99264e577cb6deb5111cb3941b28608978abedf8a7a6a1ecaacf3cdd37f",
+      "bytes": 12183
     },
     "docs/NATIVE_PACKAGE_LAYOUT_20261031.md": {
       "export_sha256": "3c879c4d393646cc653ca88f6d6118c60460468c1741ade429e8d7812df9162e",
@@ -202,8 +202,8 @@
       "bytes": 11096
     },
     "docs/SIMPLE_UPDATES_20261103.md": {
-      "export_sha256": "9ee56384b8a66dd3ba1d2722991db72f8f02108a3afc2c2ee2803ef9d33e87b1",
-      "bytes": 14291
+      "export_sha256": "caeeabd43c674ea2316fca67d7678a72fb65f9c05ad9c86f1109f4c4dac4e9af",
+      "bytes": 16570
     },
     "docs/SOURCES.md": {
       "export_sha256": "5ca7bf56986751d74557ad2955e2ea71f7235265219db4e148b8fb4ea86fec30",

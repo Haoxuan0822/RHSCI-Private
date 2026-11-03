@@ -1517,5 +1517,20 @@
     "official_reader_current_episodes": 680,
     "official_reader_preserved_old_episodes": 30,
     "physics_rollouts": false
+  },
+  "hand_interface_followup": {
+    "checked_utc": "2026-11-03T09:49:54.105268+00:00",
+    "simple_main": "b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11",
+    "asset_revision": "0e8f23cce8f2e96717aa60a0e26bed9d56223c2d",
+    "asset_file": "robots_g1_sonic.zip",
+    "bytes": 23114187,
+    "published_lfs_sha256": "6c802053e1777f675068795d6100dd9c2b1e1853252ad31c0bf3c4285ef76b63",
+    "same_as_historical_asset_identity": true,
+    "asset_root_entries_after_pagination": 1626,
+    "wbc_order": "thumb,index,middle",
+    "historical_mjcf_order": "thumb,middle,index",
+    "current_interface_named_reordering": false,
+    "rhsci_legacy_hand_patch_installed": false,
+    "scope": "Current source inspection and published asset identity vs historical actual-XML/PD evidence; no new physics test or asset payload download. MP training retargeting is a different mechanism."
   }
 }
