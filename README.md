@@ -2,6 +2,8 @@
 
 Rethinking Humanoid State Conditioning in Vision-Language-Action Models.
 
+后续训练、推理及正式功能开发使用本整理版，沿用现有框架；尚未确定的探针和机制分析放在独立的 [`experiments/`](experiments/README.md)。见[开发边界](docs/DIRECTORY_STRUCTURE.md#development-boundaries-20261103)。
+
 RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5, GR00T, EgoVLA and λ₀, with ACT as a visual action baseline. VGQ/EGQ variants use four-frame visual histories and ARDY supervision during training. Nonstarred variants need only current RGB and language at inference.
 
 2026-11-01：六模型 Python 包统一为 `src/<包名>/rhsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。

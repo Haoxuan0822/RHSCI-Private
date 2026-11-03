@@ -1,5 +1,7 @@
 # Code organization
 
+2026-11-03用户确定：本整理版是后续训练、推理与正式功能开发的默认代码仓库，优先扩展现有框架。尚未确定的独立实验放在 `experiments/<主题>/`，通过现有接口调用模型；正式包和默认入口不依赖实验目录。见[开发边界](DIRECTORY_STRUCTURE.md#development-boundaries-20261103)。
+
 The project and current Python namespace are **RHSCI / `rhsci`**. Model extensions use `psi.rhsci`, `openpi.rhsci`, `gr00t.rhsci`, `human_plan.rhsci`, `lambda0.rhsci`, `act.rhsci`; common tools use `rhsci`. Current CLI mode is `--mode rhsci`. `RHSCI_*` environment names take priority; historical `RSCI_*` names and `--mode rsci` are accepted as compatibility inputs. Existing checkpoint tensor/config keys, schema strings, filenames such as `rsci_config.json` / `RSCI_COMPLETE.json`, and runtime/environment directories retain their saved spelling. This avoids changing model parameter identities or old artifact locations. Historical source records describe their original names.
 
 Model-specific RHSCI extensions live inside their native packages. `src/rhsci` contains shared utilities; importing its root does not load a backbone or optional dependencies. See [Repository structure](DIRECTORY_STRUCTURE.md) for the directory tree and per-backbone entry points.

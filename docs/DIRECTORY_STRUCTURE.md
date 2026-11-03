@@ -39,12 +39,23 @@ RHSCI-Private/
 │   ├── dp/, InternVLA-M1/, h_rdt/, dreamzero/, beingh05/  # Other native baselines
 │   └── fast/, lerobot_patch/, egodex/, egomimic/         # Native supporting packages
 ├── tests/                           # Shared tests and model regression suites
+├── experiments/                     # Isolated exploratory probes and mechanism studies
 ├── tools/                           # CPU suites, source checks and local path tools
 ├── docs/                            # Architecture, usage, sources and dated records
 └── licenses/                        # Shared license texts; native components retain their licenses
 ```
 
 The `rhsci/` subdirectory within a native package is that model's research extension. It uses the adjacent original model and data implementation; there is no second parallel model tree under `src/rhsci`. Algorithms and checkpoint formats remain specific to each model.
+
+<a id="development-boundaries-20261103"></a>
+
+## 后续开发边界（2026-11-03）
+
+用户确定后续训练、推理及正式功能开发以 RHSCI-Private 整理版为准，尽量保持当前框架和目录稳定。新增功能扩展 `src/<模型包>/rhsci/`，跨模型复用放在 `src/rhsci/`，训练和部署继续使用现有入口。必要的框架修改应说明原因、影响及兼容方式，不为单个实验重建一套框架。
+
+尚未确定的探针、离线机制分析等独立工作放在 [`experiments/<主题>/`](../experiments/README.md)，调用现有模型、处理器和训练/推理接口。正式代码和默认入口不反向导入实验；确认纳入的方法再按现有框架接入。每个实验说明目的、调用入口、配置及验证状态，数据、权重、缓存和输出仍放仓库外。
+
+本约定面向后续开发，不自动搬迁 PSI0-RAW 已有独立实验、停止活动训练、替换旧权重配套源码或宣称旧断点已兼容。
 
 ## Package depth (2026-11-01)
 
