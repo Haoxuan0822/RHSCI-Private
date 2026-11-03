@@ -108,6 +108,28 @@ class CheckpointTests(unittest.TestCase):
             (checkpoint / "model.safetensors").unlink()
             self.assertEqual(inspect_run(run, "pi05")[1].name, "checkpoint-200")
 
+    def test_gr00t_discovery_accepts_native_config_and_sharded_inference_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            run = Path(folder) / "gr00t-run"
+            checkpoint = run / "checkpoint-20000"
+            checkpoint.mkdir(parents=True)
+            (run / "launch_contract.json").write_text(
+                json.dumps(dict(model="VGQ-AE", valid_action_horizon=16))
+            )
+            # GR00T 原生保存 config.json；纯推理导出不带 rsci_config 或训练状态。
+            (checkpoint / "config.json").write_text("{}")
+            shards = ["model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors"]
+            (checkpoint / "model.safetensors.index.json").write_text(
+                json.dumps(dict(weight_map=dict(zip(("a", "b"), shards))))
+            )
+            for shard in shards:
+                (checkpoint / shard).write_bytes(b"fixture")
+            self.assertEqual(inspect_run(run, "gr00t")[1], checkpoint)
+            self.assertEqual(len(discover(folder, "gr00t")["ready"]), 1)
+            (checkpoint / shards[1]).unlink()
+            with self.assertRaisesRegex(ValueError, "No complete"):
+                inspect_run(run, "gr00t")
+
     def test_historical_sources_are_verified_in_explicit_training_checkout(self):
         with tempfile.TemporaryDirectory() as folder:
             run = self.make_run(folder)

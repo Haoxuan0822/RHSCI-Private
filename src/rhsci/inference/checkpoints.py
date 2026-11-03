@@ -38,7 +38,11 @@ def inspect_run(run, backbone, *, step=None, verify_hash=False, training_source_
     )
     for checkpoint in candidates:
         try:
-            validate_inference_weights(checkpoint, verify_hash=verify_hash)
+            validate_inference_weights(
+                checkpoint,
+                config="config.json" if backbone == "gr00t" else "rsci_config.json",
+                verify_hash=verify_hash,
+            )
         except (OSError, ValueError, KeyError, TypeError):
             continue
         return contract, checkpoint

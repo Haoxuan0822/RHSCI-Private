@@ -1,0 +1,237 @@
+{
+  "date_utc": "2026-11-03T16:35:28.340323+00:00",
+  "repository": {
+    "root": "/root/workspace/RHSCI-Private",
+    "branch": "main",
+    "base_head": "d0ac783a65bfbb79dce033c37f4b52e16ac2d4fe",
+    "preexisting_uncommitted_edit": {
+      "file": "src/egovla/VILA/llava/model/multimodal_encoder/builder.py",
+      "sha256": "52515483f5327af4410825e548d9c24ab8559e83a899ca130a228ea9de12be19",
+      "included_in_commit": false
+    }
+  },
+  "scope": "Local source/data/CPU/evaluation-asset audit; not full GPU model/training/physical certification",
+  "environments": {
+    "psi0_act": {
+      "python": "3.10.12",
+      "executable": "/root/workspace/PSI0-RAW/.venv-psi/bin/python",
+      "torch": "2.7.0+cu128",
+      "transformers": "4.57.0",
+      "lerobot": "0.3.3"
+    },
+    "pi05": {
+      "python": "3.10.12",
+      "executable": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/.envs/pi05-rsci/bin/python",
+      "torch": "2.7.0+cu128",
+      "transformers": "4.53.2",
+      "lerobot": "0.3.3"
+    },
+    "gr00t": {
+      "python": "3.10.12",
+      "executable": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/.envs/gr00t-rsci/bin/python",
+      "torch": "2.7.0+cu128",
+      "transformers": "4.51.3",
+      "lerobot": "0.3.3"
+    },
+    "egovla": {
+      "python": "3.10.12",
+      "executable": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/.envs/egovla-rsci/bin/python",
+      "torch": "2.7.0+cu128",
+      "transformers": "4.53.2",
+      "lerobot": "0.3.3"
+    }
+  },
+  "cpu_tests": {
+    "psi0": {
+      "tests_run": 62,
+      "skipped": 0,
+      "seconds": 17.717,
+      "successful": true,
+      "log_sha256": "32885a01298d98befe08c49eb8b06fc567eb98bb81403edcacf0a0c2656ff433"
+    },
+    "pi05": {
+      "tests_run": 44,
+      "skipped": 0,
+      "seconds": 10.643,
+      "successful": true,
+      "log_sha256": "e0cdcb0f09a3e1c7055e2c3558fad99b7df3a477de8cec6601b7eea448b4f9d2"
+    },
+    "gr00t": {
+      "tests_run": 40,
+      "skipped": 0,
+      "seconds": 84.499,
+      "successful": true,
+      "log_sha256": "185acb600128014ef3f9a008fdc9fbb2a12832e81cd1dd0dccba1ea30cb4891a"
+    },
+    "egovla": {
+      "tests_run": 29,
+      "skipped": 0,
+      "seconds": 22.387,
+      "successful": true,
+      "log_sha256": "aa6193bb3f92331242569058b6c90e43dc0615008b6a2ed6e6c3f541db3278af"
+    },
+    "act": {
+      "tests_run": 30,
+      "skipped": 0,
+      "seconds": 7.452,
+      "successful": true,
+      "log_sha256": "cc8e2fca4260c34f947731ccab1b9fad2c8f00809424ca64cdd5ff17804e6ddf"
+    },
+    "http": {
+      "tests_run": 12,
+      "skipped": 0,
+      "seconds": 4.916,
+      "successful": true,
+      "log_sha256": "dda67b840d5bacaac76b7b25b7fdd2b36da30adb09266f79ae0b8cf8f71efaae"
+    },
+    "cli_structure": {
+      "tests_run": 15,
+      "skipped": 0,
+      "seconds": 2.045,
+      "successful": true,
+      "log_sha256": "31280c2e0888401bd57536a2a25b7702640e104607d1e1f338db22225814fcc6"
+    },
+    "contracts_state_eval_assets": {
+      "tests_run": 19,
+      "skipped": 2,
+      "seconds": 4.247,
+      "successful": true,
+      "log_sha256": "68f7d0fa1143d57f3bfee14fd3b2cf64892c9159fe3e8b13df8525f02b6673c0"
+    },
+    "official_client": {
+      "tests_run": 2,
+      "skipped": 0,
+      "seconds": 10.155,
+      "successful": true,
+      "log_sha256": "c113afcc830a5ec4c0f074c05829974ee4880168a982d1f85c44f3317c49080f"
+    },
+    "lambda_guardian_source": {
+      "tests_run": 9,
+      "skipped": 0,
+      "seconds": 4.499,
+      "successful": true,
+      "log_sha256": "071e1244b0cb918f520d8d63b958f34e2da2a4df3cd4e6e9569be553c775e242"
+    }
+  },
+  "counting_note": "Overlapping tests and reruns must not be summed as independent coverage",
+  "input_preflights": {
+    "act": {
+      "groups": 6,
+      "passed": true
+    },
+    "egovla": {
+      "groups": 10,
+      "passed": true
+    },
+    "gr00t": {
+      "groups": 15,
+      "passed": true
+    },
+    "pi05": {
+      "groups": 15,
+      "passed": true
+    },
+    "psi0": {
+      "groups": 10,
+      "passed": true
+    }
+  },
+  "data_summary": {
+    "datasets": 5,
+    "episodes": 483,
+    "frames": 230939,
+    "structural_errors": 0,
+    "cache_bytes": 73583685930,
+    "fresh_rgb_queries": 3700,
+    "provenance_artifacts": 1006
+  },
+  "official_source": {
+    "source": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/external/SIMPLE-official-b75c6786",
+    "revision": "b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11",
+    "files_verified": 433,
+    "recursive_submodules_verified": 9,
+    "scope": "source only; simulator environment, LFS assets and GPU rollouts not validated"
+  },
+  "eval_assets": [
+    {
+      "release": "snapshot-fb67cd9a",
+      "files_verified": 2993,
+      "directory": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/SIMPLE-eval-20261103/snapshot-fb67cd9a"
+    },
+    {
+      "release": "zip-38e43f22",
+      "files_verified": 25,
+      "directory": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/data/SIMPLE-eval-20261103/zip-38e43f22"
+    }
+  ],
+  "fixes": [
+    "GR00T discover/run-dir selects native config.json; shard admission remains strict"
+  ],
+  "findings": [
+    "Handover: seven paired duplicate action/state trajectories, 93 unique motion sources",
+    "Historical demonstration visual/contact acceptance remains pending; handover explicitly lacks source-success certification",
+    "Psi0/ACT validation reuses training data; no independent validation split constructed",
+    "Pi05 v2 retained by user instruction, sparse nonconstant quantile dimensions still lose information",
+    "Local XMovePick processed LeRobot restoration incomplete"
+  ],
+  "unverified": [
+    "lambda0 full model/bundle/data environment: Qwen3_5Config unavailable in current environment",
+    "Psi0/ACT input preflight for the other three tasks",
+    "All production models full payload SHA/reloading/inference",
+    "All training video pixels and full teacher regeneration",
+    "Multi-GPU long-run exact resume/training equivalence",
+    "Simulator physical success and full scene/controller runtime assets"
+  ],
+  "evidence_files": {
+    "docs/TRAINING_DATA_AUDIT_20261104.json": {
+      "sha256": "e14e00fc70dab8748d6d856b3faae46ab06911f821206a3e732f402063a13231",
+      "bytes": 36675
+    },
+    "docs/DATA_PROVENANCE_RGB_AUDIT_20261104.json": {
+      "sha256": "d970472ed351049ff7dbcb5e7676acc23fda31eef0f666184fe877b2e77afc7d",
+      "bytes": 6472
+    },
+    "docs/GR00T_DISCOVERY_AUDIT_20261104.json": {
+      "sha256": "235175004b55a7506a06ac604f699d7f2ec72cccd8a64908ac434951949ae18d",
+      "bytes": 2496
+    },
+    "docs/UPSTREAM_METADATA_20261104.json": {
+      "sha256": "5f1b2d70bb00f545a39e9a31a38924c4236f7a6c0b23cadd88d2e0852f74d125",
+      "bytes": 2344
+    },
+    "docs/ADAPTER_INPUT_ACT_20261104.json": {
+      "sha256": "acb3282917a3b6bd7af975721b170dcf114c0cf72ae1ad48614000a6fd1afb5b",
+      "bytes": 2220
+    },
+    "docs/ADAPTER_INPUT_EGOVLA_20261104.json": {
+      "sha256": "326b88d0adaf67b149aa332c44ac484eaf821caf3e40eda7ba67f03b2afab9dc",
+      "bytes": 3241
+    },
+    "docs/ADAPTER_INPUT_GR00T_20261104.json": {
+      "sha256": "6c1085f1d9654e5166e30deca6cc99656736aea2297410ac9cbd2b339df5c1fa",
+      "bytes": 4777
+    },
+    "docs/ADAPTER_INPUT_PI05_20261104.json": {
+      "sha256": "e7da65e9f934e9144ffabd25e83b68f7edffb8216379d54a79e90bd2f7fd0d8e",
+      "bytes": 4776
+    },
+    "docs/ADAPTER_INPUT_PSI0_20261104.json": {
+      "sha256": "ecb52dab6a469517b6fd157d498500ede160b61f02b64cac58894fe54e4cf8f1",
+      "bytes": 3491
+    }
+  },
+  "source_files_as_of_receipt": {
+    "src/rhsci/inference/checkpoints.py": "b8712559f1fbecafc748c56692101a8321d0427cea1c591c338d59bded5d68bf",
+    "tests/test_http_inference.py": "a29a0e1693800d5c34b929aa3eec4952dce8a6418bd5318ac093758b4cf3d191",
+    "tools/test_cpu.py": "f01b3bc8989d4d5784a18bd3a9f8659cda205d857b556b9fb33db82a61525f4a",
+    "tools/audit_training_data.py": "09bc789d8413b840cc355821c6bbc16aae4a5fbf2b53b2d097bc22ba11051efe",
+    "tools/audit_adapter_inputs.py": "5b0696120481506cb1352cc8e5a73250a7d18a99d3a4625fa35d89a0a7eb1a59"
+  },
+  "source_export_notes": {
+    "stale_committed_manifest_entry_corrected": "docs/DIRECTORY_STRUCTURE.md",
+    "preserved_ignored_bytecode_files": 31,
+    "bytecode_latest_mtime_utc": "2026-11-03T14:22:41.103770+00:00",
+    "scope": "Full working-tree check reports preexisting edit/bytecode; staged source export verified separately",
+    "previously_unlisted_committed_source_added": "experiments/README.md"
+  }
+}

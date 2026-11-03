@@ -1,0 +1,53 @@
+{
+  "date_utc": "2026-11-03T16:15:55.932461+00:00",
+  "results": [
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_RGB/runs/between/STATE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+      "variant": "STATE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    },
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI/runs/between/VGQ-AE/top4/seed-292285/paper20k-reader-spacecache-v1/checkpoint-20000",
+      "variant": "VGQ-AE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    },
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_NR/runs/between/VGQ-AE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+      "variant": "VGQ-AE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    },
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_RGB/runs/hug/STATE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+      "variant": "STATE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    },
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI/runs/hug/VGQ-AE/top4/seed-292285/paper20k-reader-spacecache-v1/checkpoint-20000",
+      "variant": "VGQ-AE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    },
+    {
+      "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_NR/runs/hug/VGQ-AE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+      "variant": "VGQ-AE",
+      "native_config": true,
+      "rsci_config_exists": false,
+      "discovery_passed": true,
+      "scope": "configuration/shard inventory and saved marker sizes; no full model load"
+    }
+  ]
+}

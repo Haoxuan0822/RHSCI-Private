@@ -87,4 +87,8 @@ The fixed reference digest does not certify another task or a reordered/subsampl
 
 ## Validate training inputs
 
+Validation covers format and pairing, not physical success or an independent data split. Consult the [full data audit](RESEARCH_AUDIT_20261104.md#全量训练数据核验) for duplicate motion sources, historical pending visual-contact acceptance, π0.5's retained rare-variation normalization limitation, and the currently incomplete local XMovePick restoration. Keep published datasets and matching formal labels fixed for existing experiments. A new official archive can change actions, trajectories or frame indices; verify the affected labels, caches and statistics before adopting it.
+
+For an explicit full audit, use `tools/audit_training_data.py` in an environment with NumPy, PyArrow, Torch and FFprobe; `--compare-cache-rgb` also needs TorchCodec. It checks actual frames, sidecar hashes, recomputed statistics and optional caches/provenance. It does not rerun the teacher or replay demonstrations. This tool is separate from normal training startup; record findings as well as exceptions.
+
 Return to the [README training examples](../README.md#training). Their `--check` commands validate the model assets and read a real processed sample with matching formal labels before training starts. PSI0 takes the dataset parent plus task name; GR00T takes the dataset directory directly. Both examples must resolve to the same processed data and the sidecar manifest fingerprint.

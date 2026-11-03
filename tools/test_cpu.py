@@ -103,6 +103,9 @@ def main():
                     excluded += 1
                 else:
                     suite.addTest(test)
+        if args.backbone in ("pi05", "gr00t"):
+            # 两者共用检查点发现入口，必须覆盖各自原生配置/分片格式。
+            suite.addTests(loader.loadTestsFromName("test_http_inference.CheckpointTests"))
         print(f"CPU suite: {args.backbone}; distributed tests excluded: {excluded}", flush=True)
         # CPU suites do not use DeepSpeed; HF's optional unwrap must not initialize its CUDA engine.
         with patch("accelerate.utils.other.is_deepspeed_available", return_value=False):

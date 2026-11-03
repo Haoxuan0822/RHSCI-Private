@@ -12,6 +12,8 @@ The [fixed asset manifest](https://huggingface.co/datasets/ds1x/RHSCI/blob/2bff7
 
 Download only the selected task's training archives and matching metadata. Preserve archived statistics and the processed-data/ARDY pairing. Prebuilt formal labels can be used directly; training with those labels does not require installing the ARDY teacher. Full fresh-machine installation and GPU training have not been validated in this standalone checkout.
 
+The [local research audit](RESEARCH_AUDIT_20261104.md) verifies five restored datasets and all their paired sidecars/statistics, plus existing between/hug caches. It also records seven duplicated handover motion sources and pending demonstration-success evidence. XMovePick's local directory is not currently a complete processed LeRobot restoration. These findings apply to the audited local copies; they do not revalidate every remote archive or certify physical success. Keep data provenance and acceptance status with the files when transferring them.
+
 ## Historical training-data sources
 
 [ds1x/Psi0-reproducibility](https://huggingface.co/datasets/ds1x/Psi0-reproducibility/tree/main) contains dataset and experiment backups:
