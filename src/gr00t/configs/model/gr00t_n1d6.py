@@ -105,6 +105,7 @@ class Gr00tN1d6Config(PretrainedConfig):
     # RHSCI：整组方案决定结构；默认None完整保留官方路径和参数名。
     rsci_variant: str | None = None
     rsci_ardy_weight: float = 0.1
+    rsci_memory_mode: str = "reader"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -130,6 +131,10 @@ class Gr00tN1d6Config(PretrainedConfig):
             raise ValueError("RHSCI supports SIMPLE top4 or explicit frozen VLM, not full VLM tuning")
         if self.rsci_ardy_weight < 0:
             raise ValueError("ARDY loss weight must be nonnegative")
+        if self.rsci_memory_mode not in ("none", "reader", "full-vlm"):
+            raise ValueError("Unknown GR00T Query memory mode")
+        if self.rsci_memory_mode == "full-vlm" and self.rsci_variant != "VGQ-AE":
+            raise ValueError("Full VLM Query memory requires VGQ-AE")
 
     def to_filtered_dict(self, exclude_augment: bool = True) -> dict:
         """Return a dictionary representation of this config, optionally excluding augmentation keys."""

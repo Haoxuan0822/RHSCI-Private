@@ -1,0 +1,46 @@
+{
+  "date_utc": "2026-11-03T14:23:49.469642+00:00",
+  "backbone": "act",
+  "scope": "CPU tiny native layers; shared installed native dependencies; no production GPU/physics evaluation",
+  "torch": "2.7.0+cu128",
+  "transformers": "4.57.0",
+  "results": {
+    "STATE": {
+      "state_entries": 162,
+      "trainable_tensors": 81,
+      "same_seed_initialization_equal": true,
+      "initial_differences": [],
+      "strict_raw_weight_load": true,
+      "three_steps_loss_gradient_parameters_adam_rng_exact": true,
+      "fixed_rng_inference_exact": true
+    },
+    "NO-STATE": {
+      "state_entries": 158,
+      "trainable_tensors": 77,
+      "same_seed_initialization_equal": true,
+      "initial_differences": [],
+      "strict_raw_weight_load": true,
+      "three_steps_loss_gradient_parameters_adam_rng_exact": true,
+      "fixed_rng_inference_exact": true
+    },
+    "EGQ-AE": {
+      "state_entries": 162,
+      "trainable_tensors": 81,
+      "same_seed_initialization_equal": true,
+      "initial_differences": [],
+      "strict_raw_weight_load": true,
+      "three_steps_loss_gradient_parameters_adam_rng_exact": true,
+      "fixed_rng_inference_exact": true
+    }
+  },
+  "shared_native_ast_equal": {
+    "src/act/models/act.py": true
+  },
+  "target_sha256": {
+    "src/act/rhsci/model.py": "2d0718ff0de9572cf03c90907bc3d2e30e198c97d0d0aea2dcd3c7c728c1dbae",
+    "src/act/models/act.py": "512585a90550ffd93c39e9c398e512471477866c6a264e4383b7c8eebf97c2e4"
+  },
+  "source_sha256": {
+    "/root/workspace/PSI0-RAW/RSCI/act/rsci_act/model.py": "6eac1e8355f694e1939367cdf7155c1f9110b0f97a4182de415e9cdcb9d329fe"
+  }
+}

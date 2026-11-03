@@ -68,3 +68,39 @@ class VisualStateQuery(nn.Module):
                      backbone_attention_mask=mask,
                      timestep=torch.zeros(memory.shape[0], device=memory.device, dtype=torch.long))
         return self.ardy_head(result[:, 0]).float()
+
+
+class FullMemoryQuery(VisualStateQuery):
+    """兼容原 GR00T 无 Reader 权重；完整四帧 token 直接供共享 DiT 的 Query 读取。"""
+
+    def __init__(self, memory_dim, query_dim, output_dim):
+        nn.Module.__init__(self)
+        self.query = nn.Parameter(torch.randn(1, 1, query_dim) / math.sqrt(query_dim))
+        self.time_embedding = nn.Parameter(torch.randn(4, memory_dim) / math.sqrt(memory_dim))
+        self.ardy_head = nn.Sequential(nn.LayerNorm(output_dim), nn.Linear(output_dim, 128))
+
+    @torch.no_grad()
+    def reset_parameters(self):
+        nn.init.normal_(self.query, std=1 / math.sqrt(self.query.shape[-1]))
+        nn.init.normal_(self.time_embedding, std=1 / math.sqrt(self.time_embedding.shape[-1]))
+        for layer in self.ardy_head:
+            layer.reset_parameters()
+
+    def memory(self, frames, valid):
+        if len(frames) != 4 or valid.shape != (frames[0]["backbone_features"].shape[0], 4):
+            raise ValueError("Expected four chronological full VLM memories and [B,4] validity")
+        if not valid[:, -1].all():
+            raise ValueError("Current frame must be valid")
+        tokens, masks, image_masks = [], [], []
+        for index, frame in enumerate(frames):
+            features = frame["backbone_features"]
+            if not torch.isfinite(features).all():
+                raise ValueError("Nonfinite VLM features")
+            available = frame["backbone_attention_mask"].bool() & valid[:, index, None].bool()
+            tokens.append((features + self.time_embedding[index]).masked_fill(~available[..., None], 0))
+            masks.append(available)
+            image_masks.append(frame["image_mask"].bool())
+        memory, mask, image_mask = torch.cat(tokens, 1), torch.cat(masks, 1), torch.cat(image_masks, 1)
+        if not (mask & image_mask).any(-1).all() or not (mask & ~image_mask).any(-1).all():
+            raise ValueError("Query needs valid image and text memory")
+        return memory, mask, image_mask

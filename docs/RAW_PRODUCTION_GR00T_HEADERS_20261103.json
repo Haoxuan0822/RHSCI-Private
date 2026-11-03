@@ -1,0 +1,180 @@
+[
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_RGB/runs/between/STATE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+    "variant": "STATE",
+    "memory_mode": "none",
+    "weight_header_only": true,
+    "query_shapes": {},
+    "reader_weights_present": false
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI/runs/between/VGQ-AE/top4/seed-292285/paper20k-reader-spacecache-v1/checkpoint-20000",
+    "variant": "VGQ-AE",
+    "memory_mode": "reader",
+    "weight_header_only": true,
+    "query_shapes": {
+      "action_head.rsci_query.ardy_head.0.bias": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.0.weight": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.1.bias": [
+        128
+      ],
+      "action_head.rsci_query.ardy_head.1.weight": [
+        128,
+        1024
+      ],
+      "action_head.rsci_query.query": [
+        1,
+        1,
+        1536
+      ],
+      "action_head.rsci_query.reader.in_proj_bias": [
+        6144
+      ],
+      "action_head.rsci_query.reader.in_proj_weight": [
+        6144,
+        2048
+      ],
+      "action_head.rsci_query.reader.out_proj.bias": [
+        2048
+      ],
+      "action_head.rsci_query.reader.out_proj.weight": [
+        2048,
+        2048
+      ],
+      "action_head.rsci_query.readers": [
+        2,
+        8,
+        2048
+      ],
+      "action_head.rsci_query.time_embedding": [
+        4,
+        2048
+      ]
+    },
+    "reader_weights_present": true
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_NR/runs/between/VGQ-AE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+    "variant": "VGQ-AE",
+    "memory_mode": "full-vlm",
+    "weight_header_only": true,
+    "query_shapes": {
+      "action_head.rsci_query.ardy_head.0.bias": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.0.weight": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.1.bias": [
+        128
+      ],
+      "action_head.rsci_query.ardy_head.1.weight": [
+        128,
+        1024
+      ],
+      "action_head.rsci_query.query": [
+        1,
+        1,
+        1536
+      ],
+      "action_head.rsci_query.time_embedding": [
+        4,
+        2048
+      ]
+    },
+    "reader_weights_present": false
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_RGB/runs/hug/STATE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+    "variant": "STATE",
+    "memory_mode": "none",
+    "weight_header_only": true,
+    "query_shapes": {},
+    "reader_weights_present": false
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI/runs/hug/VGQ-AE/top4/seed-292285/paper20k-reader-spacecache-v1/checkpoint-20000",
+    "variant": "VGQ-AE",
+    "memory_mode": "reader",
+    "weight_header_only": true,
+    "query_shapes": {
+      "action_head.rsci_query.ardy_head.0.bias": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.0.weight": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.1.bias": [
+        128
+      ],
+      "action_head.rsci_query.ardy_head.1.weight": [
+        128,
+        1024
+      ],
+      "action_head.rsci_query.query": [
+        1,
+        1,
+        1536
+      ],
+      "action_head.rsci_query.reader.in_proj_bias": [
+        6144
+      ],
+      "action_head.rsci_query.reader.in_proj_weight": [
+        6144,
+        2048
+      ],
+      "action_head.rsci_query.reader.out_proj.bias": [
+        2048
+      ],
+      "action_head.rsci_query.reader.out_proj.weight": [
+        2048,
+        2048
+      ],
+      "action_head.rsci_query.readers": [
+        2,
+        8,
+        2048
+      ],
+      "action_head.rsci_query.time_embedding": [
+        4,
+        2048
+      ]
+    },
+    "reader_weights_present": true
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/GR00T_RSCI_NR/runs/hug/VGQ-AE/top4/seed-292285/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000",
+    "variant": "VGQ-AE",
+    "memory_mode": "full-vlm",
+    "weight_header_only": true,
+    "query_shapes": {
+      "action_head.rsci_query.ardy_head.0.bias": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.0.weight": [
+        1024
+      ],
+      "action_head.rsci_query.ardy_head.1.bias": [
+        128
+      ],
+      "action_head.rsci_query.ardy_head.1.weight": [
+        128,
+        1024
+      ],
+      "action_head.rsci_query.query": [
+        1,
+        1,
+        1536
+      ],
+      "action_head.rsci_query.time_embedding": [
+        4,
+        2048
+      ]
+    },
+    "reader_weights_present": false
+  }
+]

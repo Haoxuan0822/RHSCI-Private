@@ -7,6 +7,8 @@ This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00
 
 The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE and VGQ-AE.
 
+Saved PSI0-RAW no-Reader checkpoints with `rsci_memory_mode=full-vlm` also restore their full-token Query within the native model; the normal training CLI continues to select Reader memory. This compatibility path retains the old parameter keys and initialization order. See [paired updates, checkpoint evidence and remaining limits](../../docs/RAW_COMPATIBILITY_AUDIT_20261103.md).
+
 The separate environment requires [requirements.txt](requirements.txt) and the native GR00T dependencies. `GROOT_RHSCI_PYTHON` overrides the interpreter; the default is `$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python`.
 
 See the [end-to-end README example](../../README.md#getting-started) for the isolated installation recipe and a box-hugging VGQ-AE run, followed by its matching HTTP server and SIMPLE evaluation commands. The example pins PyTorch 2.7.0, Transformers 4.51.3 and FlashAttention 2.7.4.post1, uses `top4` tuning with global batch 24 and trains for 20000 updates. Its service loads `checkpoint-20000` and returns 16 actions per request.

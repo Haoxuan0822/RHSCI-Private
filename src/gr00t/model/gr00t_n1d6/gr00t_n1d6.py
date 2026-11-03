@@ -746,6 +746,13 @@ class Gr00tN1d6(PreTrainedModel):
             model_type=config.backbone_model_type,
             transformers_loading_kwargs=transformers_loading_kwargs,
         )
+        if config.rsci_memory_mode == "full-vlm":
+            from .rhsci_query import FullMemoryQuery
+
+            # 原 NextGr00t 在基类初始化后替换辅助模块；保持相同参数/RNG 初始化顺序。
+            self.action_head.rsci_query = FullMemoryQuery(
+                config.backbone_embedding_dim, config.input_embedding_dim, config.hidden_size
+            )
 
     def _init_weights(self, module):
         from .rhsci_query import VisualStateQuery

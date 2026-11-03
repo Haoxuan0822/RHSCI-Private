@@ -39,9 +39,10 @@ class TinyBackbone(nn.Module):
         )
 
 
-def model(variant):
+def model(variant, memory_mode="reader"):
     config = Gr00tN1d6Config(
         rsci_variant=variant,
+        rsci_memory_mode=memory_mode,
         tune_top_llm_layers=0,
         max_state_dim=6,
         max_action_dim=4,
@@ -130,6 +131,26 @@ class ArchitectureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         torch.set_num_threads(1)
+
+    def test_original_no_reader_checkpoint_roundtrip_and_action_isolation(self):
+        policy = model("VGQ-AE", "full-vlm")
+        query = policy.action_head.rsci_query
+        self.assertFalse(hasattr(query, "reader"))
+        value = batch()
+        torch.manual_seed(72)
+        expected = policy.get_action(value)["action_pred"]
+        with tempfile.TemporaryDirectory() as folder:
+            policy.save_pretrained(folder)
+            with patch("gr00t.model.gr00t_n1d6.gr00t_n1d6.get_backbone_cls", return_value=TinyBackbone), \
+                 patch("gr00t.model.gr00t_n1d6.processing_gr00t_n1d6.Gr00tN1d6DataCollator"):
+                restored, loading = Gr00tN1d6.from_pretrained(folder, output_loading_info=True)
+            self.assertEqual(loading["missing_keys"], [])
+            self.assertEqual(loading["unexpected_keys"], [])
+            restored.eval()
+            value["state"].fill_(123)
+            value.pop("rsci_history")
+            torch.manual_seed(72)
+            torch.testing.assert_close(restored.get_action(value)["action_pred"], expected, rtol=0, atol=0)
 
     def test_actions_ignore_state_history_query_and_teacher(self):
         policy, inputs = model("VGQ-AE"), batch()

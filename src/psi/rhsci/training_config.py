@@ -151,6 +151,12 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     }
     if args.model in CONTROL_VARIANTS:
         updates["model.rsci-execution"] = args.execution
+        # 原专门 controls 入口显式把共享 VLM 的学习率设为 1e-4，不能沿用基类 1e-5。
+        updates.update({
+            "model.lang-backbone-lr": 1e-4,
+            "model.vision-tower-lr": 1e-4,
+            "model.mm-projector-lr": 1e-4,
+        })
     query = args.model not in ("STATE", "NO-STATE")
     if query:
         updates["data.rsci-ardy-sidecar-root"] = (

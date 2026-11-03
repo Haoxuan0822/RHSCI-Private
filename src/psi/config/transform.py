@@ -478,6 +478,13 @@ class ActionStateTransform(FieldTransform):
     pad_state_dim: int | None = None
 
     def model_post_init(self, __context: Any) -> None:
+        # 部署优先使用训练时保存的统计；同路径文件后来更新不能悄悄改变旧模型的尺度。
+        if isinstance(__context, dict) and __context.get("restore_preprocessing"):
+            required = (self.action_min, self.action_max)
+            if self.normalize_state:
+                required += (self.state_min, self.state_max)
+            if all(value is not None for value in required):
+                return
         if not os.path.exists(resolve_path(self.stat_path)):
             return
         with open(resolve_path(self.stat_path), "r") as f:

@@ -169,6 +169,58 @@ class ControlTests(unittest.TestCase):
                     run_training_guardian(args, *plan)
                 spawn.assert_not_called()
 
+    def test_native_state_reconstruction_metadata_restores_actual_method(self):
+        cfg = resolve_training_plan(build_argument_parser().parse_args([
+            "--model", "STATE-RECONSTRUCTION", "--task", "fixture",
+        ])).config
+        saved = cfg.model_dump(mode="json")
+        saved["model"]["rsci_variant"] = "VGQ-AE"
+        saved["data"]["transform"]["repack"]["rsci_variant"] = "VGQ-AE"
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "argv.txt").write_text("train.py finetune_simple_psi0_config")
+            (root / "run_config.json").write_text(json.dumps(saved))
+            weights = root / "model.safetensors"
+            save_file({"action_header.rsci.schema_version": torch.tensor(1),
+                       "action_header.rsci.ardy_head.1.weight": torch.zeros(31, 8)}, weights)
+            (root / "controls.json").write_text(json.dumps(dict(
+                spec=dict(method="STATE-RECONSTRUCTION", auxiliary_weight=.2),
+                behavior=dict(auxiliary_placement="shared-ae-query-state31"))))
+            restored = load_run_config(root, weights)
+            self.assertEqual(restored.model.rsci_variant, "STATE-RECONSTRUCTION")
+            self.assertEqual(restored.model.rsci_ardy_weight, .2)
+            self.assertEqual(restored.data.transform.repack.rsci_variant, "STATE-RECONSTRUCTION")
+            (root / "controls.json").unlink()
+            self.assertEqual(load_run_config(root, weights).model.rsci_variant, "STATE-RECONSTRUCTION")
+
+    def test_saved_bounds_are_not_replaced_by_changed_external_stats(self):
+        cfg = resolve_training_plan(build_argument_parser().parse_args([
+            "--model", "STATE", "--task", "fixture",
+        ])).config
+        stats = dict(action=dict(min=[-2.] * 36, max=[2.] * 36),
+                     states=dict(min=[-2.] * 32, max=[2.] * 32))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            field = cfg.data.transform.field
+            field.stat_path = str(root / "stats.json")
+            field.populate_stats(stats)
+            saved = cfg.model_dump(mode="json")
+            (root / "argv.txt").write_text("train.py finetune_simple_psi0_config")
+            (root / "run_config.json").write_text(json.dumps(saved))
+            stats["action"]["max"] = [100.] * 36
+            (root / "stats.json").write_text(json.dumps(stats))
+            restored = load_run_config(root)
+            self.assertEqual(restored.data.transform.field.action_max, [2.] * 36)
+
+    def test_control_vlm_learning_rates_match_raw_training_entry(self):
+        for variant in ("VGQ-VLM", "STATE-RECONSTRUCTION"):
+            cfg = resolve_training_plan(build_argument_parser().parse_args([
+                "--model", variant, "--vlm", "lora", "--task", "fixture",
+            ])).config
+            self.assertEqual(cfg.model.lang_backbone_lr, 1e-4)
+            self.assertEqual(cfg.model.vision_tower_lr, 1e-4)
+            self.assertEqual(cfg.model.mm_projector_lr, 1e-4)
+
 
 if __name__ == "__main__":
     unittest.main()

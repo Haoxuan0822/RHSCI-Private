@@ -1,0 +1,16 @@
+[
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/ACT/runs/between/EGQ-AE/seed-2026/simple-act-spacecache-v4-cfs-20261027/checkpoint-40000",
+    "actual_complete_model_loaded": true,
+    "scope": "CPU synthetic nonuniform RGB, original and organized processor + physical 16x36 actions",
+    "physical_action_exact": true,
+    "max_absolute_error": 0.0
+  },
+  {
+    "checkpoint": "/mnt/cfs/cqizhh/personal/huangkailun/haoxuan/checkpoints/ACT/runs/hug/EGQ-AE/seed-2026/simple-act-spacecache-v4-cfs-20261027/checkpoint-40000",
+    "actual_complete_model_loaded": true,
+    "scope": "CPU synthetic nonuniform RGB, original and organized processor + physical 16x36 actions",
+    "physical_action_exact": true,
+    "max_absolute_error": 0.0
+  }
+]
