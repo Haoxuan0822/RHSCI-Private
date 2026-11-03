@@ -1531,6 +1531,25 @@
     "historical_mjcf_order": "thumb,middle,index",
     "current_interface_named_reordering": false,
     "rhsci_legacy_hand_patch_installed": false,
-    "scope": "Current source inspection and published asset identity vs historical actual-XML/PD evidence; no new physics test or asset payload download. MP training retargeting is a different mechanism."
+    "scope": "Current source inspection and published asset identity vs historical actual-XML/PD evidence; no new physics test or asset payload download. MP training retargeting is a different mechanism.",
+    "actual_wbc_dependency": {
+      "repo": "songlin/decoupled_wbc",
+      "revision": "5b304e4d643fe89cd000068dcbba7e7519539caa",
+      "selected_by": [
+        "SIMPLE/pyproject.toml:134",
+        "SIMPLE/uv.lock:810"
+      ],
+      "same_robot_model_file_as_previously_linked_gr00t_copy": true,
+      "call_chain": [
+        "G1SupplementalInfo ordered names, lines 81/319",
+        "instantiate_g1_robot_model G1SupplementalInfo -> RobotModel, lines 53/57/60",
+        "RobotModel.__init__ caches named indices, lines 52-56",
+        "dof_index -> joint_to_dof_index[name], line 142; mapping from jmodel.idx_q, line 35",
+        "get_hand_actuated_joint_indices(left) -> cached list, lines 168-169",
+        "get_hand_actuated_joints -> q[indices], lines 336-337"
+      ],
+      "excluded_other_path": "get_joint_group_indices sorted set is not called by the hand getter",
+      "runtime_scope": "source inspection; pinocchio and mujoco unavailable in inspected Python environment"
+    }
   }
 }

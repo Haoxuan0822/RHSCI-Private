@@ -126,8 +126,8 @@
       "bytes": 95726
     },
     "configs/simple/upstream_audit_20261103.json": {
-      "export_sha256": "0bafd160bb529820b3ef74dec2ac353ba77610eb4029202dcfbd3aaf6f1708c6",
-      "bytes": 64999
+      "export_sha256": "b5c6dc7c876f77a073a81a7d2ac108d1b9f191e91101381dd799f108a7504d7b",
+      "bytes": 65993
     },
     "configs/train/act.json": {
       "export_sha256": "ec4047e3c67b2b88aa5be1b5dbb7934af4623b36e4c63beb5730062c4c07f488",
@@ -202,8 +202,8 @@
       "bytes": 11096
     },
     "docs/SIMPLE_UPDATES_20261103.md": {
-      "export_sha256": "caeeabd43c674ea2316fca67d7678a72fb65f9c05ad9c86f1109f4c4dac4e9af",
-      "bytes": 16570
+      "export_sha256": "583784275e853c715261624d32e2a1754acd416ce7dba3e93f10ea9028d38ccd",
+      "bytes": 18912
     },
     "docs/SOURCES.md": {
       "export_sha256": "5ca7bf56986751d74557ad2955e2ea71f7235265219db4e148b8fb4ea86fec30",

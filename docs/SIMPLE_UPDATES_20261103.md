@@ -73,6 +73,16 @@ SIMPLE [PR #31](https://github.com/physical-superintelligence-lab/SIMPLE/pull/31
 
 [原生机器人代码](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/src/simple/robots/g1_sonic.py)及当前锁定的 WBC 子模块已直接读取。历史真实 XML / PD 测试证明食指目标可驱动另一手指；本次复核源码路径和相同资产身份，没有重跑物理或成功率测试。
 
+WBC 出处更正：前次给用户的链接指向 GR00T-WholeBodyControl 内的副本。SIMPLE 的 `pyproject.toml:134` 和 `uv.lock` 实际指定 `third_party/decoupled_wbc`，固定 `songlin/decoupled_wbc@5b304e4d643fe89cd000068dcbba7e7519539caa`。已逐字节比较两份 `robot_model.py`，内容相同；下面用实际依赖的链接补齐调用链，不能仅凭副本路径推断运行来源。
+
+1. [G1 名称清单第81行](https://github.com/songlin/decoupled_wbc/blob/5b304e4d643fe89cd000068dcbba7e7519539caa/control/robot_model/supplemental_info/g1/g1_supplemental_info.py#L81)按 thumb/index/middle 排列，第319行原样传给基类 dataclass。`instantiation/g1.py:53–60` 把此实例交给 `RobotModel`，由 SIMPLE `SonicDecoupledWbcAgent._init_decoupled_policy()` 调用。
+2. [RobotModel 构造函数第52行](https://github.com/songlin/decoupled_wbc/blob/5b304e4d643fe89cd000068dcbba7e7519539caa/control/robot_model/robot_model.py#L52)逐项遍历清单，调用 `dof_index(name)` 生成 `_left_hand_actuated_joint_indices`；不排序、不去重，右手同理。
+3. [dof_index 第132行](https://github.com/songlin/decoupled_wbc/blob/5b304e4d643fe89cd000068dcbba7e7519539caa/control/robot_model/robot_model.py#L132)仅按关节名查 `joint_to_dof_index`。该字典由构造函数第32–35行按 Pinocchio `jmodel.idx_q` 建立；查询不改变遍历清单的顺序。
+4. [索引 getter 第168行](https://github.com/songlin/decoupled_wbc/blob/5b304e4d643fe89cd000068dcbba7e7519539caa/control/robot_model/robot_model.py#L168)在 `side="left"` 时直接返回上述缓存数组，右手返回另一缓存数组。
+5. [目标 getter 第336行](https://github.com/songlin/decoupled_wbc/blob/5b304e4d643fe89cd000068dcbba7e7519539caa/control/robot_model/robot_model.py#L336)用该索引数组取 `q` 的对应元素。NumPy 按索引数组顺序输出，因此结果保持 thumb/index/middle，而非把索引数值排序后输出。
+
+旁边 `get_joint_group_indices()` 的 `sorted()` 用于另一条关节组接口，不参与上述手指索引 getter。这里证明 WBC 输出数组顺序；整体错配还须结合前述实际 MJCF 顺序、客户端直接传递及 PD 路径。当前独立环境缺 Pinocchio/MuJoCo，因此本次为固定源码调用链复核，不伪称新运行了完整 WBC/物理链路。
+
 PSI0-RAW 历史本地 `scripts/eval_wbc_hand_order.py` 的 `wbc-hand-names-legacy-actions-v2` 是额外适配，处理目标/反馈具名映射及旧 checkpoint 动作兼容。用户要求 RHSCI 完全替换为官方 SIMPLE 时，该本地补丁没有迁入；当前 RHSCI 中也未找到它的安装调用。因此不能用“旧项目曾修复”作为当前入口已经修复的证据。
 
 这个控制接口问题与新版 **MP 训练数据 soft Dex3 手部动作重定向**不同。新训练包、语言或场景位置修正不会自动修复接口。它可能影响两桌、抱箱等使用该链路的任务；这两任务不属于前述四项成功判定更新，不代表它们没有其他已知问题。历史核验也没有证明本机训练转换新增了手指标签错位，不能据接口问题直接要求重训或交换训练标签。此次只补充缺陷记录，未改官方源码、训练数据或活动进程。
