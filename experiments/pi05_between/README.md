@@ -102,6 +102,19 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 ## 资源与进度
 
+视频保留规则：每个模型、每个难度保留 repeat-01 / repeat-02 的全部 10 个 episode，左右目均保存（每模型两轮共 160 个 MP4）。repeat-03–05 不录像，统计/日志/命令照常保留，不删除已有视频。`run_evaluation.py --video-rounds 2` 默认落实该规则，客户端显式接收 `--evaluation-round N --video-rounds 2`；为兼容仍在运行的旧 worker，客户端也可从 `repeat-NN` 工作目录推断轮次，无需中断当前评测。客户端在 Kit 导入前保存 `effective_eval_config.json` 和 `VIDEO_POLICY`，实际 `save_video` 以此为准。当前运行中的第一轮已按旧入口开启录像，之后新启动的每轮客户端读取新规则。
+
+实际录像路径为 `模型/难度/repeat-NN/data/evals/psi0_decoupled_wbc/任务/难度/episode_N/head_stereo_{left,right}_{success,failed}.mp4`。没有 success/failed 后缀的文件可能仍在写入，不能把未关闭的视频算作完整产物。
+
+结果始终按 level-0 / level-1 / level-2 / hard 排序，分别报告成功数和已完成数向量；例如成功 `0/0/1/0`、已完成 `4/4/4/4`，不能将未运行样本算失败。使用只读命令：
+
+```bash
+python3 experiments/pi05_between/summarize_results.py \
+  --output-root /root/workspace/Haoxuan/RHSCI-runtime/evals/pi05-between-30x30-5cycles-20261104
+```
+
+本次复查已核对官方动作队列为空才请求下一块、upsample_factor=1、每 episode reset 清队列与历史标志，当前日志持续收到 30 步动作；统计与已关闭视频 success/failed 后缀一致。成功/失败样本各一份完整 FFmpeg 解码通过，成功视频抽帧已人工检查。未发现新致命异常或材质引用错误，不据此宣称不存在任何 bug；官方篮子空碰撞网格和手指映射限制仍保留。
+
 固定模型 revision `59a1ea14d4346496d4e55c9fa58ea2f3330fd298`，训练数据来源为用户指定 dataset revision `ea9d480ff1d95f34b63d7ea368b1bc72e353fd57`。下载完成核对 HF SHA256，再恢复模型配置、训练统计和 tokenizer；模型不需要 optimizer/RNG 即可推理。
 
 运行根为 `/root/workspace/Haoxuan/RHSCI-runtime/evals/pi05-between-30x30-5cycles-20261104`。`worker-gpu*.log` 为编排日志，每卡目录有 `server.log`，每轮有 `console.log`、`stats/` 和视频。Kit 关闭可能提前退出 Python，因此每轮客户端退出后额外核验官方 `stats/eval_stats.txt` 中 episode 0–9 恰好各一条，再生成 `verified_results.json`；不以关闭之后可能未写出的 `result.json` 或退出码 0 代替。仅有 `warmup.json` 不能视为物理评测完成；每卡五轮均验证共 50 次后才写 `COMPLETE.json`。

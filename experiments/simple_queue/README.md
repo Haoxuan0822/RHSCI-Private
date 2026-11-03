@@ -2,6 +2,8 @@
 
 最新范围覆盖下方历史计划：只续传 GR00T 烤箱 STATE、VGQ-AE；其他指定模型仅使用已完整下载的归档，即 π0.5 NO-STATE 两桌、GR00T 交接 STATE、水龙头 STATE。当前后续共 5 组、1000 次；交接/水龙头 VGQ-AE 暂缓，保留分片。其他本地归档缺失/损坏时直接报错，不触发补下载。全部所选模型完成 SHA256 校验、解包且当前 400 次完成后才启动。
 
+每个模型/任务/难度保留前两轮全部 episode 的左右目视频，不按成功率筛选。worker 默认 `--video-rounds 2`，后面三轮关闭录像，但继续保存统计/日志/命令。结果用 level-0 / level-1 / level-2 / hard 的成功数和已完成数向量汇报，读取命令见两桌 README。现有等待进程启动未来 worker 时会读取新的 worker/客户端文件，无需重启当前评测或下载。
+
 最新实际准备/等待命令（分别后台运行；日志 `logs/followup-preparation-selected.log`、`logs/followup-queue-selected.log`）：
 
 ```bash

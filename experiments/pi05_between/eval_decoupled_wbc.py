@@ -3,8 +3,27 @@
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
+
+
+def configure_video(args, directory):
+    """按完整评测轮次决定录像；兼容已启动 worker 的 repeat-NN 工作目录。"""
+    match = re.fullmatch(r"repeat-(\d+)", directory.name)
+    repeat = args.evaluation_round
+    if repeat is None:
+        repeat = int(match[1]) if match else 1
+    if repeat < 1 or args.video_rounds < 2:
+        raise ValueError("Evaluation round must be positive; retain at least two video rounds")
+    requested = args.save_video
+    args.save_video = requested and repeat <= args.video_rounds
+    return {
+        "evaluation_round": repeat,
+        "video_rounds": args.video_rounds,
+        "requested_save_video": requested,
+        "save_video": args.save_video,
+    }
 
 
 def main():
@@ -23,11 +42,19 @@ def main():
     parser.add_argument("--max-episode-steps", type=int, default=1200)
     parser.add_argument("--success-criteria", type=float, default=0.4)
     parser.add_argument("--eval-dir", required=True)
-    parser.add_argument("--save-video", action="store_true")
+    parser.add_argument("--save-video", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--evaluation-round", type=int)
+    parser.add_argument("--video-rounds", type=int, default=2)
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
     parser.add_argument("--cpu-threads", type=int, default=8)
     args = parser.parse_args()
+    video = configure_video(args, Path.cwd())
+    # 在 Kit 导入前记录实际配置；close() 可能提前结束 Python。
+    (Path.cwd() / "effective_eval_config.json").write_text(
+        json.dumps({**vars(args), "video_policy": video}, indent=2) + "\n"
+    )
+    print("VIDEO_POLICY", json.dumps(video), flush=True)
     # 保留材质、纹理和 USD 引用警告，便于本次资源恢复验收。
     os.environ.setdefault("SIMPLE_ISAAC_LOG_LEVEL", "warning")
     # Isaac Sim consumes these native Kit arguments after our own CLI has parsed.

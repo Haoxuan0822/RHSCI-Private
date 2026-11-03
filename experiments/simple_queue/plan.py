@@ -42,8 +42,7 @@ DOWNLOAD_RUNS = [run for run in RUNS if run["task"] == "oven"]
 ACTIVE_RUNS = [
     run
     for run in RUNS
-    if run in DOWNLOAD_RUNS
-    or (ROOT / "hf/RHSCI/model-59a1ea14" / run["archive"]).is_file()
+    if run in DOWNLOAD_RUNS or (ROOT / "hf/RHSCI/model-59a1ea14" / run["archive"]).is_file()
 ]
 
 
@@ -82,4 +81,6 @@ def worker_command(run, gpu, level, run_dir):
         level,
         "--num-repeats",
         "5",
+        "--video-rounds",
+        "2",
     ]

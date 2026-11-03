@@ -3,11 +3,12 @@
 import argparse
 import json
 import os
-import re
 import signal
 import subprocess
 import time
 from pathlib import Path
+
+from summarize_results import read_stats
 
 ROOT = Path("/root/workspace/Haoxuan/RHSCI-runtime")
 REPO = Path("/root/workspace/RHSCI-Private")
@@ -114,6 +115,7 @@ def worker(args):
                         "rtc": False,
                         "cycles": args.num_repeats,
                         "episodes_per_cycle": args.num_episodes,
+                        "video_rounds": args.video_rounds,
                     },
                     indent=2,
                 )
@@ -217,6 +219,10 @@ def worker(args):
                     "--eval-dir",
                     str(destination / "stats"),
                     "--save-video",
+                    "--evaluation-round",
+                    str(repeat),
+                    "--video-rounds",
+                    str(args.video_rounds),
                     "--renderer-gpu",
                     str(args.gpu),
                     "--dds-domain-id",
@@ -247,14 +253,7 @@ def worker(args):
                     raise RuntimeError(f"Official evaluator exited {code}; see {sim_log.name}")
                 # Kit close 可能提前结束 Python，退出码 0 不能代替实际 episode 记录。
                 stats_path = destination / "stats/eval_stats.txt"
-                stats = {}
-                for line in stats_path.read_text().splitlines():
-                    match = re.fullmatch(r"episode_(\d+): (True|False)", line.strip())
-                    if match:
-                        key = int(match[1])
-                        if key in stats:
-                            raise RuntimeError(f"Duplicate episode {key}: {stats_path}")
-                        stats[key] = match[2] == "True"
+                stats = read_stats(stats_path, args.num_episodes)
                 if set(stats) != set(range(args.num_episodes)):
                     raise RuntimeError(
                         f"Incomplete official results: {sorted(stats)}; {stats_path}"
@@ -300,7 +299,10 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--num-repeats", type=int, default=5)
+    parser.add_argument("--video-rounds", type=int, default=2)
     arguments = parser.parse_args()
+    if arguments.video_rounds < 2:
+        parser.error("Retain at least two complete video rounds")
     if (
         arguments.backbone != "pi05" or arguments.variant == "NO-STATE"
     ) and arguments.run_dir is None:
