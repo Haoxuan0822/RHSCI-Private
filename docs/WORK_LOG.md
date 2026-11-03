@@ -23,6 +23,11 @@
 
 ## 已授权的后续评测队列
 
+- 当前新准备 PID 419978、等待队列 PID 420186；日志分别为 `logs/followup-preparation-selected.log`、`logs/followup-queue-selected.log`。实际检查仅烤箱两个下载进程存活，准备进程等待原续传、并行核验本地水龙头 STATE；队列等待当前 400 次和所选资产。代码语法、5 组选择范围、只允许 2 份下载及 worker horizon 参数检查通过。
+
+- **最新范围覆盖本节旧计划：** 只继续下载 GR00T 烤箱 STATE / VGQ-AE，原下载 PID 267262 / 267263 保持续传。已停止旧准备 PID 267176、旧等待 PID 288997 和交接 VGQ-AE 下载 PID 376533，保留所有文件/分片，当前八路评测未停。其他指定模型只评测已下载完整且本地 SHA256 通过的权重：π0.5 NO-STATE、GR00T 交接 STATE、水龙头 STATE。后续共 5 组、1000 次，交接/水龙头 VGQ-AE 暂缓；准备与队列采用 `*-selected.log`，实际命令见队列 README 最新段落。非烤箱归档缺失/损坏不自动补下载。
+- 本次检查官方 `eval_stats.txt` 的阶段快照：STATE 四难度依次完成 3/4/3/4 次，均无成功，共 0/14；VGQ-AE 完成 4/3/4/3 次，level-2 成功 1 次，共 1/14。全部仍在 repeat-01，没有 `verified_results.json` 或完整模型结果。阶段样本不能代表最终 200 次成功率。
+
 - 用户追加 7 组：π0.5 NO-STATE 两桌，及 GR00T 开烤箱/交接/开水龙头各 STATE、VGQ-AE；每组仍 5 轮、200 次，共新增 1400 次。先等当前 8 路均完成 50 次且逐轮核验结果，再按任务接续。
 - 配置与来源、完整命令见已登记的 `experiments/simple_queue/README.md`：π0.5 30/30、40k；GR00T 16/16、20k，全部无 RTC。各任务使用自己的官方时限与成功判定，不套两桌参数。
 - CPU 准备进程 `experiments/simple_queue/prepare.py` PID 267176，日志 `<运行目录>/logs/followup-preparation.log`。π0.5 NO-STATE 已完成下载/SHA256/解包及 horizon=30 核对，收据 `evals/followup-pi05-gr00t-5cycles-20261104/preparation/pi05-NO-STATE-between.json`。GR00T 交接 STATE 也已完整准备、horizon=16；水龙头 STATE 归档已下载/SHA256 通过。其余 4 份尚未全部就绪。用户限定只下载指定模型；全量调度 PID 86344、重试器 96854 及四个无关传输已结束，源码已取消自动恢复。

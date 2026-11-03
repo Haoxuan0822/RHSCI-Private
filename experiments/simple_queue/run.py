@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from plan import CURRENT, LEVELS, OUTPUT, REPO, RUNS, run_key, worker_command
+from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, REPO, run_key, worker_command
 
 next_pause_renewal = 0.0
 
@@ -65,7 +65,10 @@ def main():
         time.sleep(30)
     ready = json.loads((preparation / "READY.json").read_text())
     # NoState 两桌先跑；之后依次按任务同时跑 STATE / VGQ-AE，各占四张卡。
-    waves = [RUNS[:1], RUNS[1:3], RUNS[3:5], RUNS[5:7]]
+    waves = [
+        [run for run in ACTIVE_RUNS if run["task"] == task]
+        for task in ("between", "oven", "handover", "faucet")
+    ]
     environment = dict(
         os.environ, PYTHONPATH=str(REPO / "src"), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"
     )
@@ -121,7 +124,9 @@ def main():
                 process.wait()
             for handle in handles:
                 handle.close()
-    (OUTPUT / "COMPLETE.json").write_text(json.dumps({"models": 7, "episodes": 1400}) + "\n")
+    (OUTPUT / "COMPLETE.json").write_text(
+        json.dumps({"models": len(ACTIVE_RUNS), "episodes": 200 * len(ACTIVE_RUNS)}) + "\n"
+    )
 
 
 if __name__ == "__main__":

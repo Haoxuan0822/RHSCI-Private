@@ -1,5 +1,19 @@
 # 当前两桌之后的自动评测队列
 
+最新范围覆盖下方历史计划：只续传 GR00T 烤箱 STATE、VGQ-AE；其他指定模型仅使用已完整下载的归档，即 π0.5 NO-STATE 两桌、GR00T 交接 STATE、水龙头 STATE。当前后续共 5 组、1000 次；交接/水龙头 VGQ-AE 暂缓，保留分片。其他本地归档缺失/损坏时直接报错，不触发补下载。全部所选模型完成 SHA256 校验、解包且当前 400 次完成后才启动。
+
+最新实际准备/等待命令（分别后台运行；日志 `logs/followup-preparation-selected.log`、`logs/followup-queue-selected.log`）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 \
+  /root/miniforge/bin/python3 -u experiments/simple_queue/prepare.py
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-pi05-rsci/bin/python \
+  -u experiments/simple_queue/run.py
+```
+
+原准备/等待进程已停止，保留烤箱原下载进程续传，未停止当前八路评测。下方原始七组计划和旧 PID/日志用于溯源，以本段范围和工作记录为准。模型配置、官方来源与实际 SIMPLE 命令不变。
+
 2026-11-04 用户授权：等当前 STATE / VGQ-AE 两桌 400 次全部完成，再评测以下 7 组。每组沿用四难度各 10 初态 × 5 轮，200 次，共新增 1400 次；重复不计作独立初态。准备进程现在下载，队列只有在当前 8 路各 50 次有逐轮官方结果、资源退出且后续权重就绪后才启动。实验代码复用 `experiments/pi05_between/run_evaluation.py`、正式模型 HTTP 和官方 SIMPLE `run_eval`。
 
 | 顺序 | 模型 / 任务 | 权重步数 | 预测 / 执行 | 时限 / success criteria |

@@ -1,4 +1,4 @@
-"""Download and extract the seven pinned follow-up checkpoints outside the checkout."""
+"""Prepare selected checkpoints; only the two oven downloads may continue."""
 
 import concurrent.futures
 import hashlib
@@ -13,7 +13,7 @@ import traceback
 from pathlib import Path
 
 import zstandard
-from plan import OUTPUT, REVISION, ROOT, RUNS, run_key
+from plan import ACTIVE_RUNS, DOWNLOAD_RUNS, OUTPUT, REVISION, ROOT, run_key
 
 MODEL_ROOT = ROOT / "hf/RHSCI/model-59a1ea14"
 LOG = OUTPUT / "preparation"
@@ -48,6 +48,13 @@ def prepare(run, records):
     receipt = LOG / f"{key}.json"
     if receipt.exists():
         return key, json.loads(receipt.read_text())
+    if run not in DOWNLOAD_RUNS:
+        # 已下载的其他指定权重只做本地校验，不能因文件损坏触发重新下载。
+        if not archive.is_file() or archive.stat().st_size != record["size"]:
+            raise ValueError(f"Local archive missing or incomplete: {key}")
+        with archive.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != record["lfs"]["sha256"]:
+                raise ValueError(f"Local archive SHA256 mismatch: {key}")
     while existing_transfer(archive) is not None:
         print("WAIT_EXISTING_TRANSFER", key, flush=True)
         time.sleep(30)
@@ -122,7 +129,7 @@ def main():
     manifest = json.loads((MODEL_ROOT / "DOWNLOAD_MANIFEST.json").read_text())
     assert manifest["revision"] == REVISION
     records = {record["rfilename"]: record for record in manifest["files"]}
-    wanted = {str(MODEL_ROOT / run["archive"]).encode() for run in RUNS}
+    wanted = {str(MODEL_ROOT / run["archive"]).encode() for run in DOWNLOAD_RUNS}
     # 用户限定只下载本次评测权重：先结束全量重试器，再结束调度和无关传输。
     # 保留全部分片；本次需要且已在传的文件继续，避免重复写同一 .parts。
     running = list(processes())
@@ -146,7 +153,7 @@ def main():
             except ProcessLookupError:
                 pass
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        futures = [pool.submit(prepare, run, records) for run in RUNS]
+        futures = [pool.submit(prepare, run, records) for run in ACTIVE_RUNS]
         prepared = dict(future.result() for future in concurrent.futures.as_completed(futures))
     (LOG / "READY.json").write_text(json.dumps(prepared, indent=2) + "\n")
     print("ALL_FOLLOWUP_CHECKPOINTS_READY", flush=True)

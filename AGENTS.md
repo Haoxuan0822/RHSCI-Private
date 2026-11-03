@@ -28,6 +28,8 @@
 
 当前结构与历史来源：[原生包整理及可读性记录](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)、[初次整合](docs/PSI0_RAW_INTEGRATION_20261030.md)、[训练职责](docs/TRAINING_STRUCTURE_20261030.md)、[官方 SIMPLE](docs/SIMPLE_OFFICIAL_20261030.md)。历史记录描述当时行为，2026-10-31起运行校验以[精简记录](docs/RUNTIME_CHECKS_20261031.md)及现行使用指南为准；修改恢复、部署和资产检查前参考该记录。
 
+- 最新范围：只续传 GR00T 烤箱 STATE、VGQ-AE 两份；其他指定模型仅评测已经下载完整且本地 SHA256 校验通过的权重，不为其补下载。交接/水龙头 VGQ-AE 暂缓，已有分片保留。
+
 ## 新增文档必读索引
 
 每次开始工作前必须完整阅读以下文档；后续每次创建新文档时在此追加用途与必读要求。

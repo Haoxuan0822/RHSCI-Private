@@ -14,8 +14,8 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "d9f9313b7d3ab6b5394dfed100a52b3f17b8f402f67186f555fbfea90c9e1830",
-      "bytes": 11209
+      "export_sha256": "1281802a107480dba98677e145b6057b9128dbc2831958da580aae88138f46f5",
+      "bytes": 11436
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
@@ -314,8 +314,8 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "5bb82adf0fbac6734d806973f3aee6bad1199d6c7ad6d6783b6a14b699250dc0",
-      "bytes": 8855
+      "export_sha256": "de86b682c276a1169188e63d9b145497a5e21c8b8e1591c11a52d546ef73f58b",
+      "bytes": 10191
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
@@ -366,20 +366,20 @@
       "bytes": 12515
     },
     "experiments/simple_queue/README.md": {
-      "export_sha256": "235fcfdb6171e8a9eb91fbe4963d6f0d40dae0d79821ed3ef52a5c259dd07c25",
-      "bytes": 5861
+      "export_sha256": "cdc0e821bd18b7f2263840a32631e8874c41c37b4af4b493104c26a3a85d78d8",
+      "bytes": 6992
     },
     "experiments/simple_queue/plan.py": {
-      "export_sha256": "2035f204e0fd6f55cdd33b738b6906e3a3bb35d4cdb4ccc241b0a9fe91714be7",
-      "bytes": 2342
+      "export_sha256": "2c598a3b426ba6376ba653c25a2555a37acabb13a2dbfcd5094897082c2b57be",
+      "bytes": 2633
     },
     "experiments/simple_queue/prepare.py": {
-      "export_sha256": "141804b0990e45a04a231ab2f9a8e1f0d3348ec8ff8dc49e0afccc2d078da3af",
-      "bytes": 6136
+      "export_sha256": "e939bcfbb12eff64106f4088b40a6b863c77392dea7f6647c90ec94250d21829",
+      "bytes": 6665
     },
     "experiments/simple_queue/run.py": {
-      "export_sha256": "bce6485ecf3b0f3f0d7d77eebe9b99ceaec1e9e7a6f5de54141d70500fc27723",
-      "bytes": 5340
+      "export_sha256": "e7d5549143aa533ee93c41477e1fc4c0d22aea84fe9f0728afe65425a1333d03",
+      "bytes": 5480
     },
     "licenses/Apache-2.0.txt": {
       "export_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
