@@ -7,7 +7,7 @@
 - 工作仓库 `/root/workspace/RHSCI-Private`，分支 `main`；仅本地提交，不自动推送。模型使用现有 `src/<模型>/rhsci` 和公共 `src/rhsci`，实验编排放 `experiments/<主题>/`。
 - 运行目录 `/root/workspace/Haoxuan/RHSCI-runtime`，`/opt/rsci-data` 指向此处。`source <运行目录>/activate.sh pi05` 选择模型环境，`source <运行目录>/activate.sh simple` 选择仿真环境；激活脚本会改变工作目录。
 - 8 张 RTX 5090，每卡约 32 GiB。SIMPLE 是官方 `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`，9 个递归子模块固定在 gitlink；官方跟踪源码未修改。Isaac Sim 4.5.0.0、MuJoCo 3.3.6。59 个官方场景/机器人/材质归档已恢复。
-- 模型环境 `.venv-pi05-rsci`：Python 3.10.12、Torch 2.7.0+cu128、Transformers 4.53.2，已安装仓库 overlay。8 个模型服务已通过原生严格权重加载，首次真实推理编译尚在进行，不等于已开始物理 rollout。
+- 模型环境 `.venv-pi05-rsci`：Python 3.10.12、Torch 2.7.0+cu128、Transformers 4.53.2，已安装仓库 overlay。8 个模型均通过原生严格权重加载及真实 `(30, 36)` 推理预热，无需更换编译 backend。
 
 ## 当前 π0.5 两桌任务
 
@@ -17,10 +17,10 @@
 - 模型 HF revision `59a1ea14d4346496d4e55c9fa58ea2f3330fd298`；上述两份推理权重已下载并 SHA256 验证。其余全量模型下载此前为优先下载暂停，现已恢复续传。
 - 用户指定 dataset revision `ea9d480ff1d95f34b63d7ea368b1bc72e353fd57`；eval-data 共 151 文件、8,045,136,314 字节已全部验证。实际初态用最新官方 `SIMPLE-eval/fb67cd9a309cb4f3ce8f9470fecb6fa6d82c60d4`，2993 文件已验证，与 RHSCI 镜像一致。
 - 匹配的两桌训练数据已下载、校验并解包，用于原处理器和统计；实际 fingerprint `b16d2e98348482834e282f2aa39ecc9154a60a6d6da4dad703f9ba9cc6141e2e` 与两份权重契约均匹配。不能用新版训练统计替换它。tokenizer SHA256 `8986bb4f423f07f8c7f70d0dbe3526fb2316056c17bae71b1ea975e77a168fc6` 已验证。
-- 已执行启动入口 `bash experiments/pi05_between/launch_8gpu.sh`。GPU 0–3 为 STATE 四难度，4–7 为 VGQ-AE 四难度；端口 8120–8127，DDS domain 100–107。当前处于模型真实推理预热/编译和额外材质渲染诊断；没有据 HTTP health 或进程存在宣称完成评测。
+- 已执行启动入口 `bash experiments/pi05_between/launch_8gpu.sh`。GPU 0–3 为 STATE 四难度，4–7 为 VGQ-AE 四难度；端口 8120–8127，DDS domain 100–107。首次尝试因 USD 诊断发现失效引用而主动停止；输出完整保留于同名 `-before-usd-repair` 目录，不计入正式 400 次。四难度渲染通过后已按相同命令重启，尚不能据此宣称完成物理评测。
 - 输出根 `<运行目录>/evals/pi05-between-30x30-5cycles-20261104`。每卡有 `worker.json`、`server.log`；每轮有实际 `command.sh`、`console.log`、统计和视频。每卡完整 50 次后才产生 `COMPLETE.json`。
 - 本机 keepalive 用 `/root/bin/xiancun pause 360` 暂停并释放 GPU；不要直接杀其 worker，监督器会重启。未停止其他生产训练。
 
 ## 材质检查当前状态
 
-静态检查覆盖 40 初态、80 处材质使用、63 个 MDL 文件与导出名称、175 个纹理路径，未发现缺失。实际 USD 渲染另复现了 `/root/tmp` 失效旧软链接，正在恢复路径并重新验证，详见错误记录。只有实际四难度渲染和后续 rollout 日志通过，才能判断对应范围的 USD 引用已解决。
+静态检查覆盖 40 初态、80 处材质使用、63 个 MDL 文件与导出名称、175 个纹理路径，未发现缺失。实际 USD 渲染另复现了 `/root/tmp` 失效旧软链接及缺失纹理，已检查/恢复 88 处 props/textures 别名；四难度各首个初态重新渲染通过，日志无缺失引用或 UsdToMdl 错误。详见错误记录及运行目录 `logs/pi05-between-material-rendering/result.json`。后续正式 rollout 日志仍须检查，不能外推为全部 40 初态已完成实际渲染验证。

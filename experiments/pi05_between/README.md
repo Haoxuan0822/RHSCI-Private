@@ -101,4 +101,25 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 固定模型 revision `59a1ea14d4346496d4e55c9fa58ea2f3330fd298`，训练数据来源为用户指定 dataset revision `ea9d480ff1d95f34b63d7ea368b1bc72e353fd57`。下载完成核对 HF SHA256，再恢复模型配置、训练统计和 tokenizer；模型不需要 optimizer/RNG 即可推理。
 
-运行根为 `/root/workspace/Haoxuan/RHSCI-runtime/evals/pi05-between-30x30-5cycles-20261104`。`worker-gpu*.log` 为编排日志，每卡目录有 `server.log`，每轮有 `console.log`、`stats/`、视频和 `result.json`。仅有 `warmup.json` 不能视为物理评测完成；每卡完成 50 次后才写 `COMPLETE.json`。
+运行根为 `/root/workspace/Haoxuan/RHSCI-runtime/evals/pi05-between-30x30-5cycles-20261104`。`worker-gpu*.log` 为编排日志，每卡目录有 `server.log`，每轮有 `console.log`、`stats/` 和视频。Kit 关闭可能提前退出 Python，因此每轮客户端退出后额外核验官方 `stats/eval_stats.txt` 中 episode 0–9 恰好各一条，再生成 `verified_results.json`；不以关闭之后可能未写出的 `result.json` 或退出码 0 代替。仅有 `warmup.json` 不能视为物理评测完成；每卡五轮均验证共 50 次后才写 `COMPLETE.json`。
+
+## 材质与 USD 引用检查
+
+```bash
+python3 experiments/pi05_between/check_materials.py
+```
+
+已静态检查 40 个初态中的 80 处材质使用：63 个不同 MDL 文件及其导出材质名称、175 个不同纹理路径全部存在。收据在运行目录 `logs/pi05-between-material-paths.json`。此检查不替代实际 USD/MDL 加载；客户端开启 `SIMPLE_ISAAC_LOG_LEVEL=warning` 保留引用警告，检查各轮 `console.log`。
+
+实际渲染进一步复现了 `/root/tmp/<编号>/props/*.usd` 缺失引用：场景含向上多层的相对路径，解析后命中指向旧目录的失效链接。`strings` 无法可靠读取 USD crate 的压缩引用；修复脚本使用 USD API 读取引用、解析路径，并检查/恢复 88 处 props 与 textures 兼容别名。两者必须同时恢复，否则 USD 组合可正常但纹理仍缺失。旧链接改名保留，官方 USD 不修改。命令如下，收据为 `logs/pi05-between-usd-aliases.json`：
+
+```bash
+uv run --python /root/miniforge/bin/python3 --with usd-core --no-project \
+  python experiments/pi05_between/repair_usd_paths.py
+
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+CUDA_VISIBLE_DEVICES=7 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/check_material_rendering.py
+```
+
+四难度各 episode 0 的真实 reset/render 诊断结果写入 `logs/pi05-between-material-rendering/result.json`，不计入评测次数；需同时检查 warning 日志与图像。恢复环境时也已修正 vMaterials_2 额外嵌套目录。篮子空碰撞 mesh 报错不属于材质缺失，保留该已知问题记录；具体错误证据与当前验证状态维护在 `docs/ERROR_LOG.md`。

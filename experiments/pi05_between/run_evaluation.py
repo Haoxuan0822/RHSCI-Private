@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import signal
 import subprocess
 import time
@@ -228,6 +229,26 @@ def worker(args):
                     )
                 if code:
                     raise RuntimeError(f"Official evaluator exited {code}; see {sim_log.name}")
+                # Kit close 可能提前结束 Python，退出码 0 不能代替实际 episode 记录。
+                stats_path = destination / "stats/eval_stats.txt"
+                stats = {}
+                for line in stats_path.read_text().splitlines():
+                    match = re.fullmatch(r"episode_(\d+): (True|False)", line.strip())
+                    if match:
+                        key = int(match[1])
+                        if key in stats:
+                            raise RuntimeError(f"Duplicate episode {key}: {stats_path}")
+                        stats[key] = match[2] == "True"
+                if set(stats) != set(range(10)):
+                    raise RuntimeError(
+                        f"Incomplete official results: {sorted(stats)}; {stats_path}"
+                    )
+                (destination / "verified_results.json").write_text(
+                    json.dumps(
+                        {"episodes": 10, "stats": stats, "source": str(stats_path)}, indent=2
+                    )
+                    + "\n"
+                )
             (base / "COMPLETE.json").write_text(
                 json.dumps({"episodes": 10 * args.num_repeats, "cycles": args.num_repeats}) + "\n"
             )

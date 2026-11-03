@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,6 +27,8 @@ def main():
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
     args = parser.parse_args()
+    # 保留材质、纹理和 USD 引用警告，便于本次资源恢复验收。
+    os.environ.setdefault("SIMPLE_ISAAC_LOG_LEVEL", "warning")
     # Isaac Sim consumes these native Kit arguments after our own CLI has parsed.
     sys.argv = [
         sys.argv[0],

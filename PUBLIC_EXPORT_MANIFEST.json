@@ -186,8 +186,8 @@
       "bytes": 14405
     },
     "docs/ERROR_LOG.md": {
-      "export_sha256": "6cd7f0ffaf8954d762339951b81c9272a338925c75e2e5aafd77101b3b57a624",
-      "bytes": 4523
+      "export_sha256": "71ebbd60c85190f1f3aff47f8a42f5ba82773ca7ec760377624f8bd907673ff3",
+      "bytes": 5389
     },
     "docs/GR00T_DISCOVERY_AUDIT_20261104.json": {
       "export_sha256": "235175004b55a7506a06ac604f699d7f2ec72cccd8a64908ac434951949ae18d",
@@ -314,24 +314,32 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "308a6acf2cd3a548e97739bafb9efcdc8fdf3b1b97ff8b262ca872b3a7626758",
-      "bytes": 3582
+      "export_sha256": "3857dfde6bc37695ef2399832a80671aa8b70d12d8f501810f2ec59b2c5941c0",
+      "bytes": 3846
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "2eb8bd8f5208298fe2c9416ef15767ba376f79375ea10c5f2c11849323e97cbe",
-      "bytes": 6421
+      "export_sha256": "be6f6b30638defc899f7408927aad7653e91643617f1afc1518fc28033744406",
+      "bytes": 8375
+    },
+    "experiments/pi05_between/check_material_rendering.py": {
+      "export_sha256": "3d9ae3165f7cef0fcc223cd6429e2a237f04122a5b67364afdda6ba210d64161",
+      "bytes": 3030
+    },
+    "experiments/pi05_between/check_materials.py": {
+      "export_sha256": "5eb801378cacd0a33dba5925f45fda4cbf3a818d526ec80778333820411ab077",
+      "bytes": 2560
     },
     "experiments/pi05_between/download_checkpoints.py": {
       "export_sha256": "63257cb87267754b41c792f34b35af7b1bedc75dc56cb1b62185ca849740766b",
       "bytes": 2852
     },
     "experiments/pi05_between/eval_decoupled_wbc.py": {
-      "export_sha256": "fa44ae74e2433f33afc4a2f44a75204dcf66e0c8a5adab35088bab9f559d2ef0",
-      "bytes": 2983
+      "export_sha256": "624285933397cad0a4346b6573a65a6a123f692c400c5b0b25ed294b776a7415",
+      "bytes": 3140
     },
     "experiments/pi05_between/launch_8gpu.sh": {
       "export_sha256": "072b4af2a38afbf81e571a1e3f819214bd3a239d368475a12f151ca6f79c483a",
@@ -341,9 +349,13 @@
       "export_sha256": "dd10f1e3f68b4f1200d2ac56833fb48d2acec9005642b792fcc0ca464d3b0e7b",
       "bytes": 2155
     },
+    "experiments/pi05_between/repair_usd_paths.py": {
+      "export_sha256": "fdb6f59e3206a01cdfb35f21528c5a07841405ce86928db1eeb234273f7d8782",
+      "bytes": 2017
+    },
     "experiments/pi05_between/run_evaluation.py": {
-      "export_sha256": "5b968aa0d9d451d01cf75ae745a945e48b308d080df315c8facb2604523a5ed9",
-      "bytes": 9649
+      "export_sha256": "848676b18510068f5e89157814a5c725628470b11b7075f17d20c854d4c3b73a",
+      "bytes": 10727
     },
     "licenses/Apache-2.0.txt": {
       "export_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
