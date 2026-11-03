@@ -112,6 +112,8 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 全 40 初态的实际 reset/render 与桌面 MDL 绑定检查现使用下列命令，结果逐初态写入 `logs/pi05-between-material-rendering-all40/progress.json`，全部通过后才生成 `result.json`；这是资源诊断，不计入正式评测。检查有效绑定的 MDL 路径和导出名称，不能把“MDL 文件存在”当作绑定正确。官方保存的 `ground_material` 字段在当前 DR 实现中没有应用，保持官方行为，没有自行额外绑定地面材质。
 
+完整结果已通过：四难度各 10 个初态共 40 个真实渲染、80 处桌面/第二桌面绑定核对，composition errors 为 0，材质 MDL 路径/导出名称与官方 layout 一致，未绑定的第二桌面未多绑定；日志无缺失 USD/纹理/UsdToMdl/traceback。收据为上述目录的 `result.json`，诊断进程已正常退出。篮子碰撞 mesh 错误仍按官方已知限制保留，不将其误报为材质错误。
+
 ```bash
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
 CUDA_VISIBLE_DEVICES=7 python -u \

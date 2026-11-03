@@ -14,8 +14,8 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "24b6154e2263d80ab93175780b9104be4b0baa95dd26fa0dac5ddc22e9aed051",
-      "bytes": 10705
+      "export_sha256": "6c21c47654f348c7da2efef829056ae685a89926dab195e748bdc4c65c6d3baf",
+      "bytes": 11141
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
@@ -186,8 +186,8 @@
       "bytes": 14405
     },
     "docs/ERROR_LOG.md": {
-      "export_sha256": "21a104e89fce4edda228f9c6f16b11058f0f972ffb91179ae4530f095d87aaeb",
-      "bytes": 7241
+      "export_sha256": "c06fe27552efb0bf8a265465b53e015d3d24be4faaed509240b76983020ea305",
+      "bytes": 8865
     },
     "docs/GR00T_DISCOVERY_AUDIT_20261104.json": {
       "export_sha256": "235175004b55a7506a06ac604f699d7f2ec72cccd8a64908ac434951949ae18d",
@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "a889f93d7fcb9da8cfcfd9aa94188574f1504481b87422baeb1df43ba65aa0a2",
-      "bytes": 6362
+      "export_sha256": "299d984d4880983917fb264c77d850818792e3b613fae967e7a10e3d7fcf0925",
+      "bytes": 8269
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "904c4610c7e7b5c87c1be82250aa6b28954bdecd759601229d9064a0a0fbf1a6",
-      "bytes": 11813
+      "export_sha256": "3551a6b10b69d2c37ba45bbcc5534b6709868ac0ae09beec9832f8c76f3e6e96",
+      "bytes": 12260
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -366,8 +366,8 @@
       "bytes": 12515
     },
     "experiments/simple_queue/README.md": {
-      "export_sha256": "746403741af09dcf6ef2d36144023738c38560aea108481f250698c95e10d8da",
-      "bytes": 5290
+      "export_sha256": "3b4b578485662ff83f71a74130e2618d51b4bc56880ece8471fd97ed11f3c2a4",
+      "bytes": 5772
     },
     "experiments/simple_queue/plan.py": {
       "export_sha256": "2035f204e0fd6f55cdd33b738b6906e3a3bb35d4cdb4ccc241b0a9fe91714be7",

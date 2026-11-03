@@ -2,7 +2,7 @@
 
 每次开始工作前必须完整阅读本文件和 `AGENTS.md`。错误按实际证据记录，不用静态检查、下载成功或进程存活替代实际运行验证；修复后更新原条目中的状态与验证范围。
 
-## USD 引用旧路径失效：已修复，四难度各首个初态渲染通过
+## USD 引用旧路径失效：已修复，全部 40 初态真实渲染与桌面绑定通过
 
 - 现象：实际 Isaac 渲染日志出现 `Could not open asset @/root/tmp/bdb1f316aa0188ec/props/TV_Screen2.usd@`，同时还有 Shader11、MIRROR 等 USD 子资源引用错误。不能把它归为不影响场景的普通启动噪声。
 - 原因：官方场景 USD 内含 `/root/tmp/<编号>/props` 等旧绝对路径；本机该路径仍是指向已删除旧运行目录的失效软链接。官方加载器准备的 `/tmp/<编号>/props` 及当前官方源资源实际存在，但不会自动修正 `/root/tmp` 下的旧链接。
@@ -13,6 +13,13 @@
 - 补充发现：USD crate 的引用可能被压缩，`strings` 返回零条不能证明没有引用；实际相对路径可解析至 `/root/tmp`。修复脚本已改用 `Sdf.Layer.GetExternalReferences()`，解析并恢复了 44 处场景引用别名。渲染诊断使用了 Isaac Sim 4.5 未提供的 `Stage.GetCompositionErrors()`，又因 Kit 的 `close()` 掩盖 traceback，导致初次看不到失败原因。现改为逐 prim 读取 `GetPrimIndex().localErrors`，先保存结果或 traceback，再关闭；不要拿其他 USD 版本的 API 当作本环境事实。
 - 为避免错误场景计入评测，已主动停止首次 8 卡启动，并将完整输出保留为 `evals/pi05-between-30x30-5cycles-20261104-before-usd-repair`。这次尝试不计入正式 400 次。
 - 分层复验继续发现 `../textures/*.png` 缺失：只恢复 props 会使 USD composition errors 清零，却仍缺背景纹理。修复已改为同时恢复每组 props 与 textures；必须再看 `[UsdToMdl]` 和资产解析日志，不能只用 composition errors 判定材质正常。
+- 后续完整复验：`logs/pi05-between-material-rendering-all40/result.json` 含四难度各 10 个初态，40 次真实 reset/render，USD composition errors=0；80 处 table/table2 有效绑定检查均与官方 layout 的 MDL 路径/导出名一致，无材质的 table2 未额外绑定。`logs/material-all40.log` 的缺失 USD/纹理、UsdToMdl、traceback 均为 0，程序已正常关闭；level-1 episode 7 图像已人工检查。官方 ground_material 字段未实际应用，保持官方实现，没有自作主张增加地面随机材质。
+
+## 下载节点与流量：专用节点暂不可用，下载暂停
+
+- 用户要求以后大文件走下载专用节点。发现日本 Y05/Y06 均标注“下载专用 | x0.01”，此前 HF/CDN 的实际连接链却是香港 Y01。已增加独立下载组和优先域名规则，保留普通流量原选择，未把节点标签当作实际套餐计费验证。
+- Y05 TCP 超时，Y06 DNS 解析失败；两个节点的 HF 实际 HEAD、HF robots、gstatic 测试全部失败。已暂停准备/下载进程 267176、267262、267263，并仅断开旧 HF 连接，不自动回退普通节点。文件和分片保留；专用线路恢复且实际小请求验证后才能续传，不能将规则配置成功写成下载已恢复。
+- 新规则初次与原 YAML 的单空格列表缩进不一致，原生校验失败；两次失败均未加载。改为与既有列表一致后 `mihomo -t` 通过，才用本地 API 热加载。后续修改先保留受限权限备份、确认列表缩进、原生校验，再加载；不打印含认证信息的代理配置。
 
 ## RTX 5090 首次 π0.5 编译候选内核不支持：真实推理已通过
 
