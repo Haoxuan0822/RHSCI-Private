@@ -14,8 +14,8 @@
       "bytes": 627
     },
     "AGENTS.md": {
-      "export_sha256": "0818dad5d8994de80be391aeb1d02fcf14d84679e3a3a0947c890fa0e4fd8e6d",
-      "bytes": 10440
+      "export_sha256": "24b6154e2263d80ab93175780b9104be4b0baa95dd26fa0dac5ddc22e9aed051",
+      "bytes": 10705
     },
     "LICENSE": {
       "export_sha256": "ecd08146e38bea71633224053365eb27cd999a49e77f9ced002fb16b4c921c9c",
@@ -186,8 +186,8 @@
       "bytes": 14405
     },
     "docs/ERROR_LOG.md": {
-      "export_sha256": "71ebbd60c85190f1f3aff47f8a42f5ba82773ca7ec760377624f8bd907673ff3",
-      "bytes": 5389
+      "export_sha256": "21a104e89fce4edda228f9c6f16b11058f0f972ffb91179ae4530f095d87aaeb",
+      "bytes": 7241
     },
     "docs/GR00T_DISCOVERY_AUDIT_20261104.json": {
       "export_sha256": "235175004b55a7506a06ac604f699d7f2ec72cccd8a64908ac434951949ae18d",
@@ -314,20 +314,24 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "3857dfde6bc37695ef2399832a80671aa8b70d12d8f501810f2ec59b2c5941c0",
-      "bytes": 3846
+      "export_sha256": "93368cef5dd658649bdac79e3e9d97bdad051e0b9524757d0dfe5f4bc7fc5c5b",
+      "bytes": 6032
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "be6f6b30638defc899f7408927aad7653e91643617f1afc1518fc28033744406",
-      "bytes": 8375
+      "export_sha256": "904c4610c7e7b5c87c1be82250aa6b28954bdecd759601229d9064a0a0fbf1a6",
+      "bytes": 11813
+    },
+    "experiments/pi05_between/audit_material_inventory.py": {
+      "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
+      "bytes": 3766
     },
     "experiments/pi05_between/check_material_rendering.py": {
-      "export_sha256": "3d9ae3165f7cef0fcc223cd6429e2a237f04122a5b67364afdda6ba210d64161",
-      "bytes": 3030
+      "export_sha256": "bee8b23dad92bbab1e464610d6f774e4dec168d708ac28d052598c8cbdb822e3",
+      "bytes": 5645
     },
     "experiments/pi05_between/check_materials.py": {
       "export_sha256": "5eb801378cacd0a33dba5925f45fda4cbf3a818d526ec80778333820411ab077",
@@ -338,8 +342,8 @@
       "bytes": 2852
     },
     "experiments/pi05_between/eval_decoupled_wbc.py": {
-      "export_sha256": "624285933397cad0a4346b6573a65a6a123f692c400c5b0b25ed294b776a7415",
-      "bytes": 3140
+      "export_sha256": "6229a537f55dbccc15baa089655afed7ae43a2116c8afc2b2d00a12f5db27279",
+      "bytes": 3356
     },
     "experiments/pi05_between/launch_8gpu.sh": {
       "export_sha256": "072b4af2a38afbf81e571a1e3f819214bd3a239d368475a12f151ca6f79c483a",
@@ -349,13 +353,33 @@
       "export_sha256": "dd10f1e3f68b4f1200d2ac56833fb48d2acec9005642b792fcc0ca464d3b0e7b",
       "bytes": 2155
     },
+    "experiments/pi05_between/probe_dual_gpu.py": {
+      "export_sha256": "11830f1e8cd4acfca1f855f0c8a32c3a80ac4495fdfe1768173e95d43e6dc2e9",
+      "bytes": 2708
+    },
     "experiments/pi05_between/repair_usd_paths.py": {
       "export_sha256": "fdb6f59e3206a01cdfb35f21528c5a07841405ce86928db1eeb234273f7d8782",
       "bytes": 2017
     },
     "experiments/pi05_between/run_evaluation.py": {
-      "export_sha256": "848676b18510068f5e89157814a5c725628470b11b7075f17d20c854d4c3b73a",
-      "bytes": 10727
+      "export_sha256": "c4ca18300e40d39c8331b3a3468fecf7d9bdfcb9a5a1ce78d451704119cdd8c2",
+      "bytes": 12515
+    },
+    "experiments/simple_queue/README.md": {
+      "export_sha256": "527dcef9b51263af36d592f66f7b3e916310c2c2f4175c2c327d356ff1676273",
+      "bytes": 5190
+    },
+    "experiments/simple_queue/plan.py": {
+      "export_sha256": "2035f204e0fd6f55cdd33b738b6906e3a3bb35d4cdb4ccc241b0a9fe91714be7",
+      "bytes": 2342
+    },
+    "experiments/simple_queue/prepare.py": {
+      "export_sha256": "764bb2f4a3cdd761fe5f26ade98b199fe5a970ace067d2a4d12808c0ae39dcd5",
+      "bytes": 5919
+    },
+    "experiments/simple_queue/run.py": {
+      "export_sha256": "bce6485ecf3b0f3f0d7d77eebe9b99ceaec1e9e7a6f5de54141d70500fc27723",
+      "bytes": 5340
     },
     "licenses/Apache-2.0.txt": {
       "export_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",

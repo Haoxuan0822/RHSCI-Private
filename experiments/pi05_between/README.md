@@ -92,10 +92,13 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
   --eval-dir "$PWD/stats" \
   --save-video \
   --renderer-gpu 0 \
-  --dds-domain-id 100
+  --dds-domain-id 100 \
+  --cpu-threads 8
 ```
 
 每一轮实际执行的绝对路径命令另存于输出目录的 `command.sh`；模型服务命令和 PID 写入 `worker.json`。官方客户端名 `psi0_decoupled_wbc` 表示所用 HTTP 消息协议，并非实际加载 Ψ0 模型。
+
+8 实例并行时显式将每实例 Carbonite/TBB 工作线程限制为 8（Kit `threadCount` / `maxThreadCount`），依据 [NVIDIA 线程配置说明](https://docs.isaacsim.omniverse.nvidia.com/latest/reference_material/sim_performance_optimization_handbook.html) 处理本机默认每实例数百线程造成的 CPU 争用；这是运行资源配置，不是论文预测/执行设置。此前无上限并行尝试的日志保存在同名 `-before-thread-limit` 输出目录。
 
 ## 资源与进度
 
@@ -104,6 +107,17 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 运行根为 `/root/workspace/Haoxuan/RHSCI-runtime/evals/pi05-between-30x30-5cycles-20261104`。`worker-gpu*.log` 为编排日志，每卡目录有 `server.log`，每轮有 `console.log`、`stats/` 和视频。Kit 关闭可能提前退出 Python，因此每轮客户端退出后额外核验官方 `stats/eval_stats.txt` 中 episode 0–9 恰好各一条，再生成 `verified_results.json`；不以关闭之后可能未写出的 `result.json` 或退出码 0 代替。仅有 `warmup.json` 不能视为物理评测完成；每卡五轮均验证共 50 次后才写 `COMPLETE.json`。
 
 ## 材质与 USD 引用检查
+
+2026-11-04 追加按官方 ZIP 原始清单复核：49 个场景包与 1 个材质包，共 34068 个文件，文件名集合缺少 0、多出 0、大小/ZIP CRC32 不符 0；88 处 props/textures 别名与其对应官方目录文件集合和内容一致。归档 SHA256 在恢复时已验证，本次文件内容比较为大小与 CRC32，不将其称为再次全量 SHA256。官方材质包本身含有嵌套目录，按原样保留。命令为 `python experiments/pi05_between/audit_material_inventory.py`，完整结果在运行根 `logs/material-inventory-audit.json`。
+
+全 40 初态的实际 reset/render 与桌面 MDL 绑定检查现使用下列命令，结果逐初态写入 `logs/pi05-between-material-rendering-all40/progress.json`，全部通过后才生成 `result.json`；这是资源诊断，不计入正式评测。检查有效绑定的 MDL 路径和导出名称，不能把“MDL 文件存在”当作绑定正确。官方保存的 `ground_material` 字段在当前 DR 实现中没有应用，保持官方行为，没有自行额外绑定地面材质。
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+CUDA_VISIBLE_DEVICES=7 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/check_material_rendering.py \
+  --all-episodes
+```
 
 ```bash
 python3 experiments/pi05_between/check_materials.py
@@ -123,3 +137,25 @@ CUDA_VISIBLE_DEVICES=7 python -u \
 ```
 
 四难度各 episode 0 的真实 reset/render 诊断结果写入 `logs/pi05-between-material-rendering/result.json`，不计入评测次数；需同时检查 warning 日志与图像。恢复环境时也已修正 vMaterials_2 额外嵌套目录。篮子空碰撞 mesh 报错不属于材质缺失，保留该已知问题记录；具体错误证据与当前验证状态维护在 `docs/ERROR_LOG.md`。
+
+## 单卡双路容量试跑
+
+结果：第二路模型真实预热通过；Isaac 场景加载阶段 GPU 2 峰值 30336 MiB，余量降到 1774 MiB，触发既定 2 GiB 保护，第二路停止并清理，原来的 8 路继续。尚未完成这一个诊断 episode，因此不能宣称双路完整评测已通过；没有自动扩大到每卡两路。此结果表明当前两套独立服务/仿真组合的余量很紧，不是一次已经发生的 OOM。原生 Kit 明确记录约 300 秒的 RTX RtPso 着色器编译等待；未通过降画质、删材质来回避峰值。
+
+用户要求检查单卡能否同时跑两套完整评测。原 8 路继续运行；在 GPU 2 额外启动独立 STATE 服务、Isaac、MuJoCo、WBC，端口 8130、DDS 110，输出 `evals/dual-gpu2-capacity-probe-20261104`。配置仍为 checkpoint-40000、30/30、无 RTC、1200 步、阈值 0.4、保存视频；只跑 level-0 的 1 个初态作为容量诊断，不计入正式每模型 200 次。原生流程与论文/README 对照不变。
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+python -u experiments/pi05_between/probe_dual_gpu.py
+```
+
+探针实际启动如下完整 worker，每两秒记录 `memory.jsonl`；余量低于 2048 MiB 时只停止第二路，并保留 `result.json`。不因 `/health` 或预热成功就扩展为全卡双路。
+
+```bash
+python -u experiments/pi05_between/run_evaluation.py \
+  --gpu 2 --slot 1 \
+  --variant STATE --level dr-level-0 \
+  --num-repeats 1 --num-episodes 1 \
+  --output-root /root/workspace/Haoxuan/RHSCI-runtime/evals/dual-gpu2-capacity-probe-20261104
+```

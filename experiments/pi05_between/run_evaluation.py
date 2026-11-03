@@ -12,7 +12,6 @@ from pathlib import Path
 ROOT = Path("/root/workspace/Haoxuan/RHSCI-runtime")
 REPO = Path("/root/workspace/RHSCI-Private")
 TASK = "G1WholebodyLocomotionPickBetweenTablesTeleop-v0"
-DATA = ROOT / "data/processed" / TASK
 VGQ = (
     ROOT
     / "hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1"
@@ -31,11 +30,14 @@ def worker(args):
 
     variant = args.variant
     level = args.level
-    base = OUT / variant / level
+    task = args.task
+    dataset = ROOT / "data/processed" / task
+    base = args.output_root / variant / level
     base.mkdir(parents=True, exist_ok=True)
     if (base / "worker.json").exists():
         raise RuntimeError(f"Refusing to overwrite an existing worker: {base}")
-    port = 8120 + args.gpu
+    port = 8120 + args.gpu + 8 * args.slot
+    domain = 100 + args.gpu + 8 * args.slot
     env = dict(
         os.environ,
         CUDA_VISIBLE_DEVICES=str(args.gpu),
@@ -47,19 +49,15 @@ def worker(args):
         TORCHINDUCTOR_COMPILE_THREADS="4",
     )
     command = [
-        str(ROOT / ".venv-pi05-rsci/bin/python"),
+        str(ROOT / f".venv-{args.backbone}-rsci/bin/python"),
         "-m",
         "rhsci.inference.http_server",
         "--backbone",
-        "pi05",
+        args.backbone,
         "--run-dir",
-        str(STATE if variant == "STATE" else VGQ),
+        str(args.run_dir or (STATE if variant == "STATE" else VGQ)),
         "--checkpoint-step",
-        "40000",
-        "--dataset",
-        str(DATA),
-        "--tokenizer",
-        str(ROOT / "models/paligemma_tokenizer.model"),
+        str(args.checkpoint_step),
         "--device",
         "cuda:0",
         "--host",
@@ -68,6 +66,15 @@ def worker(args):
         str(port),
         "--no-deterministic-eval",
     ]
+    if args.backbone == "pi05":
+        command.extend(
+            [
+                "--dataset",
+                str(dataset),
+                "--tokenizer",
+                str(ROOT / "models/paligemma_tokenizer.model"),
+            ]
+        )
     tracked = {}
     server = None
 
@@ -97,12 +104,16 @@ def worker(args):
                         "variant": variant,
                         "level": level,
                         "port": port,
+                        "dds_domain": domain,
+                        "slot": args.slot,
                         "command": command,
-                        "prediction_horizon": 30,
-                        "execution_horizon": 30,
+                        "backbone": args.backbone,
+                        "task": task,
+                        "prediction_horizon": args.expected_horizon,
+                        "execution_horizon": args.expected_horizon,
                         "rtc": False,
                         "cycles": args.num_repeats,
-                        "episodes_per_cycle": 10,
+                        "episodes_per_cycle": args.num_episodes,
                     },
                     indent=2,
                 )
@@ -128,8 +139,11 @@ def worker(args):
                     ROOT / "logs/simple-smoke/mujoco_isaac" / TASK / "head_stereo_left.png"
                 ).convert("RGB")
             )
-            stats = json.loads((DATA / "meta/stats.json").read_text())
-            state = np.asarray(stats["states"]["mean"], dtype=np.float32)[None]
+            if args.backbone == "pi05":
+                stats = json.loads((dataset / "meta/stats.json").read_text())
+                state = np.asarray(stats["states"]["mean"], dtype=np.float32)[None]
+            else:
+                state = np.zeros((1, 32), dtype=np.float32)
             request = RequestMessage(
                 image={"rgb_head_stereo_left": image},
                 instruction="Pick up the object from one table and place it into the container on the other table.",
@@ -145,7 +159,7 @@ def worker(args):
             )
             response.raise_for_status()
             action = ResponseMessage.deserialize(response.json()).action
-            assert action.shape == (30, 36) and np.isfinite(action).all()
+            assert action.shape == (args.expected_horizon, 36) and np.isfinite(action).all()
             (base / "warmup.json").write_text(
                 json.dumps(
                     {"shape": list(action.shape), "finite": True, "evaluation_episode": False}
@@ -178,7 +192,7 @@ def worker(args):
                     str(ROOT / ".venv-simple/bin/python"),
                     "-u",
                     str(Path(__file__).with_name("eval_decoupled_wbc.py")),
-                    "simple/" + TASK,
+                    "simple/" + task,
                     "psi0_decoupled_wbc",
                     "train",
                     "--data-format",
@@ -186,27 +200,29 @@ def worker(args):
                     "--sim-mode",
                     "mujoco_isaac",
                     "--data-dir",
-                    str(ROOT / "SIMPLE-eval-20261103/snapshot-fb67cd9a" / TASK / level),
+                    str(ROOT / "SIMPLE-eval-20261103/snapshot-fb67cd9a" / task / level),
                     "--host",
                     "127.0.0.1",
                     "--port",
                     str(port),
                     "--headless",
                     "--num-episodes",
-                    "10",
+                    str(args.num_episodes),
                     "--episode-start",
                     "0",
                     "--max-episode-steps",
-                    "1200",
+                    str(args.max_episode_steps),
                     "--success-criteria",
-                    "0.4",
+                    str(args.success_criteria),
                     "--eval-dir",
                     str(destination / "stats"),
                     "--save-video",
                     "--renderer-gpu",
                     str(args.gpu),
                     "--dds-domain-id",
-                    str(100 + args.gpu),
+                    str(domain),
+                    "--cpu-threads",
+                    "8",
                 ]
                 import shlex
 
@@ -239,18 +255,22 @@ def worker(args):
                         if key in stats:
                             raise RuntimeError(f"Duplicate episode {key}: {stats_path}")
                         stats[key] = match[2] == "True"
-                if set(stats) != set(range(10)):
+                if set(stats) != set(range(args.num_episodes)):
                     raise RuntimeError(
                         f"Incomplete official results: {sorted(stats)}; {stats_path}"
                     )
                 (destination / "verified_results.json").write_text(
                     json.dumps(
-                        {"episodes": 10, "stats": stats, "source": str(stats_path)}, indent=2
+                        {"episodes": args.num_episodes, "stats": stats, "source": str(stats_path)},
+                        indent=2,
                     )
                     + "\n"
                 )
             (base / "COMPLETE.json").write_text(
-                json.dumps({"episodes": 10 * args.num_repeats, "cycles": args.num_repeats}) + "\n"
+                json.dumps(
+                    {"episodes": args.num_episodes * args.num_repeats, "cycles": args.num_repeats}
+                )
+                + "\n"
             )
             print("WORKER_COMPLETE", args.gpu, variant, level, flush=True)
     finally:
@@ -263,7 +283,17 @@ def worker(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gpu", type=int, choices=range(8), required=True)
-    parser.add_argument("--variant", choices=["STATE", "VGQ-AE"], required=True)
+    parser.add_argument("--slot", type=int, choices=[0, 1], default=0)
+    parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
+    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE"], required=True)
+    parser.add_argument("--backbone", choices=["pi05", "gr00t"], default="pi05")
+    parser.add_argument("--task", default=TASK)
+    parser.add_argument("--run-dir", type=Path)
+    parser.add_argument("--checkpoint-step", type=int, default=40000)
+    parser.add_argument("--expected-horizon", type=int, default=30)
+    parser.add_argument("--max-episode-steps", type=int, default=1200)
+    parser.add_argument("--success-criteria", type=float, default=0.4)
+    parser.add_argument("--output-root", type=Path, default=OUT)
     parser.add_argument(
         "--level",
         choices=["dr-level-0", "dr-level-1", "dr-level-2", "dr-level-hard"],
@@ -271,4 +301,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num-repeats", type=int, default=5)
     arguments = parser.parse_args()
+    if (
+        arguments.backbone != "pi05" or arguments.variant == "NO-STATE"
+    ) and arguments.run_dir is None:
+        parser.error("This backbone/variant requires an explicit --run-dir")
     worker(arguments)

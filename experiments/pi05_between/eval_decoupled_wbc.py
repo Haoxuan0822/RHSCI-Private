@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--save-video", action="store_true")
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
+    parser.add_argument("--cpu-threads", type=int, default=8)
     args = parser.parse_args()
     # 保留材质、纹理和 USD 引用警告，便于本次资源恢复验收。
     os.environ.setdefault("SIMPLE_ISAAC_LOG_LEVEL", "warning")
@@ -34,6 +35,8 @@ def main():
         sys.argv[0],
         f"--/renderer/activeGpu={args.renderer_gpu}",
         "--/renderer/multiGpu/enabled=False",
+        f"--/plugins/carb.tasking.plugin/threadCount={args.cpu_threads}",
+        f"--/plugins/omni.tbb.globalcontrol/maxThreadCount={args.cpu_threads}",
     ]
     from simple.cli.eval_decoupled_wbc import _make_sonic_config, run_eval
     from simple.evals.api import EvalConfig

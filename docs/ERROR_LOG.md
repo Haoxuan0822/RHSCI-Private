@@ -23,6 +23,9 @@
 
 ## 其他仍需保留的已知限制
 
+- 单卡两套独立 π0.5 + Isaac 容量探针：GPU 2 上第二个 STATE 真实预热 `(30,36)` 通过，但场景加载峰值占用达到 30336 MiB，余量 1774 MiB；触发预设 2 GiB 保护，只结束额外 worker。未完成诊断 episode，不能称“双路正式评测通过”，也不能把保护触发说成已经 OOM。原 8 路继续运行，暂不扩大双路。额外 Isaac 初始化约 300 秒，原生 Kit 文件明确记录等待 `RtPso async group async compilation`；不能只凭控制台停在 app ready 就诊断死锁或 USD 错误。原始过程在 `evals/dual-gpu2-capacity-probe-20261104/`。
+- 材质清单复核不能按目录外观擅自扁平化：官方 `vMaterials_2.zip` 自身同时包含顶层及嵌套 `vMaterials_2/` 成员，内外 `material_split.npy` 内容也不同。新核验脚本第一次擅自归一化成员路径，误报 2757 项多出及 split 冲突；已改为严格按 ZIP 原始成员路径比较。复核 50 个官方包、34068 个文件，缺少/多出/内容大小或 CRC 不符均为 0，88 处别名目录也均完全一致。没有因此移动或删除任何官方资源。前述“嵌套目录修复”指恢复加载器需要的顶层路径，不表示官方所有嵌套资源都应删除。
+- 8 个 Isaac 默认各开数百线程，本机 112 CPU 的 load 曾超过 600；多路在 `_wait_for_viewport` 等待，不能只看 app ready 宣称开始 rollout。现按 NVIDIA 官方运行参数限制每实例 Carbonite/TBB 为 8，首轮 8 个客户端均已完成启动（部分约 190–200 秒），已有实际 30 步动作执行。此前尝试保留为 `-before-thread-limit`。线程限制是资源配置，不改控制频率/预测步数；未把所有等待都归因为已证明的缓存错误，辅助隔离缓存探针已停止，没有据未完成探针修改官方环境。
 - Isaac `close()` 可能直接结束 Python，不能依赖关闭之后的结果写入，也不能只看退出码 0。实验编排已在每轮客户端退出后，核对官方 `stats/eval_stats.txt` 中 episode 0–9 恰好各一条，再写 `verified_results.json`；不足 10 条即失败，不写完成标记。补充核验前的一次预热输出保留在 `evals/pi05-between-30x30-5cycles-20261104-warmup-before-result-check`，尚未进入实际评测。
 - vMaterials_2 曾被恢复脚本额外套一层目录，已调整至官方 `resolve_data_path` 期望的 data 根；归档和解压收据保留。仍需与上述 USD 子引用问题分开检查。
 - 官方篮子 USD 的碰撞 mesh 没有 points，Isaac 会报不能建立该碰撞；本路径的物理由 MuJoCo 执行，但不能据此声称 USD 资产无错误。此问题不是材质缺失，未猜改官方资产。

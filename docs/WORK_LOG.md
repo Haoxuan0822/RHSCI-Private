@@ -21,6 +21,18 @@
 - 输出根 `<运行目录>/evals/pi05-between-30x30-5cycles-20261104`。每卡有 `worker.json`、`server.log`；每轮有实际 `command.sh`、`console.log`、统计和视频。每卡完整 50 次后才产生 `COMPLETE.json`。
 - 本机 keepalive 用 `/root/bin/xiancun pause 360` 暂停并释放 GPU；不要直接杀其 worker，监督器会重启。未停止其他生产训练。
 
+## 已授权的后续评测队列
+
+- 用户追加 7 组：π0.5 NO-STATE 两桌，及 GR00T 开烤箱/交接/开水龙头各 STATE、VGQ-AE；每组仍 5 轮、200 次，共新增 1400 次。先等当前 8 路均完成 50 次且逐轮核验结果，再按任务接续。
+- 配置与来源、完整命令见已登记的 `experiments/simple_queue/README.md`：π0.5 30/30、40k；GR00T 16/16、20k，全部无 RTC。各任务使用自己的官方时限与成功判定，不套两桌参数。
+- CPU 准备进程 `experiments/simple_queue/prepare.py` 已启动，PID 267176，日志 `<运行目录>/logs/followup-preparation.log`；固定 HF 下载复用旧传输，7 份权重尚未全部就绪。非优先全量下载暂时暂停，准备结束恢复。
+- 自动等待队列 `experiments/simple_queue/run.py` 已启动，日志 `<运行目录>/logs/followup-queue.log`；它等待当前真实 400 次及全部后续权重就绪。不会以进程退出码/health/预热代替 episode 完成。
+- 队列每小时调用本机 `xiancun pause 360` 续暂停空闲占卡程序，防止长评测中六小时暂停到期；队列结束停止续期，原监督服务不删除、不禁用。
+- GR00T 专用环境 Torch 2.7.0+cu128、Transformers 4.51.3、FlashAttention 2.7.4.post1 导入通过；后续真实 GPU 预热尚未执行，不能称已验证闭环。
+
 ## 材质检查当前状态
+
+- 单卡双路独立容量探针已结束：GPU 2 / slot 1，端口 8130 / DDS 110，第二路模型预热通过；场景加载时总占用达到 30336 MiB、余量 1774 MiB，触发预设 2048 MiB 保护，仅停止额外 worker，未发生已观测到的 OOM。实际 episode 未完成，不计正式 400 次，也不能称双路稳定。结果 `evals/dual-gpu2-capacity-probe-20261104/result.json`；没有据此全卡加倍。原 8 路继续运行。
+- 官方文件清单复核：50 ZIP、34068 文件缺少/多出/大小或 CRC 不符均为 0；88 处别名与官方 props/textures 内容一致。结果 `logs/material-inventory-audit.json`。全 40 初态的实际 USD 组合及桌面材质路径/名称绑定检查已启动，输出 `logs/pi05-between-material-rendering-all40`，未完成前不称全量实际渲染通过。
 
 静态检查覆盖 40 初态、80 处材质使用、63 个 MDL 文件与导出名称、175 个纹理路径，未发现缺失。实际 USD 渲染另复现了 `/root/tmp` 失效旧软链接及缺失纹理，已检查/恢复 88 处 props/textures 别名；四难度各首个初态重新渲染通过，日志无缺失引用或 UsdToMdl 错误。详见错误记录及运行目录 `logs/pi05-between-material-rendering/result.json`。后续正式 rollout 日志仍须检查，不能外推为全部 40 初态已完成实际渲染验证。
