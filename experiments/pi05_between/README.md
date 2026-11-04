@@ -22,7 +22,7 @@ cd /root/workspace/RHSCI-Private
 
 另一并行工作启动的old-episode4-navigation两路180步使用旧包/GPU0/1/DDS220/221。其legacy进程在本轮校正前加载了旧四维范数实现，不代表v3。本轮最初启动的新包navigation-v3碰巧复用了220/221，已只停止自己两路并保留所有目录，current仅稳定阶段、无模型请求；DDS可能交叉干扰，两个目录均不能作为干净对照，不能计入模型失败或原正式分数。实际错误/停止验证见ERROR_LOG。
 
-独立重跑navigation-v3-corrected：新版level0/episode4、VGQ-AE40k服务8147、30/30、无RTC、10步BF16、wall时钟；每组120步只诊断不计成功率，两组均保存双目录像/完整trace。current=GPU2/DDS230，historical-v3=GPU3/DDS231；PID2076437/2076436已启动。trace新增真实lower_input/lower_output及原网络选择，便于离线同输入反事实；实验脚本audit_navigation_contract.py仅重用原生数学/分支，对ONNX用占位输出，禁止将其解释为物理回放。此段启动时尚未取得完整结果。实际命令：
+独立重跑navigation-v3-corrected：新版level0/episode4、VGQ-AE40k服务8147、30/30、无RTC、10步BF16、wall时钟；每组120步只诊断不计成功率，两组均保存双目录像/完整trace。current=GPU2/DDS230，historical-v3=GPU3/DDS231；PID2076437/2076436已正常退出。trace新增真实lower_input/lower_output及原网络选择，便于离线同输入反事实；实验脚本audit_navigation_contract.py仅重用原生数学/分支，对ONNX用占位输出，禁止将其解释为物理回放。实际命令：
 
 ```bash
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
@@ -53,6 +53,25 @@ for spec in 'current 2 230' 'historical-v3 3 231'; do
   ) &
 done
 wait
+```
+
+两路完整120步/4块均已完成，各保留两个已关闭MP4。当前/历史v3的双臂目标边界跳变分别[0.19583,0.14709,0.17575]/[0.09040,0.10676,0.07076]rad，边界/块内比17.9583/9.4920；模型到WBC双臂逐项误差均0，观测对MuJoCo最大误差5.90e-7/9.60e-7rad。恢复历史导航后仍存在模型目标与实际关节回退，图已查看；两组原生随机噪声/图像不成对，不能把比例差当导航收益或成功率。120步的False是截短诊断，不算正式模型失败。
+
+对每一路160次稳定阶段+120次策略阶段的**真实下身插值输入与调用前状态**，分别调用原生get_action和认证历史v3转换；现场实际协议的速度、返回反馈及网络选择逐项完全复现。稳定期两种规则速度/选择全部相同。策略期同输入两种规则的站走选择差0/2次，最大角速度差0.04913/0.06266rad/s。首策略步即有具体差异：当前组输入vyaw_flag=0.00061154、target_yaw=0.01005284时，当前规则转速0，旧规则0.02499918rad/s。当前源码把第三维作为门控flag，历史对照按朝向误差持续校正并返回计算角速度，确有控制语义不兼容；但两种真实闭环均有回跳，不能称它是全部动作问题的充分解释。此CPU对照仅计算命令/分支，ONNX输出被占位且不进入物理环境，不能外推反事实身体轨迹。
+
+复算命令（输出文件存在时拒绝覆盖，重算请选新文件）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+cd /root/workspace/RHSCI-Private
+for variant in current historical-v3; do
+  python experiments/pi05_between/audit_navigation_contract.py \
+    --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/navigation-v3-corrected/$variant/control_trace.jsonl" \
+    --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/navigation-v3-corrected/$variant/navigation-contract.json"
+  python experiments/pi05_between/analyze_control_trace.py \
+    --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/navigation-v3-corrected/$variant/control_trace.jsonl" \
+    --plot
+done
 ```
 
 ## 历史录像与导航单因素对照（2026-11-04）
