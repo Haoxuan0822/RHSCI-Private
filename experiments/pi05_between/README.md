@@ -1,5 +1,23 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 原v2动作标签往返审计（2026-11-04）
+
+只读全91条/58637帧动作及既有24块预测，实际调用当前Processor.normalize，再按正式serve.py同一v2公式反变换。没有启用已撤回的v3，没有改统计、数据或模型。训练统计和输入预测SHA记录在training-label-roundtrip-audit.json，逐维全训练集往返误差与三个诊断episode的自然边界一并保留。
+
+episode0/1/2的双臂标签往返RMSE分别0.00000440/0.00870747/0.00054308rad，最大单值0.000255/0.068875/0.010849rad。不能说v2没有损失；尤其episode1的STATE对原专家RMSE0.01034，改为对实际截断训练标签后为0.00514。VGQ-AE对实际训练标签RMSE仍0.01533/0.03704/0.01039rad；三条轨迹21个自然边界在往返后基本相同或减小，没有产生已观测的预测尖峰。这排除了“这些块边界尖峰由标签反变换直接制造”的解释，不证明截断对学习完全无影响，也不足以证明任意新归一化可修复旧权重。
+
+实际CPU命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+python -u experiments/pi05_between/audit_training_labels.py \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --predictions "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-chunk-inputs/predictions.jsonl" \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-label-roundtrip-audit.json"
+```
+
 ## 三条训练轨迹的离线动作块接续（2026-11-04）
 
 复用已完成的recorded-chunk-inputs/predictions.jsonl，不增加模型/仿真请求。episode0/1/2各8块（0/30/…/210帧），21个自然相邻边界；仅原训练RGB输入。各轨迹VGQ-AE边界变化中位数/块内变化中位数为8.7596/7.6463/5.0911，STATE为2.5987/2.1505/1.6860。VGQ-AE双臂整块专家RMSE为0.01533/0.03861/0.01042rad，STATE为0.00339/0.01034/0.00381rad。每个边界的预测/专家自然变化、上一块终点和下一块起点相对当前真实状态的误差都保留在收据，不仅报告比例。

@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "b048440f77d045a9276abe7de3f90cbe91285dd17ea512bab927a95646942fcd",
-      "bytes": 28545
+      "export_sha256": "9d5f0e7e7371ecb5f75d0782efb8b2043ba7d150c2a9298ad9c50e899cefe2f1",
+      "bytes": 30288
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "d86f7b39865137a10c372eddc0ea7bd7b783709670503448f6f52d6def29dd5c",
-      "bytes": 74208
+      "export_sha256": "ea7b94f67dcca8325d0b98705bfe26b22a2b09b86a4c3b19798bd3b3fd129634",
+      "bytes": 78011
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -4980,6 +4980,10 @@
     "experiments/pi05_between/analyze_recorded_chunks.py": {
       "export_sha256": "4e892e3656d509831a82e977c7aab4724f27d399ac3f33230e516b19befbed58",
       "bytes": 4437
+    },
+    "experiments/pi05_between/audit_training_labels.py": {
+      "export_sha256": "2b453626c972439a64ff1dfca4d96e78e75d202b94ce165e089daf55f62090a7",
+      "bytes": 5140
     }
   }
 }
