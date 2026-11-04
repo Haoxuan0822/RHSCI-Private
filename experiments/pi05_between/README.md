@@ -1,5 +1,58 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 历史录像与导航单因素对照（2026-11-04）
+
+**运行状态更正：** 下方old-episode4-navigation两路与并行navigation-v3短暂复用DDS220/221，存在串扰风险，已TERM本会话PID2056693/2056694、保留产物，整组无效，不报告其跳变比或成功率。并行工作补查到manifest对应历史v3采用前三维速度范数，最初四维范数属于更早导航语义；下方命令仅作这次已作废尝试的溯源，不能称完整历史协议复现。后续导航由已有并行工作负责，本会话不启动重复实例。正式八路及旧包150次通信编号不同，未因此修改或停止。
+
+完整时限出生点对照三路双目视频已人工抽帧核对，full-video-comparison.png保留。成功的plus006-episode4全程边界/块内目标跳变比11.6531，原位失败组11.8459；不得把此前前180步的14.03→6.63外推成全程已消除顿挫。plus006-episode0最终在第二桌前掉落；距离变化影响抓取和任务表现，但不是已经证明的唯一根因或通用修复。
+
+历史原始成功视频自身也有二维手部回撤：已核验SHA的旧level0/episode4录像，第66→72→78帧，扣除选定静态背景点平移后，指尖先移动[1.52,-1.23]px再[-9.28,2.40]px，腕部先[0.49,-1.77]再[-6.85,3.90]px，两段方向余弦-0.911/-0.711。121帧双向光流检查最大误差指尖0.0483px、腕部0.0487px、背景0.1758px，带跟踪点抽帧已人工查看。仅说明选定历史视频窗口也有回撤，不推导三维关节、全部episode或每24帧都反转；单背景平移补偿不消除相机旋转/透视。收据historical-videos/historical-ep4-motion.json，实际复算命令（不启动仿真）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/track_historical_video.py \
+  --video /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/historical-videos/level0-episode4-left.mp4 \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/historical-videos/historical-ep4-motion.json \
+  --tip 245 188 --wrist 223 252 --reference 95 90
+```
+
+继续排除历史导航兼容差异：原enterx-x/Psi0@bfffc460c0d857ae447f18be2529447ea612a11c的scripts/eval_wbc_navigation.py，三处修改恢复旧小角速度/站走选择/返回导航命令。当前原生G1GearWbcPolicy.get_action源码SHA152a1919…与其要求完全相同；实验legacy_navigation.py沿用同一AST转换，要求三处匹配各一次，不复制控制器/ONNX。手指原适配还包含legacy动作兼容，不能仅看具名PD修复就假设旧模型物理手指目标改变；本次导航单因素不动手指。正式入口默认关闭，仅trace诊断允许开启；两路trace均记录真实stand/walk网络调用及命令。
+
+配置先核对本说明的论文/官方README、保存权重与原历史脚本，再明确诊断差异：旧level0/episode4、40k/30-30/无RTC/10步BF16/wall、180步，两路仅导航协议不同，GPU0/1、DDS220/221、同8147。原生随机采样并非固定噪声配对，不计正式分数。对话中已给实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/old-episode4-navigation"
+for spec in 'official 0 220' 'legacy 1 221'; do
+  (
+    read -r mode gpu domain <<< "$spec"
+    extra=()
+    if [[ "$mode" == legacy ]]; then
+      extra+=(--diagnostic-legacy-navigation)
+    fi
+    mkdir -p "$probe_root"
+    mkdir "$probe_root/$mode"
+    cd "$probe_root/$mode"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+      psi0_decoupled_wbc train \
+      --data-format lerobot \
+      --data-dir "$PSI_RUNTIME_ROOT/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0" \
+      --sim-mode mujoco_isaac \
+      --host 127.0.0.1 --port 8147 --headless \
+      --num-episodes 1 --episode-start 4 \
+      --max-episode-steps 180 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" \
+      "${extra[@]}" > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
 ## 训练数据时间索引与预测动作进度审计（2026-11-04）
 
 只读检查实际91条训练轨迹、58637帧：parquet episode/frame identity、有限36维动作/32维状态、视频nb_frames、r_frame_rate/avg_frame_rate与50Hz、逐帧timestamp=frame/50全部通过，最大时间戳误差0。读取裁剪列，不实体化depth、不重建缓存、不改训练数据。它排除了本数据中可观察的容器帧率、帧数、行索引与时间戳错配，不能证明采集源物理RGB/状态绝对同步；腰部状态也不逐项等于上一条动作指令，不能照搬另一个raw转换脚本的字段语义。
