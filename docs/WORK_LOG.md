@@ -1,5 +1,7 @@
 # 必要工作记录
 
+- STATE官方差异审计：固定Psi0@cda3fdf的11个关键文件已保存官方/当前源码及diff，logs/gr00t-state-official-diffs-20261104.zip SHA f2f10d4545c6677700599633daf38c8047a9a9e0d52eaf3058cce1b7b5a89803。确认Eagle features_only为实际推理路径修改，另有STATE编码拼接抽函数、训练检查点/Beta初始化及变体/HTTP适配；图像增强、状态动作处理器、flowmatching_modules逐字同官方。已有features_only微型测试实跑1 passed，不代表真实3B/BF16全链等价；尚缺同权重/同输入/同噪声纯官方对照，不能排除集成回归，也未发现漏必需模块的直接证据。具体范围已补作者报告；未改生产代码/评测进程。
+
 - 作者咨询材料补实际推理代码：报告新增HTTP→processor→Eagle/DiT四步Euler→反归一化→16×36响应→官方WBC调用链、源码路径、NextGr00t历史标记/当前AutoModel注册、STATE与VGQ去state-token分支及修改边界。仓库外logs/gr00t-oven-author-inference-20261104.zip已生成，174文件/434866字节，ZIP CRC及内置逐文件SHA复核通过，归档SHA1e83dddbf9e6be622239b450fd8069bda0a1cf6d407429e3b3ef6b5437dab123；含保存配置/实际命令和当前及启动时scene脚本，非完整安装包、未发送外部消息。
 
 - 用户补充旧评测包/场景边界后复核：旧烤箱ZIP75文件仅json/jsonl/parquet/mp4，不含USD/纹理/MDL二进制；旧environment_config控制场景选择、灯光、材质引用及初态，资源独立来自USC-PSI-Lab/SIMPLE@0e8f23cc，102344280 ZIP SHA88b98529、336个非目录文件与原ZIP集合/大小/CRC一致。尚未证实与作者历史旧评测资产逐文件相同，不把旧配置包称全部资源回滚。作者报告已补独立资源版本与明确待问边界。

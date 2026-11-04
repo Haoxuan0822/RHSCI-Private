@@ -217,6 +217,25 @@ for t in range(4):
 
 随附代码审阅包：`/opt/rsci-data/logs/gr00t-oven-author-inference-20261104.zip`。包含当前GR00T/RHSCI Python源码、相关SIMPLE客户端/控制源码、两模型config/processor/statistics/契约、实际命令与本报告，文件SHA256清单置于包内SNAPSHOT_MANIFEST.json；不包含大权重、优化器或完整可运行依赖环境。该包供代码审阅，不标称自动复现实验安装包。没有向作者或外部服务发送。
 
+## STATE与固定官方实现的逐文件差异（2026-11-04补充）
+
+本节对照的是官方Psi0中SIMPLE所用的GR00T N1.6，固定commit `cda3fdfafe47cb6fa75400d013de1bd36e3cea05`，不是最新版NVIDIA主分支，也不是旧PSI0-RAW。已保存11个关键文件的官方原文、当前原文、逐文件SHA和完整diff：`/opt/rsci-data/logs/gr00t-state-official-diffs-20261104.zip`，SHA256 `f2f10d4545c6677700599633daf38c8047a9a9e0d52eaf3058cce1b7b5a89803`。此清单覆盖本节列出的关键路径，不称整个上游仓库全量审计。
+
+| 修改 | STATE实际影响与证据边界 |
+| --- | --- |
+| Eagle骨干调用增加`features_only=True, use_cache=False, return_dict=True`，Eagle模型增加对应分支 | 实际执行路径有变：直接调用语言模型底座获取隐藏特征，跳过未使用的词表logits。目的是节省计算/显存；不能仅凭目的断言真实权重数值等价。 |
+| 动作头把state编码/拼接抽为`_state_features`、`_join_state_action` | STATE仍执行原来的state_encoder，再按同样顺序与action tokens拼接。空state、冻结state_encoder、Reader/Query及ARDY分支用于其他变体；当前STATE/memory=none不走这些分支。 |
+| DiT增加梯度检查点包装 | 仅training且启用检查点且有梯度时重计算；当前eval/inference_mode直接调用同一block。不是推理去噪公式变更。 |
+| Beta分布参数显式CPU FP32构造 | 修复BF16初始化时分布不支持的问题；用于训练时间采样，不是推理初始动作噪声。推理仍torch.randn及4步Euler。 |
+| processor/config/policy增加RHSCI变体与空state兼容 | STATE保留非空状态处理、归一化和解码；不能把NO-STATE/VGQ的空state分支当作STATE实际行为。 |
+| SIMPLE服务适配及公共HTTP入口 | 修复`ndarray or fallback`的真值歧义，增加有限数/形状检查及HTTP错误返回，兼容无状态变体；原32D输入分组和36D输出拼接顺序未改。实际返回16步，不启用RTC。 |
+
+其中`image_augmentations.py`、`state_action_processor.py`、`flowmatching_modules.py`与固定官方文件逐字相同；`decode_action`函数AST相同。95% eval中心裁剪、状态/动作归一化不是本次为STATE额外加入的改法。动作头文件整体有修改，不能称整个推理函数源码完全相同。
+
+本次实际重跑已有测试：`source /opt/rsci-data/activate.sh gr00t`，再`cd /root/workspace/RHSCI-Private`，执行`python -m pytest -q tests/test_gr00t_rsci_features_only.py`，结果1 passed。它使用微型Qwen3与模拟视觉特征，验证正常路径/仅特征路径的最终隐藏特征和梯度逐位一致、lm_head未调用；不覆盖真实3B/BF16/FlashAttention端到端等价。此前RAW_MODEL_AUDIT的小模型配对参考为PSI0-RAW，不能当作纯官方完整模型对照。
+
+**对低成功率的判断：** 实际模型已加载、HTTP返回有限动作且episode可完成，尚未发现缺少必需模块造成直接运行失败的证据；这不证明状态内容、配置、完整模型数值及闭环反馈全部正确。未完整复制官方整个仓库本身不是失败证据，完整合并最新版也不能保证修复。仍缺关键排除实验：同一真实STATE checkpoint、同一RGB/32D状态和相同初始动作噪声，比较固定官方与当前实现的预处理张量、Eagle隐藏特征、state features、4步速度/动作以及最终16×36物理动作。完成前不能排除集成回归，也不能把它认定为已经找到的根因。本轮仅审计及记录，未修改生产源码或重启评测。
+
 ## 实际启动命令：STATE level0第1轮
 
 以下据保存的worker.json/command.sh整理为相同参数的易读格式。端口及输出路径属于当时运行；正在运行时不要再次执行造成冲突。其它难度/变体替换上表对应GPU、端口、DDS、权重和输出路径；每级五轮由既有worker调度，后3轮关闭录像。
