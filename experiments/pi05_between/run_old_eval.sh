@@ -13,7 +13,7 @@ export CUDA_VISIBLE_DEVICES="$gpu"
 export OMP_NUM_THREADS=8
 export NO_PROXY=127.0.0.1,localhost
 export no_proxy="$NO_PROXY"
-result_root="$PSI_RUNTIME_ROOT/evals/pi05-vgq-official-pre1102-dedicated-20261104"
+result_root="$PSI_RUNTIME_ROOT/evals/pi05-vgq-official-pre1102-singlethread-20261104"
 data_root="$PSI_RUNTIME_ROOT/eval-official-pre1102"
 task=G1WholebodyLocomotionPickBetweenTablesTeleop-v0
 

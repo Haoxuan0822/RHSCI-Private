@@ -1,7 +1,10 @@
-"""Check eager/compiled inference on recorded inputs without changing live model services."""
+"""Compare inference backends, solver steps or archived adapters on real recorded inputs."""
 
 import argparse
+import hashlib
+import importlib
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -22,12 +25,17 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--instruction", required=True)
     parser.add_argument(
+        "--archived-source", type=Path, help="Compare archived rsci_pi05 model and processor"
+    )
+    parser.add_argument(
         "--sampling-steps",
         type=int,
         nargs="+",
         help="Compare eager solver step counts instead of compiling",
     )
     args = parser.parse_args()
+    if args.archived_source is not None and args.sampling_steps is not None:
+        parser.error("Choose archived source or solver-step comparison")
     if args.sampling_steps is not None and any(step < 1 for step in args.sampling_steps):
         parser.error("Sampling steps must be positive")
     if args.output.exists():
@@ -44,9 +52,38 @@ def main():
     processor = Processor(
         args.dataset, args.tokenizer, saved["variant"], normalization=saved["normalization"]
     )
+    archived_model = archived_processor = None
+    source_info = None
+    if args.archived_source is not None:
+        sys.path.insert(0, str(args.archived_source.parent))
+        reference_model = importlib.import_module("rsci_pi05.model")
+        reference_processing = importlib.import_module("rsci_pi05.processing")
+        # 复用已加载的同一骨干和完整参数，避免额外复制数GB权重；比较两版方法调用。
+        archived_model = reference_model.Pi05RSCI(
+            saved["variant"],
+            backbone=model.paligemma_with_expert,
+            compile_inference=False,
+        )
+        archived_model.load_state_dict(model.state_dict(), strict=True, assign=True)
+        archived_model.to("cuda").eval()
+        if saved["normalization"] != "simple-quantile-zero-span-clipped-v2":
+            raise ValueError("This archived processor supports only its fixed v2 normalization")
+        archived_processor = reference_processing.Processor(
+            args.dataset, args.tokenizer, saved["variant"]
+        )
+        contract = json.loads((args.checkpoint.parent / "launch_contract.json").read_text())
+        source_info = {}
+        for name in ("model.py", "processing.py"):
+            digest = hashlib.sha256((args.archived_source / name).read_bytes()).hexdigest()
+            expected = contract["code"].get("src/rsci_pi05/" + name)
+            source_info[name] = {
+                "sha256": digest,
+                "checkpoint_contract_sha256": expected,
+                "matches_checkpoint_contract": digest == expected,
+            }
     compiled = (
         torch.compile(model.sample_actions, mode="max-autotune")
-        if args.sampling_steps is None
+        if args.sampling_steps is None and archived_model is None
         else None
     )
     chunks = [
@@ -72,6 +109,38 @@ def main():
         noise = torch.randn(
             1, 30, 36, device="cuda", generator=torch.Generator("cuda").manual_seed(17)
         )
+        if archived_model is not None:
+            old_batch = archived_processor(sample)
+            same_processing = {
+                key: torch.equal(value, old_batch[key]) for key, value in batch.items()
+            }
+            if not all(same_processing.values()):
+                raise ValueError(f"Archived processor differs: {same_processing}")
+            old_inputs = [
+                old_batch[key][None].to("cuda") for key in ("images", "tokens", "token_mask")
+            ]
+            with (
+                torch.inference_mode(),
+                torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False),
+            ):
+                current = model.sample_actions(*inputs, num_steps=10, noise=noise.clone())
+                previous = archived_model.sample_actions(
+                    *old_inputs, num_steps=10, noise=noise.clone()
+                )
+            difference = (current - previous).abs()[0].cpu().numpy()
+            row = {
+                "step": chunk["step"],
+                "processing_equal": same_processing,
+                "normalized_max_abs": float(difference.max()),
+                "physical_max_abs": float((difference * (span + 1e-6) / 2).max()),
+                "archived_first_arm_action": (
+                    (previous[0, 0, 14:28].float().cpu().numpy() + 1) / 2 * (span[14:28] + 1e-6)
+                    + np.array(processor.stats["action"]["q01"])[14:28]
+                ).tolist(),
+            }
+            results.append(row)
+            print(json.dumps(row), flush=True)
+            continue
         if args.sampling_steps is not None:
             for count in args.sampling_steps:
                 with (
@@ -116,7 +185,15 @@ def main():
         print(json.dumps(row), flush=True)
     args.output.write_text(
         json.dumps(
-            {"seed": 17, "num_steps": args.sampling_steps or 10, "chunks": results}, indent=2
+            {
+                "seed": 17,
+                "num_steps": args.sampling_steps or 10,
+                "archived_source": str(args.archived_source) if source_info else None,
+                "source_info": source_info,
+                "shared_current_native_backbone": archived_model is not None,
+                "chunks": results,
+            },
+            indent=2,
         )
         + "\n"
     )

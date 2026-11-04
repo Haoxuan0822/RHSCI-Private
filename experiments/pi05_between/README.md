@@ -102,7 +102,182 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 ## 资源与进度
 
+### 独立加载归档适配层的备用入口（未完成运行）
+
+此前准备的入口会在 GPU1 依次独立加载归档 STATE 包内适配器和当前适配器，同一 VGQ-AE 40k 权重、四块真实 trace、seed17、eager/BF16/10步/30输出。未生成该入口的archived-adapter-parity.json，不能作为已完成验证；实际完成的是下节compare_inference_modes.py --archived-source的共享骨干对照及后续认证VGQ对照。此独立加载脚本目前仅通过静态检查，保留备用，不自动启动。原先准备命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=4 python -u \
+  experiments/pi05_between/compare_archived_inference.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --legacy-source "$PSI_RUNTIME_ROOT/checkpoints/pi05-STATE-between-40000/source-code/src/rsci_pi05" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/vgq-observation/control_trace.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/archived-adapter-parity.json"
+```
+
 ### 根因排查继续：旧评测初态对照（用户更正）
+
+出生距离单因素补充：旧level0 episode4机器人x=-0.64261184994，新=-0.70334384994，后移0.060732m；目标位置两版均[-0.32878145576,-0.01041561365,0.76342171431]。先前训练初态+0.06及新版+0.12将盒子碰落，不是“新版只恢复这6厘米”的反例。已用prepare_layout_probe.py从新版level0建立 `eval-probes-20261104/new-level0-x-plus006`（--robot-x-offset 0.06），只改10条dr_state_dict.spatial.g1_sonic.position[0]，其余数据软链接/metadata保持；probe_source.json保留来源与变化。以下两组同一新版episode4、当前30/30/无RTC/10步BF16/wall时钟、各180步、原生随机采样，诊断不计成功率、不换官方数据，除x之外全部相同。来源为官方新旧metadata、保存的权重设置及上方README。实际命令：
+
+180步两组已完成：原位/前移的边界跳变比14.0284/6.6259，仍非完全消除；模型到WBC双臂误差均0。两组启动时目标z均约0.76275m，没有稳定阶段碰落目标；前移组180步目标z=0.90724m，视频120步已提起，原位组180步z=0.76281m仍在桌面。逐帧对照图 `new-episode4-spawn/spawn-video-comparison.png` 已人工查看。训练91初态目标0相对机器人出生x距离min/median/max=0.30450/0.31899/0.33537m，旧level0十初态0.30783/0.31870/0.33182m，新level0为0.36856/0.37944/0.39256m。这是初始配置距离而非稳定后实测距离；单条随机采样对照只能支持距离变化为影响因素，不证明唯一根因或任务成功。
+
+源头补查：新版自带meta/episodes.jsonl.pre-fk中robot配置在level0/1共20条与旧包全部相同，level2有9条相同；新包30条中29条机器人统一偏移[-0.060732,-0.002489333333,0]，另一条x额外后移。上游SIMPLE-org/data的00bab43e（2026-10-30）提交标题为eval-fixed: shifted-spawn eval levels ... for 12 teleop tasks，11月2日38e43f22再同步到psi-data；不是材质恢复操作改了出生点。运行根spawn-metadata-audit.json记录metadata摘要、所有距离/偏移及上游API证据。自带视频first frame与当前稳定后图像姿态也有区别，但它本身不证明重复稳定或某行导出代码错误；stored-frame-comparison.png保留作后续证据。
+
+据此继续完整1200步诊断：新版episode4原位/前移、episode0前移，GPU0/2/3、DDS217/218/219，同8147，其他配方不变。保持官方成功判定，不以提起盒子代替两桌完整成功；不混入正式400次。来源同本节，实际命令（在对话中也已给出）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/spawn-full"
+for spec in 'original 4 0 217' 'plus006 4 2 218' 'plus006 0 3 219'; do
+  (
+    read -r variant episode gpu domain <<< "$spec"
+    data_dir="$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0"
+    if [[ "$variant" == plus006 ]]; then
+      data_dir="$PSI_RUNTIME_ROOT/eval-probes-20261104/new-level0-x-plus006"
+    fi
+    mkdir -p "$probe_root"
+    mkdir "$probe_root/$variant-episode$episode"
+    cd "$probe_root/$variant-episode$episode"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+      psi0_decoupled_wbc train \
+      --data-format lerobot --data-dir "$data_dir" \
+      --sim-mode mujoco_isaac \
+      --host 127.0.0.1 --port 8147 --headless \
+      --num-episodes 1 --episode-start "$episode" \
+      --max-episode-steps 1200 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" \
+      > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
+下方是此前180步诊断实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/new-episode4-spawn"
+for spec in 'original 2 215' 'plus006 3 216'; do
+  (
+    read -r variant gpu domain <<< "$spec"
+    data_dir="$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0"
+    if [[ "$variant" == plus006 ]]; then
+      data_dir="$PSI_RUNTIME_ROOT/eval-probes-20261104/new-level0-x-plus006"
+    fi
+    mkdir -p "$probe_root"
+    mkdir "$probe_root/$variant"
+    cd "$probe_root/$variant"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+      psi0_decoupled_wbc train \
+      --data-format lerobot --data-dir "$data_dir" \
+      --sim-mode mujoco_isaac \
+      --host 127.0.0.1 --port 8147 --headless \
+      --num-episodes 1 --episode-start 4 \
+      --max-episode-steps 180 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" \
+      > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
+已找到原GitHub真实历史证据，不再仅依赖STATE快照：`enterx-x/Psi0` 的 `feture/ARDY_PI05_QSAFE@1369f3e9a94ba3112935db3047715e74713d6c13` 只读稀疏检出在运行根external/Psi0-pi05-QSAFE-reference，model.py=5a6cc3…、processing.py=93150b…与本VGQ权重launch_contract完全匹配，原gemma_pytorch也匹配4f75d3…。按下方适配层完整命令，将archived-source改为 `$PSI_RUNTIME_ROOT/external/Psi0-pi05-QSAFE-reference/src/rsci_pi05`、output改为 `evals/stutter-root-cause-20261104/authenticated-adapter-comparison.json`，实际已运行完成；四张真实图像的处理器全部输出逐项相同，30×36归一化/物理动作最大绝对差均0。两版仍共用当前原生骨干，结论限定认证适配层数值对照，不证明所有原生环境历史行为一致。
+
+历史视频manifest树SHA `e95f4b0a3681b74c81dc817b5ac5641b3672ee9f`，全部60条Git blob身份验证、权重SHA51f037…均与当前同一模型。前两轮三级成功7/7/0、完成20/20/20，即14/60，不外推全五轮。manifest的stats_sha256是官方 **results/eval_stats.txt成绩文件**，不是归一化统计，上传器rsci_now_videos.py第54行可证；不能因它与训练stats.json不同就宣称归一化错配。原历史服务 `scripts/rsci_pi05_server.py` 明确返回actions[:24]，评测receipt记录action_chunk30/action_execute24，无RTC；此外原协议启用sim-step时钟、手指具名旧动作兼容和legacy导航。故30/30的新包/旧包对照不能称原历史全栈复现。只读审计命令（不下载额外权重）：
+
+```bash
+python experiments/pi05_between/audit_historical_results.py \
+  --tree e95f4b0a3681b74c81dc817b5ac5641b3672ee9f \
+  --checkpoint-sha256 51f0379bdbf0f072ef067387b14e16b9b97b4b90848989d0266d5e7e4ecc5947 \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/historical-pi05-manifests.json
+```
+
+已仅下载历史level0第一轮episode0失败/episode4成功的双目4视频，共约8.6MB，逐文件SHA匹配manifest。first120抽帧人工查看，两者初始双手接近桌沿，episode4持续向盒子靠近；该有限抽帧不证明全片没有顿挫，也不单凭画面推导关节角。文件与拼图在运行根 `evals/stutter-root-cause-20261104/historical-videos`。
+
+据真实旧设置增加独立单因素执行长度诊断：旧level0/episode4（历史成功），同一40k VGQ服务、10步BF16、无RTC、当前官方wall控制，每组180步，分别预测30执行30/24，仅trace入口允许截取前缀，正式入口默认不变。原生随机采样、两次渲染不是固定噪声配对，不能把单次改善当严格因果成功率。来源为上述历史实际服务/receipt，诊断不冒称论文设置、不计正式分数。实际启动命令：
+
+两路实际完成180步。30/30与30/24的双臂目标边界/块内跳变比为12.3423/12.2444，边界跳变中位数为0.13375/0.12744rad（14维联合L2），没有消除回跳。逐块验证预测均30步、执行分别精确取前30/24步，实际块起点30/60/90/120/150与24/48/72/96/120/144/168；模型到WBC双臂最大误差均0，观测对MuJoCo最大误差5.90e-7/5.75e-7rad。完整统计及轨迹图在上述两路control_analysis.{json,png}，双目视频保留。用同目录analyze_control_trace.py --trace <各路control_trace.jsonl> --plot可重算。正式评测仍30/30，本次短探针的failed标签不纳入成功率。
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/old-episode4-horizon"
+for spec in '30 0 213' '24 1 214'; do
+  (
+    read -r horizon gpu domain <<< "$spec"
+    mkdir -p "$probe_root"
+    mkdir "$probe_root/execute-$horizon"
+    cd "$probe_root/execute-$horizon"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+      psi0_decoupled_wbc train \
+      --data-format lerobot \
+      --data-dir "$PSI_RUNTIME_ROOT/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0" \
+      --sim-mode mujoco_isaac \
+      --host 127.0.0.1 --port 8147 --headless \
+      --num-episodes 1 --episode-start 4 \
+      --max-episode-steps 180 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" \
+      --diagnostic-execute-horizon "$horizon" \
+      > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
+适配层生产尺寸对照：同一已下载VGQ-AE 40k真实权重、四张实际闭环输入、seed17噪声，归档与当前Processor/模型采样各运行10步BF16输出30×36，均eager，不改在线服务。归档Processor SHA93150b…与VGQ训练contract完全匹配；模型源码SHA7946e1…来自STATE快照，与VGQ contract的5a6cc3…不匹配，必须保留这个范围限制。两版共享当前原生骨干及同一权重张量，故覆盖的是适配层方法及处理器，不是两套独立原生依赖或认证历史VGQ源码。来源设置同本说明已核对的论文/README与保存权重；固定噪声/双eager仅用于数值诊断。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+CUDA_VISIBLE_DEVICES=0 python -u experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-diagnostic-20261104/vgq-observation/control_trace.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --archived-source "$PSI_RUNTIME_ROOT/checkpoints/pi05-STATE-between-40000/source-code/src/rsci_pi05" \
+  --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/archived-adapter-comparison.json"
+```
+
+最新启动更正：原独立服务三客户端在第一条200后发生cuDNN `CUDNN_STATUS_INTERNAL_ERROR_DEVICE_ALLOCATION_FAILED`，随后CUDA Graph捕获错误/500，三路技术中止，不计模型False。初始失败发生于AnyIO不同请求线程的图捕获；线程局部CUDA上下文/内存池是待核解释，不能仅凭此认定原周期顿挫根因。已停止该服务与残留的一路仿真，保留全部失败日志及目录。实验入口 `serve_single_thread.py` 仅将既有server.predict_action通过单工作线程调用，其他CLI/模型/HTTP协议复用正式实现，生产框架及原八路未改。新服务PID1801072预热1次＋三客户端并发6次全200且有限(30,36)，证据 `evals/stutter-root-cause-20261104/shared-server-singlethread-check.json`；不能将短请求验证当作完整150次已通过。
+
+实际修复服务命令（已执行）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+CUDA_VISIBLE_DEVICES=7 OMP_NUM_THREADS=8 \
+TORCHINDUCTOR_CACHE_DIR="$PSI_RUNTIME_ROOT/cache/torchinductor-pi05-gpu7" \
+nohup python -u experiments/pi05_between/serve_single_thread.py \
+  --backbone pi05 \
+  --run-dir "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1" \
+  --checkpoint-step 40000 \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --device cuda:0 --host 127.0.0.1 --port 8147 \
+  --no-deterministic-eval \
+  > "$PSI_RUNTIME_ROOT/evals/old-vgq-singlethread-server.log" 2>&1 &
+nohup bash experiments/pi05_between/run_old_eval.sh 0 4 8147 210 \
+  > "$PSI_RUNTIME_ROOT/evals/old-singlethread-level0-launch.log" 2>&1 &
+nohup bash experiments/pi05_between/run_old_eval.sh 1 5 8147 211 \
+  > "$PSI_RUNTIME_ROOT/evals/old-singlethread-level1-launch.log" 2>&1 &
+nohup bash experiments/pi05_between/run_old_eval.sh 2 6 8147 212 \
+  > "$PSI_RUNTIME_ROOT/evals/old-singlethread-level2-launch.log" 2>&1 &
+```
+
+其余配置来源同下方完整旧包方案：40k、30/30、无RTC、10步BF16、三等级各50次、前两轮双目录像。最终输出根 `evals/pi05-vgq-official-pre1102-singlethread-20261104`；下方dedicated输出保留为技术失败尝试，不能当成功率结果。历史元数据归档 `eval-metadata-and-provenance-20261027.tar.zst/historical-eval/RSCI_EVALUATION.md` 明确一组45/150属于OFFICIAL-Pi05-RGB，且后来标记状态协议不匹配；不能冒充用户所述VGQ-AE约30%的对应记录。
 
 用户进一步明确：对照官方仅level-0/1/2、11月2日同步新版之前的完整评测包；VGQ-AE历史成功率约30%为用户提供，历史权重/命令尚未核实。已下载官方 `USC-PSI-Lab/psi-data/e78fb93cc28912a3031a10b8656d32d7f0a2b867/simple-eval` 的两桌ZIP，480532 bytes、SHA256 `8a4b0ff7d068967dac8baec2c4a4deca4f644215a1ee15e921739f3dfe90e7e0`。官方 `38e43f22` 在2026-11-02 07:50:12 UTC同步eval-fixed。旧官方包与此前RHSCI镜像包ZIP容器摘要不同，但解包后75个文件逐一SHA256相同、全部30条environment_config相同。之前120步探针用了同一旧内容，但不足以判断完整成功率。
 

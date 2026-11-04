@@ -5,8 +5,8 @@ import json
 import time
 
 
-def install_control_trace(path, *, control_clock="wall"):
-    """默认只记录；显式 simulation 仅在独立诊断中替换 WBC 时间来源。"""
+def install_control_trace(path, *, control_clock="wall", execute_horizon=None):
+    """默认只记录；独立诊断可显式替换控制时钟或截取预测块前缀。"""
     import numpy as np
     from PIL import Image
     from simple.baselines.psi0_decoupled_wbc import Psi0DecoupledWbcAgent
@@ -47,15 +47,24 @@ def install_control_trace(path, *, control_clock="wall"):
             Image.fromarray(images["rgb_head_stereo_left"]).save(image_path)
             start = time.monotonic()
             result = original_query(*args, **kwargs)
+            predicted = result[0]
+            executed = predicted if execute_horizon is None else predicted[:execute_horizon]
+            if execute_horizon is not None and (
+                len(predicted) != 30 or len(executed) != execute_horizon
+            ):
+                raise ValueError(
+                    "Execute-horizon diagnostic requires a complete 30-step model chunk"
+                )
             emit(
                 "model_chunk",
                 duration=time.monotonic() - start,
-                actions=result[0],
+                actions=executed,
+                predicted_actions=predicted,
                 observed_state=args[2],
                 instruction=args[1],
                 image_path=str(image_path),
             )
-            return result
+            return result if execute_horizon is None else (executed, *result[1:])
 
         def goal(value):
             emit("wbc_goal", goal=value)
@@ -104,7 +113,12 @@ def install_control_trace(path, *, control_clock="wall"):
     Psi0DecoupledWbcAgent.__init__ = init
     Psi0DecoupledWbcAgent.get_action = get_action
     SonicLocoManipEnv.step = step
-    emit("trace_installed", changes_control=control_clock != "wall", control_clock=control_clock)
+    emit(
+        "trace_installed",
+        changes_control=control_clock != "wall" or execute_horizon not in (None, 30),
+        control_clock=control_clock,
+        execute_horizon=execute_horizon,
+    )
 
 
 def install_simulation_clock(env_class):
