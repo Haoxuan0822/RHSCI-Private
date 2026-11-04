@@ -52,7 +52,7 @@ def run_key(run):
     return f"{run['backbone']}-{run['variant']}-{run['task']}"
 
 
-def worker_command(run, gpu, level, run_dir):
+def worker_command(run, gpu, level, run_dir, *, output_root=OUTPUT):
     """声明实际启动参数；模型、仿真与进程清理仍由已有 worker 完成。"""
     task, maximum, success = TASKS[run["task"]]
     return [
@@ -78,7 +78,7 @@ def worker_command(run, gpu, level, run_dir):
         "--success-criteria",
         str(success),
         "--output-root",
-        str(OUTPUT / run_key(run)),
+        str(output_root / run_key(run)),
         "--evaluation-root",
         str(EVALUATION_ROOT),
         "--level",

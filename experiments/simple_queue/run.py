@@ -1,5 +1,6 @@
 """Run the selected GR00T models on the three-level official old evaluation package."""
 
+import argparse
 import json
 import os
 import shlex
@@ -9,6 +10,71 @@ import time
 from pathlib import Path
 
 from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, PREPARATION, REPO, run_key, worker_command
+
+
+def rerun_on_gpus(gpus, output):
+    """按任务顺序重评；卡内独立worker，完成当前任务全部等级后再进入下一任务。"""
+    from plan import RUNS
+
+    output.mkdir(parents=True, exist_ok=False)
+    environment = dict(
+        os.environ, PYTHONPATH=str(REPO / "src"), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"
+    )
+    processes = {}
+    handles = []
+    try:
+        for task in ("oven", "handover", "faucet"):
+            runs = [run for run in RUNS if run["backbone"] == "gr00t" and run["task"] == task]
+            pending = [(run, level) for level in LEVELS for run in runs]
+            while pending or processes:
+                maintain_gpu_reservation()
+                for gpu, (process, marker) in list(processes.items()):
+                    code = process.poll()
+                    if code is None:
+                        continue
+                    if (
+                        code
+                        or not marker.exists()
+                        or json.loads(marker.read_text())["episodes"] != 50
+                    ):
+                        raise RuntimeError(f"GR00T worker failed: GPU{gpu}, exit={code}, {marker}")
+                    del processes[gpu]
+                for gpu in gpus:
+                    if gpu in processes or not pending:
+                        continue
+                    run, level = pending[0]
+                    key = run_key(run)
+                    receipt = PREPARATION / f"{key}.json"
+                    if not receipt.exists():
+                        print("WAIT_CHECKPOINT", key, flush=True)
+                        continue
+                    info = json.loads(receipt.read_text())
+                    command = worker_command(run, gpu, level, info["run_dir"], output_root=output)
+                    directory = output / key
+                    directory.mkdir(parents=True, exist_ok=True)
+                    (directory / f"command-{level}.sh").write_text(shlex.join(command) + "\n")
+                    log = (directory / f"worker-{level}.log").open("x")
+                    handles.append(log)
+                    process = subprocess.Popen(
+                        command, cwd=REPO, env=environment, stdout=log, stderr=subprocess.STDOUT
+                    )
+                    marker = directory / run["variant"] / level / "COMPLETE.json"
+                    processes[gpu] = (process, marker)
+                    pending.pop(0)
+                    print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
+                if pending or processes:
+                    time.sleep(10)
+            print("GR00T_TASK_COMPLETE", task, flush=True)
+        (output / "COMPLETE.json").write_text(json.dumps({"models": 6, "episodes": 900}) + "\n")
+    finally:
+        for process, _ in processes.values():
+            if process.poll() is None:
+                process.terminate()
+        for process, _ in processes.values():
+            process.wait()
+        for handle in handles:
+            handle.close()
+
 
 next_pause_renewal = 0.0
 
@@ -137,4 +203,13 @@ if __name__ == "__main__":
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, stop)
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--gpus", type=int, nargs="+", choices=range(8))
+    parser.add_argument("--output-root", type=Path)
+    args = parser.parse_args()
+    if args.gpus:
+        if len(set(args.gpus)) != len(args.gpus) or args.output_root is None:
+            parser.error("Use distinct --gpus and a fresh --output-root")
+        rerun_on_gpus(args.gpus, args.output_root)
+    else:
+        main()
