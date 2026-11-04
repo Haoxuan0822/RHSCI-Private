@@ -1,5 +1,13 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 历史组合诊断的执行前修正与授权边界（2026-11-04）
+
+四条待执行旧包诊断的具体对象为level0/episode4、level2/episode8，各当前30预测/30执行/wall/当前导航，对历史30预测/24执行/simulation/legacy-rate-v1-speed-selector-v1；同VGQ40k/BF16/10步/seed17、最多1200步、保留全双目视频和trace，GPU6服务8149、GPU7单仿真顺序执行。**DDS改为180/181/182/183**，基础端口52400/52650/52900/53150；原拟240–243越界，未启动，不可再照抄。客户端激活simple后须显式`PYTHONPATH=/root/workspace/RHSCI-Private/src`，因为activate.sh会unset该变量；实际CPU验证未设置时find_spec(rhsci)=None，设置后原生action_noise.PROTOCOL导入成功。
+
+从实际eval_decoupled_wbc.py提取“首次配置写入及仿真导入之前”的原生argparse和校验语句，四条参数均通过，旧包对应episode均存在；source SHA256=004a40d7eabe50628b2fdec29547154b38d96dcef589850f613c29becef95647。现场仅见DDS100–105在用，拟输出historical-combined-protocol-paired仍不存在；启动时仍需重新查资源，不以当前空闲当长期预约。这里只做静态参数和CPU模块导入验证，没有启动DDS、模型或任何新π物理诊断。
+
+用户停止π评测及指定30/30仍有效，历史24执行仅作为**待用户明确放行的对照**，不能自动启动或改正式配置。当前训练/采样公式复读没有发现新的已证实根因，已有离线/只读证据不能替代这四条闭环反馈；待用户给出诊断范围后继续。下方当前工作树保留完整待执行命令及其来源说明；两处准备错误已修正，不当作历史已运行顿挫的原因。
+
 ## 已记录姿态的原生碰撞与手臂限位核对（2026-11-04）
 
 `audit_recorded_contacts.py`复用官方MuJoCo的robot/object/primitive builder，以原始MJCF、凸分解碰撞网格和桌面尺寸重建旧level0/episode4、新level0/episode4、旧level2/episode8及新前移6cm四条已有trace的稳定末态＋前120个policy后状态。对象freejoint按角色恢复，逐帧验证物体与pelvis世界位置误差不超过1e-9m；记录121帧手臂对桌面/物体、自碰撞、14个命名手臂关节实际值和模型目标的限位余量及三个换块目标反向量。这里只调用`mj_forward`，不做`mj_step`、模型调用、渲染、DDS或评测；不是新启动π评测。
