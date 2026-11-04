@@ -53,6 +53,8 @@ def main():
     parser.add_argument("--diagnostic-execute-horizon", type=int, choices=[24, 30])
     parser.add_argument("--diagnostic-legacy-navigation", action="store_true")
     parser.add_argument("--trace-camera-timing", action="store_true")
+    parser.add_argument("--diagnostic-noise-seed", type=int)
+    parser.add_argument("--diagnostic-noise-stream")
     args = parser.parse_args()
     if args.trace_control is not None and args.num_episodes != 1:
         parser.error("--trace-control requires --num-episodes 1 to keep step indices unambiguous")
@@ -64,6 +66,12 @@ def main():
         parser.error("--diagnostic-legacy-navigation is restricted to traced diagnostics")
     if args.trace_camera_timing and args.trace_control is None:
         parser.error("--trace-camera-timing requires --trace-control")
+    if (args.diagnostic_noise_seed is None) != (args.diagnostic_noise_stream is None):
+        parser.error("Diagnostic noise requires both seed and stream")
+    if args.diagnostic_noise_seed is not None and (
+        args.trace_control is None or args.diagnostic_noise_seed < 0
+    ):
+        parser.error("Diagnostic noise requires single-episode tracing and a nonnegative seed")
     video = configure_video(args, Path.cwd())
     # 在 Kit 导入前记录实际配置；close() 可能提前结束 Python。
     (Path.cwd() / "effective_eval_config.json").write_text(
@@ -82,6 +90,11 @@ def main():
     ]
     from simple.cli.eval_decoupled_wbc import _make_sonic_config, run_eval
     from simple.evals.api import EvalConfig
+
+    if args.diagnostic_noise_seed is not None:
+        from paired_noise import install_client
+
+        install_client(args.diagnostic_noise_seed, args.diagnostic_noise_stream)
 
     if args.trace_control is not None:
         from trace_control import install_control_trace
