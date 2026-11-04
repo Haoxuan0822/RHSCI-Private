@@ -51,6 +51,7 @@ def main():
     parser.add_argument("--trace-control", type=Path)
     parser.add_argument("--control-clock", choices=["wall", "simulation"], default="wall")
     parser.add_argument("--diagnostic-execute-horizon", type=int, choices=[24, 30])
+    parser.add_argument("--diagnostic-legacy-navigation", action="store_true")
     args = parser.parse_args()
     if args.trace_control is not None and args.num_episodes != 1:
         parser.error("--trace-control requires --num-episodes 1 to keep step indices unambiguous")
@@ -58,6 +59,8 @@ def main():
         parser.error("--control-clock simulation is restricted to traced diagnostics")
     if args.diagnostic_execute_horizon is not None and args.trace_control is None:
         parser.error("--diagnostic-execute-horizon is restricted to traced diagnostics")
+    if args.diagnostic_legacy_navigation and args.trace_control is None:
+        parser.error("--diagnostic-legacy-navigation is restricted to traced diagnostics")
     video = configure_video(args, Path.cwd())
     # 在 Kit 导入前记录实际配置；close() 可能提前结束 Python。
     (Path.cwd() / "effective_eval_config.json").write_text(
@@ -84,6 +87,7 @@ def main():
             args.trace_control,
             control_clock=args.control_clock,
             execute_horizon=args.diagnostic_execute_horizon,
+            legacy_navigation=args.diagnostic_legacy_navigation,
         )
 
     sonic = _make_sonic_config()

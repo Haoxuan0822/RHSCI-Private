@@ -2,11 +2,14 @@
 
 import functools
 import json
+import os
 import time
 
 
-def install_control_trace(path, *, control_clock="wall", execute_horizon=None):
-    """默认只记录；独立诊断可显式替换控制时钟或截取预测块前缀。"""
+def install_control_trace(
+    path, *, control_clock="wall", execute_horizon=None, legacy_navigation=False
+):
+    """默认只记录；诊断可显式对照时钟、执行前缀或旧导航语义。"""
     import numpy as np
     from PIL import Image
     from simple.baselines.psi0_decoupled_wbc import Psi0DecoupledWbcAgent
@@ -17,6 +20,11 @@ def install_control_trace(path, *, control_clock="wall", execute_horizon=None):
     context = {"step": 0, "phase": "stabilize"}
     if control_clock == "simulation":
         install_simulation_clock(SonicLocoManipEnv)
+    navigation = None
+    if legacy_navigation:
+        from legacy_navigation import install
+
+        navigation = install()
 
     def encode(value):
         if isinstance(value, (np.ndarray, np.generic)):
@@ -40,6 +48,31 @@ def install_control_trace(path, *, control_clock="wall", execute_horizon=None):
         original_query = agent.client.query_action
         original_goal = agent._wbc_policy.set_goal
         original_action = agent._wbc_policy.get_action
+        lower = agent._wbc_policy.lower_body_policy
+        original_lower_action = lower.get_action
+
+        def lower_action(*args, **kwargs):
+            emit(
+                "lower_input",
+                navigate_cmd=args[4] if len(args) > 4 else kwargs.get("interpolated_navigate_cmd"),
+                previous_velocity=lower.cmd.copy(),
+                previous_heading=lower.target_yaw_cmd,
+                floating_base_pose=lower.observation["floating_base_pose"].copy(),
+            )
+            result = original_lower_action(*args, **kwargs)
+            emit("lower_output", velocity=lower.cmd.copy(), navigate_cmd=result["navigate_cmd"])
+            return result
+
+        lower.get_action = lower_action
+        # 两路诊断都记录实际站/走网络调用；包装原网络，不替换其计算。
+        for attribute, label in (("policy_1", "stand"), ("policy_2", "walk")):
+            original_network = getattr(lower, attribute)
+
+            def run_network(*args, network=original_network, mode=label, **kwargs):
+                emit("lower_policy", mode=mode, command=lower.cmd.copy())
+                return network(*args, **kwargs)
+
+            setattr(lower, attribute, run_network)
 
         def query(*args, **kwargs):
             images = args[0]
@@ -115,9 +148,13 @@ def install_control_trace(path, *, control_clock="wall", execute_horizon=None):
     SonicLocoManipEnv.step = step
     emit(
         "trace_installed",
-        changes_control=control_clock != "wall" or execute_horizon not in (None, 30),
+        changes_control=(
+            control_clock != "wall" or execute_horizon not in (None, 30) or legacy_navigation
+        ),
         control_clock=control_clock,
         execute_horizon=execute_horizon,
+        navigation=navigation,
+        modified_policy_switch_behavior=os.environ.get("MODIFIED_POLICY_SWITCH_BEHAVIOR", "0"),
     )
 
 
