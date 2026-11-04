@@ -12,68 +12,132 @@ from pathlib import Path
 from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, PREPARATION, REPO, run_key, worker_command
 
 
-def rerun_on_gpus(gpus, output):
-    """按任务顺序重评；卡内独立worker，完成当前任务全部等级后再进入下一任务。"""
+def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
+    """按任务优先级派发；接管在途worker，空闲卡立即接下一等级任务。"""
+    import fcntl
+
     from plan import RUNS
 
-    output.mkdir(parents=True, exist_ok=False)
+    from rhsci.runtime.processes import process_table
+
+    output.mkdir(parents=True, exist_ok=resume)
+    scheduler_lock = (output / "scheduler.lock").open("a")
+    fcntl.flock(scheduler_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     environment = dict(
         os.environ, PYTHONPATH=str(REPO / "src"), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"
     )
     processes = {}
     handles = []
+
+    def alive(job):
+        row = process_table().get(job["pid"])
+        return row is not None and row[2] == job["birth"] and row[3] != "Z"
+
+    pending = []
+    for task in ("oven", "handover", "faucet"):
+        runs = [run for run in RUNS if run["backbone"] == "gr00t" and run["task"] == task]
+        for level in LEVELS:
+            for run in runs:
+                base = output / run_key(run) / run["variant"] / level
+                marker = base / "COMPLETE.json"
+                metadata = base / "worker.json"
+                if resume and metadata.exists():
+                    info = json.loads(metadata.read_text())
+                    pid, gpu = info["worker_pid"], info["gpu"]
+                    row = process_table().get(pid)
+                    if row is not None and row[3] != "Z":
+                        command = Path(f"/proc/{pid}/cmdline").read_bytes()
+                        expected_output = str(output / run_key(run)).encode()
+                        if b"run_evaluation.py" not in command or expected_output not in command:
+                            raise RuntimeError(f"Worker PID identity changed: {metadata}")
+                        if gpu not in gpus or gpu in processes:
+                            raise RuntimeError(f"Unexpected occupied GPU{gpu}: {metadata}")
+                        processes[gpu] = dict(pid=pid, birth=row[2], process=None, marker=marker)
+                        print("GR00T_WORKER_ADOPTED", gpu, run_key(run), level, pid, flush=True)
+                        continue
+                    if marker.exists() and json.loads(marker.read_text())["episodes"] == 50:
+                        continue
+                    raise RuntimeError(f"Stopped incomplete worker; logs retained: {metadata}")
+                pending.append((run, level))
     try:
-        for task in ("oven", "handover", "faucet"):
-            runs = [run for run in RUNS if run["backbone"] == "gr00t" and run["task"] == task]
-            pending = [(run, level) for level in LEVELS for run in runs]
-            while pending or processes:
-                maintain_gpu_reservation()
-                for gpu, (process, marker) in list(processes.items()):
-                    code = process.poll()
-                    if code is None:
-                        continue
-                    if (
-                        code
-                        or not marker.exists()
-                        or json.loads(marker.read_text())["episodes"] != 50
-                    ):
-                        raise RuntimeError(f"GR00T worker failed: GPU{gpu}, exit={code}, {marker}")
-                    del processes[gpu]
-                for gpu in gpus:
-                    if gpu in processes or not pending:
-                        continue
-                    run, level = pending[0]
-                    key = run_key(run)
-                    receipt = PREPARATION / f"{key}.json"
-                    if not receipt.exists():
-                        print("WAIT_CHECKPOINT", key, flush=True)
-                        continue
-                    info = json.loads(receipt.read_text())
-                    command = worker_command(run, gpu, level, info["run_dir"], output_root=output)
-                    directory = output / key
-                    directory.mkdir(parents=True, exist_ok=True)
-                    (directory / f"command-{level}.sh").write_text(shlex.join(command) + "\n")
-                    log = (directory / f"worker-{level}.log").open("x")
-                    handles.append(log)
-                    process = subprocess.Popen(
-                        command, cwd=REPO, env=environment, stdout=log, stderr=subprocess.STDOUT
-                    )
-                    marker = directory / run["variant"] / level / "COMPLETE.json"
-                    processes[gpu] = (process, marker)
-                    pending.pop(0)
-                    print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
-                if pending or processes:
-                    time.sleep(10)
-            print("GR00T_TASK_COMPLETE", task, flush=True)
+        while pending or processes:
+            maintain_gpu_reservation()
+            for gpu, job in list(processes.items()):
+                process, marker = job["process"], job["marker"]
+                code = process.poll() if process is not None else None
+                if alive(job):
+                    continue
+                if (
+                    code not in (None, 0)
+                    or not marker.exists()
+                    or json.loads(marker.read_text())["episodes"] != 50
+                ):
+                    raise RuntimeError(f"GR00T worker failed: GPU{gpu}, exit={code}, {marker}")
+                del processes[gpu]
+            available = set(gpus)
+            if auto_gpus:
+                result = subprocess.run(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=index,memory.used",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=20,
+                )
+                # 不以利用率为准；服务加载/请求间歇可为0%，仅接用显存已释放的卡。
+                available = {
+                    int(index)
+                    for line in result.stdout.splitlines()
+                    for index, memory in [line.split(",")]
+                    if int(memory) < 1024 and int(index) in gpus
+                }
+            for gpu in gpus:
+                if gpu in processes or gpu not in available or not pending:
+                    continue
+                run, level = pending[0]
+                key = run_key(run)
+                receipt = PREPARATION / f"{key}.json"
+                if not receipt.exists():
+                    print("WAIT_CHECKPOINT", key, flush=True)
+                    continue
+                info = json.loads(receipt.read_text())
+                command = worker_command(run, gpu, level, info["run_dir"], output_root=output)
+                directory = output / key
+                directory.mkdir(parents=True, exist_ok=True)
+                (directory / f"command-{level}.sh").write_text(shlex.join(command) + "\n")
+                log = (directory / f"worker-{level}.log").open("x")
+                handles.append(log)
+                process = subprocess.Popen(
+                    command, cwd=REPO, env=environment, stdout=log, stderr=subprocess.STDOUT
+                )
+                marker = directory / run["variant"] / level / "COMPLETE.json"
+                processes[gpu] = dict(
+                    pid=process.pid,
+                    birth=process_table()[process.pid][2],
+                    process=process,
+                    marker=marker,
+                )
+                pending.pop(0)
+                print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
+            if pending or processes:
+                time.sleep(10)
         (output / "COMPLETE.json").write_text(json.dumps({"models": 6, "episodes": 900}) + "\n")
     finally:
-        for process, _ in processes.values():
-            if process.poll() is None:
-                process.terminate()
-        for process, _ in processes.values():
-            process.wait()
+        for job in processes.values():
+            if alive(job):
+                try:
+                    os.kill(job["pid"], signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+        for job in processes.values():
+            if job["process"] is not None:
+                job["process"].wait()
         for handle in handles:
             handle.close()
+        scheduler_lock.close()
 
 
 next_pause_renewal = 0.0
@@ -206,10 +270,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gpus", type=int, nargs="+", choices=range(8))
     parser.add_argument("--output-root", type=Path)
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--auto-gpus", action="store_true")
     args = parser.parse_args()
     if args.gpus:
         if len(set(args.gpus)) != len(args.gpus) or args.output_root is None:
             parser.error("Use distinct --gpus and a fresh --output-root")
-        rerun_on_gpus(args.gpus, args.output_root)
+        rerun_on_gpus(args.gpus, args.output_root, resume=args.resume, auto_gpus=args.auto_gpus)
     else:
         main()
