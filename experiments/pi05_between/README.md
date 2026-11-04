@@ -1,5 +1,29 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 真实FK与训练视频的帧偏移核验（2026-11-04）
+
+此前跨渲染器二维位置/速度拟合给出不同lag，不能据此宣布同步或错帧。新增audit_image_joint_lag.py仅CPU读取身份匹配RAW78（训练0）的基座/43关节及已有121帧手部跟踪，使用原生MJCF正运动学、保存的SDK左目位姿、Camera world→ROS轴约定与sensor_cfgs内参，不运行模型/物理/渲染。固定视频30–89帧，lag=-30..30，每个lag保持同60帧、按5帧块交替30帧拟合/30帧留出；只拟合附着在刚体上的一个固定3D点，不逐帧拟合相机或特征点。
+
+指尖两候选刚体、手腕三候选×四份快照校准，共20组/1220拟合全部成功/有限，最佳lag全部0；不是20条独立轨迹，指尖两刚体在本窗口相对运动也近乎相同。校准0下index指尖lag0留出RMSE0.28945px，lag-1/+1为0.74121/0.58396px，lag-30/+30为6.49639/17.09687px；wrist_yaw相应0.21651px、0.66855/0.49149px、5.74683/17.12939px。最优局部点范数约12/41mm，最小相机深度0.498/0.409m。完整候选排名保留，不支持该窗口整块30帧图像/状态滞后，但不能外推全部训练数据或宣布完整根因排除。
+
+首次预设刚性安装矩阵误差<1e-4，在0.00048018处拒绝、无结果，image-joint-lag-audit.log保留。四快照平移差最大0.48779mm、旋转差0.00926度；修订为四份独立校准分别重复全部lag分析并报告敏感性，不放宽阈值后称完全刚性。各校准最佳lag仍0。最终image-joint-lag-audit.json与image-joint-lag-calibration-sensitivity.log已实际生成、进程退出0；输入/脚本SHA齐全，Ruff lint/format通过，正式配置未改。实际命令（输出存在时拒绝覆盖）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+/opt/rsci-data/.venv-simple/bin/python \
+  experiments/pi05_between/audit_image_joint_lag.py \
+  --raw "$AUDIT_ROOT/upstream-raw-historical-episode0/episode_000078.parquet" \
+  --raw-info "$AUDIT_ROOT/upstream-raw-historical-episode0/info.json" \
+  --manifest /opt/rsci-data/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/manifest.json \
+  --trace "$AUDIT_ROOT/expert-replay-vgq/control_trace.jsonl" \
+  --render "$AUDIT_ROOT/static-waist-render" \
+  --motion "$AUDIT_ROOT/upstream-raw-episode78/motion-training.json" \
+  --xml /opt/rsci-data/external/SIMPLE-official/data/robots/g1_sonic/g1_29dof_with_hand.xml \
+  --output "$AUDIT_ROOT/image-joint-lag-audit.json" \
+  > "$AUDIT_ROOT/image-joint-lag-calibration-sensitivity.log" 2>&1
+```
+
 ## 已有新旧包接近阶段的回撤与抓取进展（2026-11-04）
 
 `compare_approach_progress.py`只读已有三条level0/episode4轨迹，不启动模型或评测：旧包execute30的180步诊断、新包固定噪声original与仅出生x+0.06的两条完整实验。全部核对30/30、逐步模型→WBC双臂误差0，metadata记录同任务/编号；旧/新噪声未配对，不是全协议复现或总体顺畅度结论。统一前91步，三条均在盒子相对初始z抬高8cm并持续5步之前，但不把此条件冒称抓取接触/动作阶段精确匹配。
