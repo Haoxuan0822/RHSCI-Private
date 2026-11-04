@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 认证历史训练记录已核对：只补读同一VGQ已选权重约1.3MB trainer_state与resume_origin元数据，SHA/HF Git blob均匹配manifest，未补下载任何其他权重或optimizer。记录40k/91.3242epoch，5类loss/grad/LR各4000条网格完整且有限；后10k action_loss中位0.004833、ARDY0.06211。原train.py SHA83d1c66c…匹配契约，4000条LR全部精确匹配原公式(log_step-1)，最大误差0，未见日志中的调度重置。7000步迁execution=both保留payload只是原收据声明，未加载optimizer/RNG，不扩称数据顺序正确；低带专家加噪输入的训练loss不证明自主采样/闭环连续性。audit_training_history.py、training-history-lr-audit.json及完整命令已实际完成并写入既有两桌README；无生产更改。
+- 当前继续手指兼容只读审计，由本会话执行：已认证读取原bfffc460的eval_wbc_hand_order.py（SHA f30f8dbe…），将用真实MJCF/WBC RobotModel和原生PD方法核对“旧动作兼容＋具名输出”组合是否保留当前物理目标，避免仅看协议不同就认定抓取回归。暂不启动手指闭环，不改正式控制器。
 - 完整任务阶段已按真实物体位置量化：spawn-full原位episode4从未抬升（最高z0.76832、初始0.76275m），机器人仍空手移动；前移6cm的episode4第105步抬升、第497步近篮子、官方True；前移episode0第146步抬升、第544步近篮子，却第1046步落地、官方False。不能把两类失败均称抓取失败，也不能把原位盒子z0.68872m误写掉到地面。只读实验analyze_task_stages.py，连续5步几何阈值、trace SHA/官方统计原文及图保存在task-stage-audit.json/png，图已检查、Ruff通过。未启动仿真或改生产参数。原150次旧包及正式400次继续，goal仍active，具体训练/部署代码根因未确证。
 - 固定种子误差分解已完成：仅复用paired-render-training的24次真实预测，逐边界验证平均平方误差=均值平方+样本方差。原训练图/回放渲染图边界误差中三样本共同均值偏差占88.40%/95.77%，均值动作仍有0.15649/0.08488/0.05384和0.22407/0.03981/0.14053rad跳变。支持这批样本主要是稳定条件预测偏差，不是仅换随机种子即可消除；不把三种子当总体期望或置信区间，不执行平均/平滑。实验analyze_sampling_bias.py、sampling-bias-audit.json及完整复算命令已实际验证，Ruff通过，文档沿用两桌README。
 - 完成v2训练标签往返实测：91轨迹/58637帧动作、同Processor.normalize和正式服务反变换，未改任何公式/统计。三个诊断episode双臂标签RMSE0.00000440/0.00870747/0.00054308rad；VGQ对实际截断标签的RMSE仍0.01533/0.03704/0.01039rad，21个专家自然边界经往返基本相同或减小。v2确有信息损失（episode1明显），但它没有直接制造这些块边界尖峰；不能据此宣称对学习无影响或擅改v3。脚本audit_training_labels.py及收据training-label-roundtrip-audit.json已实际完成，Ruff检查通过，完整命令/来源/范围在既有两桌README。

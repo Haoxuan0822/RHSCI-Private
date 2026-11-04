@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "35b18a95877d8192c66cddc070d12c009b253b03ab8d870e7b8ae3d611c85ea2",
-      "bytes": 30913
+      "export_sha256": "ebe24c8f3e0a85707fd68d019dc94f6d8349037b9602ac401f3aa11e35839855",
+      "bytes": 32781
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "4c8ce2601d6716b7a9526a907ce888122ebbe9ce8f3e5013e2291740337a07f9",
-      "bytes": 79827
+      "export_sha256": "45f7e715152e5f1e328f5bf2fe41b608f53a1effc00cdb66e513f0ce1bc4222c",
+      "bytes": 84116
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -4988,6 +4988,10 @@
     "experiments/pi05_between/analyze_sampling_bias.py": {
       "export_sha256": "c4161d926c7da7c68a906c1816f1b026813ee814fa624c028d7b04991b7855bf",
       "bytes": 3905
+    },
+    "experiments/pi05_between/audit_training_history.py": {
+      "export_sha256": "6fd9bd37ab6faa54c15c118283a42c48e6352bac6f2e69b0da24c6976181703b",
+      "bytes": 4709
     }
   }
 }

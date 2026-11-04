@@ -1,5 +1,25 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 认证历史训练记录与学习率核对（2026-11-04）
+
+只补读同一已选VGQ-AE权重的小型元数据，共1298264字节，不下载其他权重或optimizer。HF固定ds1x/RHSCI@59a1ea14d4346496d4e55c9fa58ea2f3330fd298，目录checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1：checkpoint-40000/trainer_state.json的SHA69a3230c…、speed_resume_origin.json的SHA477e32b6…均与已验证checkpoint-manifest一致，并核对HF Git blob身份。原文存于运行根evals/stutter-root-cause-20261104/training-history，不写进推理检查点，不把恢复元数据增加为普通推理前提。
+
+训练记录global_step40000、epoch91.3242；action_loss/ardy_loss各4000条（0至39990每10步），总loss/grad_norm/LR各4000条（10至40000每10步），顺序和步号网格完整、数值有限。action_loss在0–999、6000–7999、10000–19999、30000–40000窗口中位数依次0.22844/0.01927/0.01112/0.004833，ARDY同期0.28812/0.17731/0.12575/0.06211。此文件没有eval_指标，不能将低训练loss称为闭环或独立验证通过，也不能单凭日志证明每次优化器更新/样本顺序都正确。
+
+speed_resume_origin声明从原reference运行checkpoint7000迁到execution=both，模型/optimizer/scheduler/trainer_state/八rank RNG通过硬链接保留。进一步核对原train.py SHA83d1c66c…与VGQ契约一致，提取其纯simple_lr_multiplier函数；4000条记录的LR全部精确匹配原公式在log_step-1处的值，最大绝对差0。支持日志中没有调度器重置，不冒称实际读取了optimizer/RNG payload或原训练数据顺序。训练forward输入含专家动作加噪声，低flow-matching误差与自主从噪声生成动作的准确性是不同证据；当前材料不能据此定位具体训练代码bug。
+
+实际只读CPU核对命令（首次不含LR的报告training-history-audit.json保留，完整报告为training-history-lr-audit.json）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/audit_training_history.py \
+  --directory /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/training-history \
+  --checkpoint-manifest /root/workspace/Haoxuan/RHSCI-runtime/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-manifest.json \
+  --training-source /root/workspace/Haoxuan/RHSCI-runtime/external/Psi0-pi05-QSAFE-reference/src/rsci_pi05/train.py \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/training-history-lr-audit.json
+```
+
 ## 固定种子预测的共同偏差与波动（2026-11-04）
 
 只分析既有paired-render-training.json（seed17/29/43、同40k/10步BF16/四个时刻），无新增推理/仿真。对三个自然边界的14臂关节接续误差，逐项验证有限样本恒等式：平均平方误差=均值的平方+围绕均值的方差。原训练图与渲染图的合计平方误差中，三样本共同均值偏差占88.40%/95.77%；不是主要由这三个种子彼此的波动贡献。它不是总体条件期望、置信区间或任意噪声都无影响的证明。
