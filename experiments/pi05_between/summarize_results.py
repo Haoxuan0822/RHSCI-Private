@@ -25,7 +25,7 @@ def read_stats(path, num_episodes=10):
 
 def summarize(root):
     """按模型输出成功数和已完成数向量，避免把未运行样本当作失败。"""
-    for variant in ("STATE", "VGQ-AE", "NO-STATE"):
+    for variant in ("STATE", "VGQ-AE", "NO-STATE", "RGB"):
         if not (root / variant).is_dir():
             continue
         successes, completed = [], []

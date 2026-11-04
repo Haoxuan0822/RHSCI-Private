@@ -19,6 +19,7 @@ VGQ = (
 )
 STATE = ROOT / "checkpoints/pi05-STATE-between-40000"
 OUT = ROOT / "evals/pi05-between-30x30-5cycles-20261104"
+OFFICIAL = ROOT / "checkpoints/official-pi05-between-40000"
 
 
 def worker(args):
@@ -67,7 +68,25 @@ def worker(args):
         str(port),
         "--no-deterministic-eval",
     ]
-    if args.backbone == "pi05":
+    if variant == "RGB":
+        reference = ROOT / "external/Psi0-official-pi05-reference/src"
+        env.update(
+            PYTHONPATH=f"{reference}:{REPO / 'src'}",
+            JAX_PLATFORMS="cpu",
+            OPENPI_DATA_HOME=str(ROOT / "cache/openpi-official"),
+        )
+        command = [
+            str(ROOT / ".venv-pi05-official/bin/python"),
+            "-u",
+            str(Path(__file__).with_name("serve_official_pi05.py")),
+            "--checkpoint",
+            str(OFFICIAL),
+            "--stats",
+            str(OFFICIAL / "dataset-meta-pre1102/stats.json"),
+            "--port",
+            str(port),
+        ]
+    elif args.backbone == "pi05":
         command.extend(
             [
                 "--dataset",
@@ -288,7 +307,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", type=int, choices=range(8), required=True)
     parser.add_argument("--slot", type=int, choices=[0, 1], default=0)
     parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
-    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE"], required=True)
+    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE", "RGB"], required=True)
     parser.add_argument("--backbone", choices=["pi05", "gr00t"], default="pi05")
     parser.add_argument("--task", default=TASK)
     parser.add_argument("--run-dir", type=Path)
@@ -312,6 +331,13 @@ if __name__ == "__main__":
     parser.add_argument("--video-rounds", type=int, default=2)
     parser.add_argument("--repair-scene-references", action="store_true")
     arguments = parser.parse_args()
+    if arguments.variant == "RGB" and (
+        arguments.backbone != "pi05"
+        or arguments.checkpoint_step != 40000
+        or arguments.run_dir is not None
+        or arguments.expected_horizon != 30
+    ):
+        parser.error("Official RGB uses pi05 40000, its fixed local checkpoint and horizon 30")
     if arguments.video_rounds < 2:
         parser.error("Retain at least two complete video rounds")
     if (
