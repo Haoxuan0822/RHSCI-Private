@@ -21,7 +21,15 @@ def main():
     parser.add_argument("--tokenizer", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--instruction", required=True)
+    parser.add_argument(
+        "--sampling-steps",
+        type=int,
+        nargs="+",
+        help="Compare eager solver step counts instead of compiling",
+    )
     args = parser.parse_args()
+    if args.sampling_steps is not None and any(step < 1 for step in args.sampling_steps):
+        parser.error("Sampling steps must be positive")
     if args.output.exists():
         raise FileExistsError(args.output)
     if torch.cuda.mem_get_info()[0] < 12 * 1024**3:
@@ -36,7 +44,11 @@ def main():
     processor = Processor(
         args.dataset, args.tokenizer, saved["variant"], normalization=saved["normalization"]
     )
-    compiled = torch.compile(model.sample_actions, mode="max-autotune")
+    compiled = (
+        torch.compile(model.sample_actions, mode="max-autotune")
+        if args.sampling_steps is None
+        else None
+    )
     chunks = [
         json.loads(line)
         for line in args.trace.read_text().splitlines()
@@ -60,6 +72,28 @@ def main():
         noise = torch.randn(
             1, 30, 36, device="cuda", generator=torch.Generator("cuda").manual_seed(17)
         )
+        if args.sampling_steps is not None:
+            for count in args.sampling_steps:
+                with (
+                    torch.inference_mode(),
+                    torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False),
+                ):
+                    predicted = model.sample_actions(*inputs, num_steps=count, noise=noise.clone())
+                arms = (predicted[0, :, 14:28].float().cpu().numpy() + 1) / 2 * (
+                    span[14:28] + 1e-6
+                ) + np.array(processor.stats["action"]["q01"])[14:28]
+                row = {
+                    "step": chunk["step"],
+                    "sampling_steps": count,
+                    "first_arm_action": arms[0].tolist(),
+                    "last_arm_action": arms[-1].tolist(),
+                    "first_vs_observed_arm_l2_rad": float(
+                        np.linalg.norm(arms[0] - sample["state"][14:28])
+                    ),
+                }
+                results.append(row)
+                print(json.dumps(row), flush=True)
+            continue
         with (
             torch.inference_mode(),
             torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False),
@@ -81,7 +115,10 @@ def main():
         results.append(row)
         print(json.dumps(row), flush=True)
     args.output.write_text(
-        json.dumps({"seed": 17, "num_steps": 10, "chunks": results}, indent=2) + "\n"
+        json.dumps(
+            {"seed": 17, "num_steps": args.sampling_steps or 10, "chunks": results}, indent=2
+        )
+        + "\n"
     )
 
 

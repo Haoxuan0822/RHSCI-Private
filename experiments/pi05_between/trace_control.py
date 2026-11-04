@@ -5,8 +5,8 @@ import json
 import time
 
 
-def install_control_trace(path):
-    """仅记录真实动作、WBC 目标和仿真步，不替换控制器或修改时间。"""
+def install_control_trace(path, *, control_clock="wall"):
+    """默认只记录；显式 simulation 仅在独立诊断中替换 WBC 时间来源。"""
     import numpy as np
     from PIL import Image
     from simple.baselines.psi0_decoupled_wbc import Psi0DecoupledWbcAgent
@@ -15,6 +15,8 @@ def install_control_trace(path):
     path.parent.mkdir(parents=True, exist_ok=True)
     stream = path.open("x", buffering=1)
     context = {"step": 0, "phase": "stabilize"}
+    if control_clock == "simulation":
+        install_simulation_clock(SonicLocoManipEnv)
 
     def encode(value):
         if isinstance(value, (np.ndarray, np.generic)):
@@ -50,6 +52,7 @@ def install_control_trace(path):
                 duration=time.monotonic() - start,
                 actions=result[0],
                 observed_state=args[2],
+                instruction=args[1],
                 image_path=str(image_path),
             )
             return result
@@ -91,10 +94,45 @@ def install_control_trace(path):
             sim_after=float(env.mujoco.mjData.time),
             qpos=env.mujoco.mjData.qpos.copy(),
             observed_joints=result[0]["joint_qpos"],
+            objects={
+                name: np.concatenate((body.xpos, body.xquat))
+                for name, body in env.mujoco.mj_objects.items()
+            },
         )
         return result
 
     Psi0DecoupledWbcAgent.__init__ = init
     Psi0DecoupledWbcAgent.get_action = get_action
     SonicLocoManipEnv.step = step
-    emit("trace_installed", changes_control=False)
+    emit("trace_installed", changes_control=control_clock != "wall", control_clock=control_clock)
+
+
+def install_simulation_clock(env_class):
+    """只替换控制模块的 time 引用，HTTP、日志和全局标准库墙钟保持原样。"""
+    from types import SimpleNamespace
+
+    from decoupled_wbc.control.policy import g1_decoupled_whole_body_policy
+    from simple.agents import sonic_decoupled_wbc_agent
+    from simple.baselines import psi0_decoupled_wbc
+
+    origin = time.monotonic()
+    active = {}
+
+    def now():
+        env = active.get("env")
+        mujoco = getattr(env, "mujoco", None)
+        return origin + (float(mujoco.mjData.time) if mujoco is not None else 0.0)
+
+    clock = SimpleNamespace(monotonic=now)
+    sonic_decoupled_wbc_agent.time = clock
+    psi0_decoupled_wbc.time = clock
+    # 复合策略的 last_goal_time 与显式 get_action(time=...) 必须同域。
+    g1_decoupled_whole_body_policy.time_module = clock
+    original_reset = env_class.reset
+
+    @functools.wraps(original_reset)
+    def reset(env, *args, **kwargs):
+        active["env"] = env
+        return original_reset(env, *args, **kwargs)
+
+    env_class.reset = reset
