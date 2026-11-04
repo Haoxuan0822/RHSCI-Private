@@ -22,6 +22,7 @@ def compare_gradients(actual, expected):
         raise ValueError("Trainable parameter names differ")
     squared_error = squared_reference = 0.0
     worst, mismatched, outside_tolerance = (0.0, None), [], []
+    groups = {}
     for name, value in actual.items():
         reference = expected[name]
         if value is None or reference is None:
@@ -32,6 +33,19 @@ def compare_gradients(actual, expected):
             worst = error, name
         squared_error += float(difference.square().sum(dtype=torch.float64))
         squared_reference += float(reference.square().sum(dtype=torch.float64))
+        group = (
+            "shared_action_expert"
+            if name.startswith("paligemma_with_expert.gemma_expert")
+            else "action_projection"
+            if name.startswith("action_")
+            else "shared_time"
+            if name.startswith("time_mlp")
+            else "auxiliary_only"
+        )
+        totals = groups.setdefault(group, [0.0, 0.0, 0.0])
+        totals[0] += float(difference.square().sum(dtype=torch.float64))
+        totals[1] += float(reference.square().sum(dtype=torch.float64))
+        totals[2] = max(totals[2], error)
         if not torch.equal(value, reference):
             mismatched.append(name)
         # 沿用现有validate_pi05_speed的BF16容差，同时报告原始误差与逐位差异。
@@ -45,6 +59,14 @@ def compare_gradients(actual, expected):
         max_abs_error=worst[0],
         worst_parameter=worst[1],
         global_relative_l2=(squared_error / max(squared_reference, 1e-30)) ** 0.5,
+        groups={
+            name: dict(
+                relative_l2=(error / max(norm, 1e-30)) ** 0.5,
+                reference_l2=norm**0.5,
+                max_abs_error=maximum,
+            )
+            for name, (error, norm, maximum) in groups.items()
+        },
     )
 
 
@@ -53,6 +75,7 @@ def main():
     for name in ("checkpoint", "dataset", "tokenizer", "archived-source", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--frame", type=int, default=60)
+    parser.add_argument("--repeat-control", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -99,19 +122,34 @@ def main():
     original.load_state_dict(model.state_dict(), strict=True, assign=True)
     original.cuda()
     reports = []
-    for target_index, target_name in enumerate(("synthetic_zero", "synthetic_linear")):
+    targets = ["synthetic_zero", "synthetic_linear"]
+    profiles = ["reference", "query", "history", "both", "authenticated_original_both"]
+    if args.repeat_control:
+        targets.append("synthetic_masked")
+        profiles = [
+            "reference",
+            "reference_repeat",
+            "query",
+            "history",
+            "both",
+            "both_repeat",
+            "authenticated_original_both",
+        ]
+    for target_name in targets:
+        target_index = int(target_name == "synthetic_linear")
         batch["ardy_target"] = (
             torch.zeros(1, 128, device="cuda")
             if target_index == 0
             else torch.linspace(-1, 1, 128, device="cuda")[None]
         )
+        batch["ardy_valid"].fill_(target_name != "synthetic_masked")
         reference = reference_rng = both_gradients = None
-        for name in ("reference", "query", "history", "both", "authenticated_original_both"):
+        for name in profiles:
             model.zero_grad(set_to_none=True)
             original.zero_grad(set_to_none=True)
             active = original if name == "authenticated_original_both" else model
             if active is model:
-                active.execution = name
+                active.execution = name.removesuffix("_repeat")
             active.train()
             torch.manual_seed(292285 + target_index)
             torch.cuda.manual_seed_all(292285 + target_index)
@@ -147,7 +185,7 @@ def main():
             )
             if name == "both":
                 both_gradients = gradients
-            if name == "authenticated_original_both":
+            if name in ("both_repeat", "authenticated_original_both"):
                 row["comparison_to_current_both"] = compare_gradients(gradients, both_gradients)
             reports.append(row)
             print(json.dumps(row), flush=True)
