@@ -1,5 +1,48 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 已选NO-STATE权重的离线分块对照（2026-11-04）
+
+实际完成24次预测、进程退出0、GPU0释放。按seed17/29/43，NO-STATE原训练RGB的边界/块内变化比9.4967/7.5795/8.2932，渲染RGB为16.0865/14.4977/15.5630；VGQ相同输入分别9.3924/7.5048/7.7330和15.0884/12.7292/14.3769。NO-STATE原图/渲染图双臂专家RMSE分别0.01936–0.02639/0.03551–0.03944rad。均值偏差占三种子边界平方误差88.77%/95.39%。现象同样存在于无ARDY、无历史合批的独立权重，不证明辅助训练无影响，也不等同闭环成功率或最终根因。
+
+结果paired-render-training-nostate.json SHA fae7485346651531249e978ab1c7462e81353ac93cc34b66e9b46c48c45310d9。随后直接CPU读取两个实际safetensors：NO-STATE811键、VGQ826键，后者独有15个Reader/ARDY参数；选查8个动作投影/时间MLP参数全部不同，action_out_proj.weight相对L2差0.11990，支持两个路径确实载入不同模型。仅选查参数，不冒称全参数比较；收据nostate-vgq-weight-identity.json。分析在已有analyze_sampling_bias.py增加逐seed指标，不更改正式模型/评测。
+
+两份已实际执行的离线复算命令（输出文件已存在，脚本会拒绝覆盖）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+for variant in nostate vgq; do
+  prediction_file=paired-render-training.json
+  if [ "$variant" = nostate ]; then
+    prediction_file=paired-render-training-nostate.json
+  fi
+  /root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+    experiments/pi05_between/analyze_sampling_bias.py \
+    --predictions "/root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/$prediction_file" \
+    --recorded-inputs /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl \
+    --output "/root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/$variant-paired-chunk-audit.json"
+done
+```
+
+前一轮真实ARDY梯度差不能直接归因闭环顿挫。补充已完整下载、SHA校验过的NO-STATE40k：保存配方为reference执行、无ARDY、当前单帧视觉，数据fingerprint b16d2e98…与VGQ相同，v2归一化/seed292285/30步训练窗口/10步采样；初始化与代码归档时间不同、各自独立训练，不称严格受控消融。若同样出现接续偏差，可证明现象并非只存在于采用ARDY/历史合批的这一份权重，不证明任意辅助训练都无影响。沿本说明已核对论文/README及该保存契约，比对原训练RGB和专家回放渲染RGB的同4时刻、相同seed17/29/43，10步eager/BF16，共24次离线推理，无仿真控制、不统计成功率，后续200次正式队列仍等原400次完成。
+
+复用compare_inference_modes.py原VGQ配对路径，只将其允许范围扩到同样不读状态的NO-STATE，并在新报告保存权重路径/variant。GPU0，已有12GiB空闲预检；不占用GPU1服务及GPU2/3场景配对，不下载其他权重。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/checkpoints/followup/pi05-NO-STATE-between/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+  --sampling-steps 10 --noise-seeds 17 29 43 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-render-training-nostate.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-render-training-nostate.log" 2>&1
+```
+
 ## 生产尺寸梯度与历史执行优化对照（2026-11-04）
 
 正式ARDY对照已实际完成14次forward/backward、退出0，原生Reader/data context及全部episode标签验收通过，GPU2释放。训练manifest d209f886…匹配不只是文件名；不再受合成监督范围限制，但仍仅一个实际样本/seed、batch1、无DDP/更新。formal组reference/query的loss0.06435004（action0.03376529，ARDY0.30584741）；history/both及认证原both为0.06431679（action完全相同，ARDY0.30551493）。history/both整体梯度相对reference为2.4761%/2.4803%，最大单值差0.00128174，只有reader.attn.v_proj_weight超过现有BF16容差；reference重复0.44265%，both重复对both0.35812%，当前/认证原both0.38158%，均无超限。masked组全部方式0.45%–0.58%内、无超限，ARDY梯度为零、动作loss与formal同值；所有223梯度有限、VLM冻结及RNG核验均通过。不能称合批“完整GPU逐位等价”，也不能将其数值差异直接当作顿挫因果。

@@ -53,8 +53,8 @@ def main():
     if torch.cuda.mem_get_info()[0] < 12 * 1024**3:
         raise RuntimeError("Need 12 GiB free for isolated inference comparison")
     saved = json.loads((args.checkpoint / "rsci_config.json").read_text())
-    if args.recorded_inputs is not None and saved["variant"] != "VGQ-AE":
-        raise ValueError("Image-only pairing is restricted to VGQ-AE, which ignores state")
+    if args.recorded_inputs is not None and saved["variant"] not in ("VGQ-AE", "NO-STATE"):
+        raise ValueError("Image-only pairing requires a variant that ignores state")
     # rotary 的非持久 buffer 不在 checkpoint；沿用正常构造，不能只从 meta 赋权重。
     model = Pi05RHSCI(saved["variant"], compile_inference=False)
     model.load_state_dict(
@@ -229,6 +229,8 @@ def main():
     args.output.write_text(
         json.dumps(
             {
+                "checkpoint": str(args.checkpoint),
+                "variant": saved["variant"],
                 "seed": 17,
                 "noise_seeds": args.noise_seeds,
                 "recorded_inputs": str(args.recorded_inputs) if args.recorded_inputs else None,

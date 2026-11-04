@@ -42,6 +42,9 @@ def main():
         if actions.shape != (len(seeds), len(steps), 30, 14) or not np.isfinite(actions).all():
             raise ValueError("Expected complete finite seed/step/30x14 array")
         jump = actions[:, 1:, 0] - actions[:, :-1, -1]
+        inside = np.linalg.norm(np.diff(actions, axis=2), axis=-1)
+        inside_median = np.median(inside, axis=(1, 2))
+        boundary_median = np.median(np.linalg.norm(jump, axis=-1), axis=1)
         error = jump - expert_jump
         mean_error = error.mean(0)
         mean_square = np.mean(np.sum(error**2, axis=-1), axis=0)
@@ -52,6 +55,18 @@ def main():
         results.append(
             dict(
                 source=source,
+                per_seed=[
+                    dict(
+                        seed=seed,
+                        boundary_median_l2_rad=float(boundary_median[index]),
+                        inside_median_l2_rad=float(inside_median[index]),
+                        boundary_to_inside_ratio=float(
+                            boundary_median[index] / max(inside_median[index], 1e-12)
+                        ),
+                        arm_expert_rmse_rad=float(np.sqrt(np.mean((actions[index] - expert) ** 2))),
+                    )
+                    for index, seed in enumerate(seeds)
+                ],
                 boundary_frames=steps[1:],
                 expert_boundary_l2_rad=np.linalg.norm(expert_jump, axis=-1).tolist(),
                 mean_prediction_boundary_l2_rad=np.linalg.norm(jump.mean(0), axis=-1).tolist(),
