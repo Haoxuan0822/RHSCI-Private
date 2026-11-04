@@ -1,5 +1,7 @@
 # 错误记录
 
+- **跨初态的开环下身目标不是有效物理基线：** 完整RAW目标诊断中，将当前WBC保存目标改从RAW初态开始，第120步躯干偏53.05度，不能拿RAW下身恢复至0.63度宣布修复。补从trace自身稳定初态重放，现场腰max误差0.003228rad；相同初态/手臂条件下换RAW腿腰目标反使第120步误差8.77→16.21度。保存目标依赖原反馈，跨状态不能当闭环控制；后续必须先验证基线，再报告完整轨迹和反例。首版contact bodyid的NumPy隐式标量转换警告用.item()修正，两次补跑无此警告，物理计算未改变。
+
 - **原始/训练episode编号不能直接对齐：** 官方RAW episode0为844帧，与训练episode0的586帧不匹配。训练manifest实际raw_parquet指向episode78；按该路径仅读取后，其SHA与清单精确相同，586帧双臂/腰状态逐位匹配。两个已取HF版本的RAW episode0文件SHA相同，不能把编号错配误判成版本变化。后续先核完整source_binding路径、SHA、帧偏移及实值，再使用raw基座/动作；不同包装的processed_identity_offset=1不覆盖本次rerender的frame_offset=0。
 
 - **独立USD检查版本不等于Isaac内置USD版本：** 第三次Kit已正常初始化，但其`ListEditorProxy_SdfReferenceTypePolicy`没有独立usd-core的`GetAppliedItems`，六路在场景加载前退出。输出完整移至`*-before-usd-api-compat`。计数改用两个版本均提供的explicit/added/prepended/appended/deleted/ordered列表逐项计数，不改变引用本身；第四次日志`gr00t-old-package-queue-usd-compat.log`，实际验收仍以Isaac运行结果为准。

@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 新增纯CPU原生PD完整RAW目标重放及两种初态对照，三个进程均退出0/DDS230释放，无新π0.5模型调用。RAW初态+RAW完整目标腰RMSE0.000189/0.000637/0.000227rad、第90步躯干0.518度；但不能和换初态后失稳的WBC保存目标53.05度比较来称修复。恢复trace自身初态后基线腰相对现场max0.003228rad，腿腰15维换RAW目标使第120步躯干误差8.770→16.206度、base x RMSE9.97→61.02mm，反证直接移植原始下身目标不是修法。两份*-paired-replay/trace-initial-replay.json及日志保留，脚本/完整命令在两桌README新节，Ruff通过。当前下身目标对初态/反馈敏感，视角差仍不能单独判控制bug；新旧包差异与完整根因未定，goal仍active。
+
 - 真实训练forward/eval动作分支6组对照已退出0（GPU7/PID2465327/session24084结束）：VGQ40k、训练episode0帧30/60/90、seed17/29、原生历史图/增强/Beta时间；捕获实际训练动作embedding及当前图，train重复、eval同cache、eval重新编码三路全部逐位相同、最大差0。仅no_grad离线前向、ARDY目标无效占位，无训练/服务/仿真。action-train-eval.json/log保留，脚本audit_action_train_eval.py Ruff通过，完整命令及范围见两桌README顶部。不支持模式切换制造回跳，未证明全训练正确或找到根因，goal仍active。
 
 - 用户否定腰部/相机追因方向后，本会话转查无状态模型共享训练链路。新CPU原始轨迹核对已退出0：固定HF1885a61a的RAW78与训练0，586帧完整32Dstate/36Daction最大差9.54e-9/1.15e-7，未见本条标签转换错位；RAW/action与state列序不同，按各自名字映射。新增Range只取该条parquet和视频。两种渲染器121帧手部跟踪前后向误差<0.183px，固定30–89窗口水平位置最佳lag0，但速度最佳-28、指标不一致，不能称绝对同步验收。91条元数据只68条唯一匹配，其余不定性。raw-training-alignment-episode0-motion-v2.json与完整命令/限制在两桌README顶部；两份新脚本Ruff通过。无新模型/仿真/正式评测，无生产修改，goal仍active、具体根因未确证。

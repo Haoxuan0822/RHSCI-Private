@@ -1,5 +1,33 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 完整原始电机目标的CPU物理反证（2026-11-04）
+
+继续遵守停止π0.5评测/服务，不新增模型调用。`replay_recorded_motor_targets.py`只调用已有原生MJ场景、机器人PD及ActionCmd；200Hz物理/50Hz目标、120步、DDS230、无渲染/成功率/下身RL重算。来源核对本机固定b75 README的client/server评测边界、原生G1Sonic.apply_action和官方ReplayDecoupledAgent：本诊断刻意跳过WBC，仅检验全关节最终目标的PD解释，不冒称官方上层动作重放。RAW78/info SHA必须与训练manifest一致，action按其独立的关节名称排序，不能套用state列顺序。
+
+原始初态下，RAW完整目标offset0的腰roll/pitch/yaw RMSE为0.0001887/0.0006365/0.0002270rad，base xyz RMSE0.996/1.299/0.379mm；第90步躯干角误差0.51848度。offset1的腰误差0.006574/0.002699/0.002000rad，但base部分分量更小；不能只挑一个有利指标判定整个数据一帧错位。数据可近似通过原生PD重现，尚不证明历史每个腰标签的上层语义。
+
+必须保留的反证：把当前WBC保存的最终目标从RAW初态开环重放，第120步躯干误差达53.05度，不能拿它作有效基线，再用换RAW下身后的0.62849度宣称修复。改从该trace自身最后稳定qpos与两帧差分速度启动，原样重放腰相对现场最大误差0.0032276rad（与既有开环重放一致）；此时第30/60/90/120步躯干误差0.77397/2.33082/5.74752/8.76992度。保持同初态及手臂/手指目标，只替换RAW腿12+腰3最终目标后变为0.42041/1.48988/4.20820/16.20649度，末端反而更差，base x RMSE9.97→61.02mm。完整RAW目标从该trace初态运行也偏离。因此保存的下身目标跨初态缺少反馈不能移植，本实验不支持直接替换15维下身输出作为部署修复；不能把此前视角偏差简单认定为已定位的控制器bug。
+
+三次CPU进程均退出0、DDS230释放，无GPU/模型服务/正式队列修改。首版`recorded-motor-target-replay.json`保留原脚本SHA；两次四组收据为`recorded-motor-target-paired-replay.json`（RAW初态）和`recorded-motor-target-trace-initial-replay.json`（trace初态），同名.log保留全部输出。初次contact bodyid的NumPy隐式标量转换警告已改为.item()，后续两次无该警告；不改变物理计算。脚本Ruff lint/format通过。实际trace初态复算命令如下，RAW初态那次去掉`--initial-state trace`并将输出改为paired-replay；已有输出拒绝覆盖，重新执行需新文件名。
+
+```bash
+source /opt/rsci-data/activate.sh simple
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/replay_recorded_motor_targets.py \
+  --raw "$AUDIT_ROOT/upstream-raw-historical-episode0/episode_000078.parquet" \
+  --raw-info "$AUDIT_ROOT/upstream-raw-historical-episode0/info.json" \
+  --manifest /opt/rsci-data/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/manifest.json \
+  --dataset /opt/rsci-data/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  --trace "$AUDIT_ROOT/expert-replay-vgq/control_trace.jsonl" \
+  --steps 120 --dds-domain-id 230 --initial-state trace \
+  --output "$AUDIT_ROOT/recorded-motor-target-trace-initial-replay.json" \
+  > "$AUDIT_ROOT/recorded-motor-target-trace-initial-replay.log" 2>&1
+```
+
+完整根因、新旧包总体顺畅程度差异仍未确证；本轮获得一个新的无效修法反证，没有更改正式动作/控制配置。
+
 ## 用身份匹配的原始基座核验视角偏差（2026-11-04）
 
 用户指出旧包基本顺畅；个别旧包诊断的动作回跳不能外推新旧包顿挫程度相同。现有旧包150次、新包400次和历史30/24协议不能混成严格配对的平滑度比较。本节只验证训练图/专家动作回放的几何偏差，不恢复π0.5模型调用或评测，不宣称已解释新旧包差异。
