@@ -1,5 +1,32 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 出生点稳定位移与机器人朝向恢复缺陷（2026-11-04）
+
+复用已完成的旧包episode4/execute-30和新版spawn-full/original-episode4轨迹，两者均有160步稳定记录：旧配置x=-0.64261184994m、稳定后-0.70395204182m；新配置-0.70334384994m、稳定后-0.76468403519m。两者自身稳定后退均6.134cm，新旧配置差6.0732cm，稳定后差仍6.0732cm（误差约7nm）。目标相对机器人前向距离由37.515cm增至43.604cm；稳定阶段盒子z均保持约0.76261–0.76311m，没有先掉落。此处证明两段位移叠加，不证明上游未发布生成器重复稳定或其意图有误。官方入口reset后仅一次稳定循环；PR29说明零臂初始化后约6.1cm为正常WBC稳定位移。现有初态视频/parquet的base位姿为占位值，不能由其倒推出正确生成器逻辑。
+
+另外直接调用官方SpatialDR/RobotActor/Pose，复现一个具体读取缺陷：spatial.py机器人分支读取保存的position，却漏读同一state的quaternion；当robot_orientation_region=None时保留Actor默认单位四元数，再覆盖_inner_state中保存的四元数。实际源码SHA51b5f168ff98870d27fad9819b9bcb53cf7fb05c46215d126d72d7a7c3dbcb0e。旧level0十条均单位朝向、误差0；新版四难度40条均保存[0.9999988442451683,0,0,-0.001520364537745943]，却恢复为[1,0,0,0]，全部角误差0.00304073025rad（约0.17422°），位置误差0。真实新旧稳定轨迹的初始四元数也相同到1e-8，支持该路径实际生效。这是已复现的代码缺陷，尚无证据证明如此小的朝向误差解释大幅成功率回归或块边界跳变；只前移6cm的成功反例也未修正这个朝向。未修改官方源码、未执行朝向修复反事实。
+
+只读CPU脚本已实际运行、Ruff通过；报告spawn-settling-audit.json与spatial-robot-restore-audit.json包含输入及实现SHA，输出存在时拒绝覆盖。后者只承载真实uid、不创建机器人物理环境，不是闭环成功率实验。实际命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/opt/rsci-data/.venv-simple/bin/python experiments/pi05_between/audit_spawn_settling.py \
+  --old-metadata /opt/rsci-data/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+  --new-metadata /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+  --old-trace /opt/rsci-data/evals/stutter-root-cause-20261104/old-episode4-horizon/execute-30/control_trace.jsonl \
+  --new-trace /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-full/original-episode4/control_trace.jsonl \
+  --episode 4 \
+  --output /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-settling-audit.json
+/opt/rsci-data/.venv-simple/bin/python experiments/pi05_between/audit_spatial_robot_restore.py \
+  --metadata \
+  /opt/rsci-data/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+  /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+  /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-1/meta/episodes.jsonl \
+  /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-2/meta/episodes.jsonl \
+  /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-hard/meta/episodes.jsonl \
+  --output /opt/rsci-data/evals/stutter-root-cause-20261104/spatial-robot-restore-audit.json
+```
+
 ## 历史手指兼容的实际组合核对（2026-11-04）
 
 已认证只读取得原bfffc460c0d857ae447f18be2529447ea612a11c的eval_wbc_hand_order.py，SHA f30f8dbe2f9e1aa22e946072865e2520019fb360e991861348e893ee8be5495d。历史协议不仅按名称修正PD，还先对旧模型动作执行legacy_upper_targets；不能遗漏后者、只凭移除具名PD就断言物理目标变了。

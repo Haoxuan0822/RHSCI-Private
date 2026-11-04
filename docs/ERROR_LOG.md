@@ -2,6 +2,8 @@
 
 每次开始工作前必须完整阅读本文件和 `AGENTS.md`。错误按实际证据记录，不用静态检查、下载成功或进程存活替代实际运行验证；修复后更新原条目中的状态与验证范围。
 
+- **官方SpatialDR漏恢复机器人四元数，已复现、未修复：** b75的src/simple/dr/spatial.py机器人分支只读已保存position，不读quaternion；robot_orientation_region=None时使用Actor原有朝向并回写覆盖保存状态。使用真实SpatialDR/RobotActor/Pose和实际metadata做CPU调用：旧level0十条误差0，新四难度40条全部朝向偏差0.00304073025rad（0.17422°）、位置误差0。源码SHA51b5f168…、逐条输入/恢复值/回写值保留spatial-robot-restore-audit.json。缺陷确切，但没有闭环反事实证明它是当前成功率骤降或跳变主因，不能因发现一处bug即宣布goal完成；仅前移x的成功样本也保留此缺陷。新旧160步稳定各后退6.134cm，配置额外后移6.0732cm真实保留到策略开始，记录spawn-settling-audit.json；这不证明未公开生成器“重复稳定”。脚本及实际命令在两桌README，未改生产/官方源码。
+
 - **并行导航诊断的DDS冲突与历史标签更正：** 本轮新启动navigation-v3两路与另一并行工作刚启动的old-episode4-navigation复用了DDS220/221；随后ps确认碰撞，只终止本轮PID2063616/2063617，父进程亦已退出，目录原样保留。前者current已有稳定阶段记录、无model_chunk，不能断言未发生跨进程DDS干扰；两个目录的结果均不作为干净物理对照（不影响DDS100–107正式评测和210–212旧150次复测）。改用新目录navigation-v3-corrected、GPU2/3、DDS230/231并确认无占用后重跑。启动前的单次进程检查不能排除其他会话同时启动，后续检查实际PID、DDS和输入来源。另，尚未提交的legacy_navigation.py原实现是legacy四维范数，却标为历史v3；已读原归档环境锁及认证源码@1f96adda的rsci_between_settings.navigation_method，历史v3应为前三维速度范数<0.05。本轮校正实验适配器并记录selector/适配函数SHA；已启动旧进程不会热更新，old-episode4-navigation/legacy仍是旧四维实现，不冒充v3。生产控制器未改。
 
 - **独立诊断DDS编号碰撞，整组结果作废：** old-episode4-navigation与另一并行navigation-v3曾同时使用220/221；后者current已进入稳定期，有串扰可能。已TERM本会话2056693/2056694、保留输出，不把该组轨迹当科学对照。正式100–107和旧包210–212未重号。启动前查进程只能证明当时空闲，不能阻止并发启动；后续单一负责会话启动导航，不重复启动。并行补查还确认历史v3选择器看前三维速度，最初四维范数只对应更早协议，不能仅从基础适配脚本推断最终历史运行语义。
