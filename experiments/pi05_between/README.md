@@ -1,5 +1,42 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 共用视觉前缀缓存与原生联合前向（2026-11-04）
+
+补充完整采样已退出0、GPU0释放：native joint eager的三个双臂边界L2为0.101185/0.100177/0.039713rad，cached SDPA为0.102290/0.098852/0.039104rad；边界中位/块内中位比9.82928对9.39240。两入口全4块双臂RMSE0.000488641rad、最大单值差0.00225258rad。原生联合前向也保留同类接续偏差，不能将当前KV分离/缓存处理认作本样本主要来源。仍未证明训练具体哪处有误；这是离线单episode、单seed对照，不等同闭环成功率、全模型/全部输入正确。prefix-cache-native-joint-sampling.json SHA43bb76c37fbe8d1cc8c592c969e589ccaaeb71ce542fb0f2e27ab6cfb6ea9364；sampling-summary.json逐模式保存三个边界及块内中位、首步肩角、全输出差。原始四图SHA、全部30×14目标与脚本SHA在采样报告内。
+
+首轮e2e5ae6脚本已实际完成8组速度场比较，退出0。eager分离/联合相对L2约0.28%–0.52%，当前SDPA/eager约0.35%–0.83%，全部KV调用前后逐张量相同。prefix-cache-native-joint.json保留。单步不能排除误差积累，因此追加--sample-steps 10：同seed17噪声/原生Euler公式，各4帧分别完整采样cached SDPA与native joint eager，保存全部双臂30步目标；不执行动作、不改正式入口。补充实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/audit_prefix_cache.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --sample-steps 10 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/prefix-cache-native-joint-sampling.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/prefix-cache-native-joint-sampling.log" 2>&1
+```
+
+NO-STATE和VGQ都出现接续偏差，继续核查共同骨干。沿本说明论文/官方README的配置对照，复用已有openpi.models_pytorch.gemma_pytorch.PaliGemmaWithExpertModel.forward联合入口，而不是另写Transformer。联合前向使用前缀双向、前缀不可看动作、动作可看有效前缀及整段动作的4D mask；位置按有效token累计。相同权重/图像/文本/加噪动作/时间，比较联合eager与分离KV eager，再比当前SDPA，排除混入后端误差；直接核对调用前后KV逐张量不变。
+
+这是离线速度场数值诊断，不是改变正式配置的完整采样/成功率实验。VGQ40k，原训练episode0的0/30/60/90帧，seed17、30×36、t=1和0.1、BF16，无增强/梯度/更新；此处检查单步velocity，没有另设采样步数，也不执行动作。GPU0现场14GiB以上空闲，无DDS，不占GPU2/3。实际启动命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/audit_prefix_cache.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/prefix-cache-native-joint.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/prefix-cache-native-joint.log" 2>&1
+```
+
 ## 已选NO-STATE权重的离线分块对照（2026-11-04）
 
 实际完成24次预测、进程退出0、GPU0释放。按seed17/29/43，NO-STATE原训练RGB的边界/块内变化比9.4967/7.5795/8.2932，渲染RGB为16.0865/14.4977/15.5630；VGQ相同输入分别9.3924/7.5048/7.7330和15.0884/12.7292/14.3769。NO-STATE原图/渲染图双臂专家RMSE分别0.01936–0.02639/0.03551–0.03944rad。均值偏差占三种子边界平方误差88.77%/95.39%。现象同样存在于无ARDY、无历史合批的独立权重，不证明辅助训练无影响，也不等同闭环成功率或最终根因。

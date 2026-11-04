@@ -49,7 +49,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("checkpoint", "dataset", "tokenizer", "recorded-inputs", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--sample-steps", type=int, default=0)
     args = parser.parse_args()
+    if args.sample_steps < 0:
+        parser.error("--sample-steps must be nonnegative")
     if args.output.exists():
         raise FileExistsError(args.output)
     if torch.cuda.mem_get_info()[0] < 12 * 1024**3:
@@ -67,6 +70,8 @@ def main():
     modules = (native.paligemma.language_model, native.gemma_expert.model)
     content = args.recorded_inputs.read_bytes()
     rows = []
+    samples = []
+    low, high = (np.asarray(processor.stats["action"][key], np.float32) for key in ("q01", "q99"))
     with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False):
         for record in map(json.loads, content.splitlines()):
             image_path = args.recorded_inputs.parent / (
@@ -119,12 +124,39 @@ def main():
                     )
                 rows.append(row)
                 print(json.dumps(row), flush=True)
+            if args.sample_steps:
+                for module in modules:
+                    module.config._attn_implementation = "sdpa"
+                cached = model.sample_actions(
+                    image, tokens, token_mask, num_steps=args.sample_steps, noise=noise.clone()
+                )
+                for module in modules:
+                    module.config._attn_implementation = "eager"
+                joint = noise.clone()
+                for index in range(args.sample_steps):
+                    time = torch.full((1,), 1 - index / args.sample_steps, device="cuda")
+                    velocity = joint_velocity(model, image[:, -1], tokens, token_mask, joint, time)
+                    joint = joint - velocity / args.sample_steps
+                entry = dict(
+                    frame=record["frame"],
+                    input_image_sha256=hashlib.sha256(image_path.read_bytes()).hexdigest(),
+                )
+                for name, actions in (("cached_sdpa", cached), ("native_joint_eager", joint)):
+                    raw = (actions[0].float().cpu().numpy() + 1) / 2 * (high - low + 1e-6) + low
+                    entry[name] = raw[:, 14:28].tolist()
+                samples.append(entry)
+                print(
+                    json.dumps(dict(sample_frame=record["frame"], sample_steps=args.sample_steps)),
+                    flush=True,
+                )
     report = dict(
         checkpoint=str(args.checkpoint),
         input_sha256=hashlib.sha256(content).hexdigest(),
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         rows=rows,
-        limitation="Fixed recorded inputs and teacher noisy actions; velocity comparison only, no parameter update or success-rate claim. Joint native path always uses eager attention; cached eager control separates attention backend effects.",
+        sample_steps=args.sample_steps,
+        samples=samples,
+        limitation="Fixed recorded inputs and teacher noisy actions for velocity comparisons; optional complete sampling uses identical seed17 noise with the existing Euler formula. No parameter update, execution or success-rate claim. Joint native path always uses eager attention; cached eager velocity control separates attention backend effects.",
     )
     with args.output.open("x") as stream:
         json.dump(report, stream, indent=2)
