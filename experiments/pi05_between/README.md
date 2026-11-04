@@ -1,5 +1,32 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 用身份匹配的原始基座核验视角偏差（2026-11-04）
+
+用户指出旧包基本顺畅；个别旧包诊断的动作回跳不能外推新旧包顿挫程度相同。现有旧包150次、新包400次和历史30/24协议不能混成严格配对的平滑度比较。本节只验证训练图/专家动作回放的几何偏差，不恢复π0.5模型调用或评测，不宣称已解释新旧包差异。
+
+训练ARDY manifest的`source_binding["0"].raw_source.raw_parquet`实际指向官方RAW **episode78**，不是RAW episode0。对HF固定`USC-PSI-Lab/psi-data@79baf58cf2147a4b975eab17cec761707b52df04`归档使用HTTP Range，只新增读取738904字节的该parquet，SHA256 `c41a9683dde96165f921ea1e243bc1806378a1f436d38e3fc1749dafe0c6f4e6`与训练来源清单完全一致；同归档info.json SHA也完全一致。初次取到的RAW episode0为844帧，而训练episode0为586帧，不能直接配对；并非已发现HF版本变化，两个已取版本的该首条文件SHA相同。586帧双臂14维及腰3维与当前训练states逐位相同，raw绑定frame_offset=0；不要套用另一个processed旧包装的identity_offset=1。
+
+`audit_recorded_base_camera.py`复用原生MJCF及MuJoCo正运动学，使用身份匹配的完整原始基座/关节，核对已有专家回放与RGB-D相机反事实。第0/30/60/90步回放躯干角误差分别0.21666/0.74469/2.22833/5.07666度；RGB-D相机反事实剩余0.05171/0.07502/0.13639/0.65663度，说明原先估计的角度补偿方向基本正确，但位置并非真值（第90步躯干原点差21.22mm）。第90步只恢复实录腰角仍差4.97216度，只恢复实录基座则差3.01548度，不能把全部视角偏移归为腰角、也不能以腰部PD目标改善部分关节判整个控制根因。单因素替换只是静态几何分解，没有物理闭环/成功率含义；躯干角误差等于同一刚性安装相机的角误差，躯干位置不是光心位置。
+
+收据位于运行根`evals/stutter-root-cause-20261104/recorded-base-camera-factorial-audit.json`，保留各输入与脚本SHA、四帧原始基座、四种姿态比较；初版未分解收据也保留。新增脚本Ruff检查/格式通过。实际CPU复算命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+/opt/rsci-data/.venv-simple/bin/python \
+  experiments/pi05_between/audit_recorded_base_camera.py \
+  --raw "$AUDIT_ROOT/upstream-raw-historical-episode0/episode_000078.parquet" \
+  --raw-info "$AUDIT_ROOT/upstream-raw-historical-episode0/info.json" \
+  --manifest /opt/rsci-data/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/manifest.json \
+  --dataset /opt/rsci-data/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  --trace "$AUDIT_ROOT/expert-replay-vgq/control_trace.jsonl" \
+  --render "$AUDIT_ROOT/static-camera-render" \
+  --xml /opt/rsci-data/external/SIMPLE-official/data/robots/g1_sonic/g1_29dof_with_hand.xml \
+  --output "$AUDIT_ROOT/recorded-base-camera-factorial-audit.json"
+```
+
+输出存在时拒绝覆盖；复算使用新的输出文件名。下一步需要解释完整基座与腰部协同为何偏离，并继续区分旧/新初态差异；当前证据尚不构成完整根因或修复。
+
 ## 用户指定旧包 level2 episode8 停滞诊断（2026-11-04）
 
 原 repeat01 左目录像1201帧/50Hz/24.02s，人工抽查0–23.9s：手臂/视角有微小变化，盒子未搬起。该集日志区间收到40批30步动作，官方False；正式未开trace，不能从该日志恢复动作值或直接判定控制器故障。补跑同旧初态120步，沿用上文官方README/已保存权重契约：VGQ40k/30预测30执行/noRTC/10步BF16/wall/v2统计，seed17仅为诊断复现，不等同原录像随机噪声。GPU7渲染复用独立8148服务，DDS227已现场查无占用；不计正式成功率。实际启动命令（stdout/stderr保存eval.log）：

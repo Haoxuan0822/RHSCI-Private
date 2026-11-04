@@ -1,5 +1,7 @@
 # 错误记录
 
+- **原始/训练episode编号不能直接对齐：** 官方RAW episode0为844帧，与训练episode0的586帧不匹配。训练manifest实际raw_parquet指向episode78；按该路径仅读取后，其SHA与清单精确相同，586帧双臂/腰状态逐位匹配。两个已取HF版本的RAW episode0文件SHA相同，不能把编号错配误判成版本变化。后续先核完整source_binding路径、SHA、帧偏移及实值，再使用raw基座/动作；不同包装的processed_identity_offset=1不覆盖本次rerender的frame_offset=0。
+
 - **独立USD检查版本不等于Isaac内置USD版本：** 第三次Kit已正常初始化，但其`ListEditorProxy_SdfReferenceTypePolicy`没有独立usd-core的`GetAppliedItems`，六路在场景加载前退出。输出完整移至`*-before-usd-api-compat`。计数改用两个版本均提供的explicit/added/prepended/appended/deleted/ordered列表逐项计数，不改变引用本身；第四次日志`gr00t-old-package-queue-usd-compat.log`，实际验收仍以Isaac运行结果为准。
 
 - **pxr必须在原生Kit初始化后导入：** 第二次GR00T启动2314573中，导入SIMPLE CLI/API仍未启动Kit，修复器立即调用pxr导致六路ModuleNotFoundError，未开始物理评测。输出移动保留为`gr00t-official-pre1102-5cycles-20261104-before-kit-hook`。改为在实验入口包装原生`BaseDualSim._init_isaac`，先完整执行原初始化再修正Layer，随后才由原生框架加载场景；不在Isaac环境安装另一个usd-core、不手工抢先创建SimulationApp。第三次实际启动及验证状态见WORK_LOG。

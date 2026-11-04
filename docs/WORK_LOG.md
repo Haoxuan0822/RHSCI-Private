@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 已找到训练episode0对应的官方RAW episode78（非0），仅HTTP Range新增738904字节parquet，HF固定79baf58、文件SHA c41a9683…与训练manifest完全一致；586帧双臂/腰states逐位相同，绑定offset0。新增CPU audit_recorded_base_camera.py用完整实录基座/关节核对原生FK：专家动作回放第90步躯干角差5.07666度，只修腰仍4.97216度、只修基座3.01548度；此前RGB-D补偿剩0.65663度/躯干位置21.22mm，支持角度估计但非完整位姿真值。完整命令/收据recorded-base-camera-factorial-audit.json在两桌README新节，Ruff通过，无新模型调用/评测。用户指出旧包基本顺畅，不能用个别旧样本回跳外推新旧相同；新旧总体差异及完整根因仍待解释，goal保持active。
+
 - 相机+95%裁剪的残留误差已复用analyze_sampling_bias.py作逐种子分解（只读已有预测，无新模型调用）。第60步新首误差0.00589–0.01630rad、旧末0.03301–0.06308rad，新首有符号投影仅0.028–0.175；此处不能继续统称新首严重回退，第30步两端均偏。渲染图三种子边界误差均值平方占总平方89.16%，相同报告原训练图36.44%，支持剩余共同输入偏差，非总体统计。新增可选--center-crop-fraction=.95，默认不裁剪结果与旧boundary-origins-vgq.json完全一致；实际两份新收据corrected-crop-origin-bias.json/default-crop-selection-verified.json保留。必要命令/限制在两桌README增强节，Ruff通过。未修改生产推理/控制；根因仍未完整确证。
 
 - 同一CPU分析器已进一步只读复核独立会话完成的static-camera-render两份预测：固定95%裁剪，相机位姿恢复后第90步跳变0.15179–0.15738→0.01081–0.01946rad，新首误差0.16081–0.16887→0.00903–0.01441rad，cos约-0.99→-0.246/0.249/0.041；第30/60步仍有0.04395–0.10683rad跳变。支持相机视角为第90步的重要条件因素，非完整根因/闭环验证；相机为RGB-D估计且包含专家腰角。两个*-boundary-audit.json保存原始文件SHA与逐边界数据，未新增模型调用。GR00T烤箱VGQ旧level0首个episode已官方True，双目录像闭合；人工查看0/1.5/3/4.5秒拼图确认拉开烤箱过程，logs/gr00t-old-oven-first-success-review.jpg。该单例不外推总体成绩，当前日志无缺失USD/UsdToMdl。
