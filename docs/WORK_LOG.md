@@ -11,6 +11,10 @@
 
 ## 当前 π0.5 两桌任务
 
+- 同一CPU分析器已进一步只读复核独立会话完成的static-camera-render两份预测：固定95%裁剪，相机位姿恢复后第90步跳变0.15179–0.15738→0.01081–0.01946rad，新首误差0.16081–0.16887→0.00903–0.01441rad，cos约-0.99→-0.246/0.249/0.041；第30/60步仍有0.04395–0.10683rad跳变。支持相机视角为第90步的重要条件因素，非完整根因/闭环验证；相机为RGB-D估计且包含专家腰角。两个*-boundary-audit.json保存原始文件SHA与逐边界数据，未新增模型调用。GR00T烤箱VGQ旧level0首个episode已官方True，双目录像闭合；人工查看0/1.5/3/4.5秒拼图确认拉开烤箱过程，logs/gr00t-old-oven-first-success-review.jpg。该单例不外推总体成绩，当前日志无缺失USD/UsdToMdl。
+
+- 只读已有72份裁剪预测的逐边界CPU审计已完成，未启动新π0.5推理/评测：训练原图95%裁剪后三种子九边界绝对跳变均降低，块内中位变化很小，改善真实；但渲染图第90步三种子绝对跳变均增大为0.14423/0.15535/0.15938rad，新起点误差0.15391–0.16567，远大于旧终点0.01252–0.02586rad，回退cos约-0.98至-0.997。第60步裁剪后也均转负方向，不能以三边界中位数称完整修复。新增实验分析器audit_crop_boundaries.py、center-crop-boundary-audit.json保存身份/SHA/逐边界误差分解；命令在两桌README原生增强节。Ruff通过，根因仍未确证，goal保持active，正式GR00T旧包队列不变。
+
 - **当前GR00T队列2329010/session37378活跃，日志`logs/gr00t-old-package-queue-usd-compat.log`。** 六份warmup均有限(16,36)，六路Kit内修复各79处原场景引用，已开始原生episode初始化/双目录像；现场日志缺失USD/纹理/UsdToMdl/Traceback均0，尚无完成episode。不据初始化通过宣称全部渲染/完整评测验收。第三次2321277因Isaac内置USD缺少GetAppliedItems退出，输出完整保留为`*-before-usd-api-compat`；改为两个USD版本均支持的原始list-op计数，CPU三场景复验仍组合错误0（logs/gr00t-old-scene-reference-audit-listop/result.json）。完整错误已记ERROR_LOG。下文旧PID均为历史快照。
 
 - **当前状态覆盖下文所有旧PID快照：** π0.5/NO-STATE均已停止。GR00T首试2292579因场景引用错误停止，输出完整移至`gr00t-official-pre1102-5cycles-20261104-before-oven-usd-repair`；二试2314573因Kit初始化前调用pxr失败，输出完整移至`*-before-kit-hook`，均不计成绩。现修复为包装原生`BaseDualSim._init_isaac`、先调用原方法再修正进程内Layer，保留torch/curobo/Kit原生顺序。第三次队列2321277/session97966、六worker2321278–2321283已启动，日志`logs/gr00t-old-package-queue-kit-hook.log`；当前仅确认模型加载，实际渲染与完成结果待核。原场景三个ZIP共1240文件的集合/大小/CRC32全部匹配，收据`logs/gr00t-old-scene-original-inventory.json`。命令及完整配置见队列README顶部。

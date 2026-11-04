@@ -134,6 +134,19 @@ CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
 GPU0/无DDS，VGQ40k，专家episode0四时刻0/30/60/90的原训练RGB和专家回放渲染RGB；原图加五组增强seed101/203/307/409/503，采样噪声全部固定17，10步eager/BF16、预测30，不执行动作，共48次预测。逐图保留增强后输入张量SHA、全部动作，增强RNG与采样generator隔离；每个增强seed跨四时刻固定，便于对照，并非重现整条训练shuffle/RNG。不能根据单次改善宣称增强是根因，不以此改变正式30/30无RTC。实际命令：
 
 ```bash
+逐边界CPU复核（不新增π0.5推理或评测）：audit_crop_boundaries.py读取已有72份预测与专家动作，检查全部图源/种子/裁剪/帧身份、有限性及jump误差=新起点误差−旧终点误差。原训练图95%裁剪后，三seed×三边界的绝对跳变全部降低，块内中位L2仅0.01053–0.01066→0.01065–0.01111rad，说明此前比值改善并非单纯分母增大。它仍不能解释渲染图：第90步原跳变0.14142/0.13611/0.14563rad，裁剪后反而0.14423/0.15535/0.15938rad，专家自然边界只有0.00393rad；对应新起点专家误差0.15391/0.16567/0.15976rad，旧终点仅0.01837/0.02586/0.01252rad，回退相对上块推进方向cos=-0.9795/-0.9968/-0.9962。第60步三个seed裁剪后也都改为负方向cos，不能用三个边界的中位数判定整体连续性恢复。边界向量是14个臂关节的联合L2，不能写成某个关节的角度。报告center-crop-boundary-audit.json记录绝对量、方向、逐边界误差及文件SHA；不修改正式裁剪或30/30设置。
+
+同一分析器另外只读复核已完成的static-camera-render/{replay,expert_camera}-predictions.json，输出同目录replay-boundary-audit.json与expert-camera-boundary-audit.json（命令沿下例替换--predictions与--output）。95%裁剪固定时，第90步原姿态跳变0.15738/0.15241/0.15179rad，恢复估计相机位姿后0.01081/0.01666/0.01946rad；新首目标专家误差0.16081–0.16887→0.00903–0.01441rad，回退cos从约-0.99变为-0.246/0.249/0.041。此项支持视角差对该边界有实质影响；相机位姿是RGB-D估计、同时保留专家腰角，非完整基座真值。第30/60步修正后仍有0.04395–0.10683rad跳变，不能据一处改善宣称所有顿挫已修复，也不能把静态反事实当闭环成功率。
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/audit_crop_boundaries.py \
+  --predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/center-crop-paired.json \
+  --recorded-inputs /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/center-crop-boundary-audit.json
+```
+
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
 cd /root/workspace/RHSCI-Private
 CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
