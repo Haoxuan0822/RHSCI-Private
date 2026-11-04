@@ -1,13 +1,19 @@
 """Opt-in tracing around the existing official policy and simulation methods."""
 
 import functools
+import hashlib
 import json
 import os
 import time
 
 
 def install_control_trace(
-    path, *, control_clock="wall", execute_horizon=None, legacy_navigation=False
+    path,
+    *,
+    control_clock="wall",
+    execute_horizon=None,
+    legacy_navigation=False,
+    camera_timing=False,
 ):
     """默认只记录；诊断可显式对照时钟、执行前缀或旧导航语义。"""
     import numpy as np
@@ -96,6 +102,11 @@ def install_control_trace(
                 observed_state=args[2],
                 instruction=args[1],
                 image_path=str(image_path),
+                image_sha256=(
+                    hashlib.sha256(images["rgb_head_stereo_left"].tobytes()).hexdigest()
+                    if camera_timing
+                    else None
+                ),
             )
             return result if execute_horizon is None else (executed, *result[1:])
 
@@ -129,6 +140,23 @@ def install_control_trace(
         start = time.monotonic()
         before = float(env.mujoco.mjData.time)
         result = original_step(env, action)
+        cameras = None
+        if camera_timing:
+            cameras = {}
+            for name, camera in env.isaac.cameras.items():
+                # 与本机Isaac 4.5 Camera获取图像参考帧的实现一致，只读取现有annotator。
+                frame = int(camera._fabric_time_annotator.get_data()["referenceTimeNumerator"])
+                cached = camera.get_current_frame()
+                cameras[name] = dict(
+                    direct_frame=frame,
+                    direct_sim_time=float(
+                        camera._core_nodes_interface.get_sim_time_at_swh_frame(frame)
+                    ),
+                    callback_frame=int(cached["rendering_frame"]),
+                    callback_sim_time=float(cached["rendering_time"]),
+                    isaac_world_time=float(env.isaac.world.current_time),
+                    image_sha256=hashlib.sha256(result[0][name].tobytes()).hexdigest(),
+                )
         emit(
             "env_step",
             duration=time.monotonic() - start,
@@ -136,6 +164,7 @@ def install_control_trace(
             sim_after=float(env.mujoco.mjData.time),
             qpos=env.mujoco.mjData.qpos.copy(),
             observed_joints=result[0]["joint_qpos"],
+            cameras=cameras,
             objects={
                 name: np.concatenate((body.xpos, body.xquat))
                 for name, body in env.mujoco.mj_objects.items()
@@ -154,6 +183,7 @@ def install_control_trace(
         control_clock=control_clock,
         execute_horizon=execute_horizon,
         navigation=navigation,
+        camera_timing=camera_timing,
         modified_policy_switch_behavior=os.environ.get("MODIFIED_POLICY_SWITCH_BEHAVIOR", "0"),
     )
 

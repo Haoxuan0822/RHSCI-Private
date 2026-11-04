@@ -19,6 +19,22 @@ cd /root/workspace/RHSCI-Private
 
 ## 相机参考帧与策略输入时间诊断（2026-11-04）
 
+实际完成PID2138037，正常退出且原生统计有episode4 False；这是120步截短诊断，不计正式模型失败。trace完整160稳定步＋120策略步、4个30步动作块。左右目各280条参考记录，帧号相邻差均4、Isaac参考时间差均0.0800000038s，callback与直接annotator帧号差均0，world减参考时间均0，图像SHA无相邻重复。模型在0/30/60/90步的输入SHA全部匹配最后稳定观测/策略步29/59/89的左目SHA。排除本样本可见的缓存旧观测或请求错取前一块图像，不把元数据当作像素/骨骼绝对同步证明。MuJoCo每控制步0.02s，Isaac每步多次推进/渲染，两者独立时钟，不将0.08s直接解释成图像延迟。
+
+同一轨迹模型双臂块边界L2为0.11679/0.14184/0.27426rad，块内中位0.010587，边界比13.3971；模型到WBC臂映射最大误差0，观测关节对MJ最大5.55e-7rad。control_analysis.png已人工检查，边界目标回跳及真实肩关节随后反向仍存在。双目MP4各121帧、640×360/50Hz且已闭合。camera_timing_analysis.json保留trace SHA974acc68…及全部请求关联；没有修改生产代码/默认评测参数或宣布顿挫已修复。实际复算命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_camera_timing.py \
+  --trace /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/camera-timing-vgq/control_trace.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/camera-timing-vgq/camera_timing_analysis.json
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_control_trace.py \
+  --trace /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/camera-timing-vgq/control_trace.jsonl \
+  --plot
+```
+
 此前关节状态核对不等于证明RGB零延迟。继续沿官方b75源码核对：SonicLocoManipEnv.step先推进MJ、同步Isaac、执行world.step和rep.orchestrator.step，随后_get_obs/_render_frame；IsaacCamera.get_rgba直接读rgb annotator，不走get_current_frame的频率缓存。此源码顺序仍不能代替真实帧时间证据。实验--trace-camera-timing仅配合单episode trace读取本机Isaac4.5已存在的ReferenceTime、对应SWH仿真时间、callback帧、world时间、左右目图像SHA；模型请求另记左目SHA，用来匹配上一观测。不开启额外渲染、不新建材质、不改控制。ReferenceTime与RGB来自同一render product，但元数据不能单独证明每个像素/骨骼绝对同步，需根据实际结果限定结论。
 
 准备并在对话给出：官方旧level0/episode4、VGQ40k/30-30/noRTC/10步BF16/wall、120步，同8147；GPU0、DDS222（未复用220/221/230/231）。论文/README及保存配置同本说明已核对设置，新增项仅测量；不计正式成功率，双目视频保留。实际命令：

@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "ebe24c8f3e0a85707fd68d019dc94f6d8349037b9602ac401f3aa11e35839855",
-      "bytes": 32781
+      "export_sha256": "b90bd891e28719d831eba2806cc30251a6a073e7929af2fa18ae2e05ec404968",
+      "bytes": 34208
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "45f7e715152e5f1e328f5bf2fe41b608f53a1effc00cdb66e513f0ce1bc4222c",
-      "bytes": 84116
+      "export_sha256": "646c7daa0008e9286e00f5bb99393c143708594d36a473e353c5dd6411ad0326",
+      "bytes": 90077
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -342,8 +342,8 @@
       "bytes": 2852
     },
     "experiments/pi05_between/eval_decoupled_wbc.py": {
-      "export_sha256": "755852089a7b2a8133070d6762d68e64ec4bba188b8bdc0b17c890c1a3bc5699",
-      "bytes": 5572
+      "export_sha256": "771bddf251c8650fc56ced34c83365f459c21a62e19895aa6a9d0070f3823faa",
+      "bytes": 6137
     },
     "experiments/pi05_between/launch_8gpu.sh": {
       "export_sha256": "072b4af2a38afbf81e571a1e3f819214bd3a239d368475a12f151ca6f79c483a",
@@ -4930,8 +4930,8 @@
       "bytes": 2046
     },
     "experiments/pi05_between/trace_control.py": {
-      "export_sha256": "fdfdea28a9a64a4573c3bac2db79319076d846938be07818363ab92ee059ee08",
-      "bytes": 5496
+      "export_sha256": "e713c41603b3a4845becad3270b7845854899912d1458bcccbad0d1b339901c0",
+      "bytes": 8316
     },
     "experiments/pi05_between/analyze_control_trace.py": {
       "export_sha256": "f80713a575a8c6b8cc8bca85acf7fc5277f4b6a1912eeb252d90a9b36769e075",
@@ -4992,6 +4992,10 @@
     "experiments/pi05_between/audit_training_history.py": {
       "export_sha256": "6fd9bd37ab6faa54c15c118283a42c48e6352bac6f2e69b0da24c6976181703b",
       "bytes": 4709
+    },
+    "experiments/pi05_between/analyze_camera_timing.py": {
+      "export_sha256": "b52c29b26c94a8062e6a15994a9426061e50a3fdbca343444e08c2f7413d9e85",
+      "bytes": 3965
     }
   }
 }
