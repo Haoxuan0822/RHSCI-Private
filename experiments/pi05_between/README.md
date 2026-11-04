@@ -1,5 +1,92 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 用户指定旧包 level2 episode8 停滞诊断（2026-11-04）
+
+原 repeat01 左目录像1201帧/50Hz/24.02s，人工抽查0–23.9s：手臂/视角有微小变化，盒子未搬起。该集日志区间收到40批30步动作，官方False；正式未开trace，不能从该日志恢复动作值或直接判定控制器故障。补跑同旧初态120步，沿用上文官方README/已保存权重契约：VGQ40k/30预测30执行/noRTC/10步BF16/wall/v2统计，seed17仅为诊断复现，不等同原录像随机噪声。GPU7渲染复用独立8148服务，DDS227已现场查无占用；不计正式成功率。实际启动命令（stdout/stderr保存eval.log）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+export PYTHONPATH=/root/workspace/RHSCI-Private/src
+mkdir -p "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/old-level2-episode8"
+cd "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/old-level2-episode8"
+CUDA_VISIBLE_DEVICES=7 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+  simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 psi0_decoupled_wbc train \
+  --data-format lerobot \
+  --data-dir "$PSI_RUNTIME_ROOT/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-2" \
+  --sim-mode mujoco_isaac --host 127.0.0.1 --port 8148 --headless \
+  --num-episodes 1 --episode-start 8 --max-episode-steps 120 \
+  --success-criteria 0.4 --eval-dir "$PWD/stats" --save-video \
+  --renderer-gpu 7 --dds-domain-id 227 --cpu-threads 8 \
+  --trace-control "$PWD/control_trace.jsonl" \
+  --diagnostic-noise-seed 17 --diagnostic-noise-stream old-level2-ep8
+```
+
+## 专家回放腰部姿态与相机视角单因素核查（2026-11-04）
+
+两组共96次预测已实际完成、session39877退出0，GPU0诊断进程释放；两组训练图全部24个输入的处理SHA与完整预测逐位一致。rendered_replay三seed原姿态不裁剪边界比10.6054/11.5692/10.7630，仅腰修正后8.0050/12.4318/8.4837；原姿态95%裁剪10.8149/8.1423/6.9284，腰修正加95%后5.4742/5.6859/2.8166。后者专家双臂RMSE仍0.03170/0.03111/0.03095rad，明显未恢复训练图裁剪后的0.00565/0.01221/0.00876rad。训练图原比9.3924/7.5048/7.7330和裁剪比1.1935/1.6464/1.7120精确复现。第90步无裁剪时，仅修腰后新首左肩反而从-0.1515/-0.1508/-0.1481变到-0.1425/-0.1414/-0.1337rad（专家约-0.16995），不能宣称腰部修正统一消除回退。支持腰部视角差对这些预测有影响，但不是完整根因；完整基座/图像剩余差异仍待定位，没有生产修复。两原报告SHA分别43596a3e…/8cb115e8…，intervention-summary.json保留24组指标、逐边界首末误差与一致性控制结果。analyze_waist_intervention.py已实际执行，非只准备脚本。
+
+复算统计命令（纯CPU，保留两组重复训练输入的逐位一致性检查）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_waist_intervention.py \
+  --baseline-predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/static-waist-render/replay-predictions.json \
+  --counterfactual-predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/static-waist-render/expert_waist-predictions.json \
+  --recorded-inputs /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/static-waist-render/intervention-summary.json
+```
+
+静态渲染已实际完成8组、退出0（session64250/PID2252182结束），双目16张PNG及result.json完整。原生腰观测误差均低于5.1e-7rad，实际SDK相机旋转差第0/30/60/90步为0.0403/0.8148/2.5060/3.0155度，第90步平移6.35mm。原姿态静态渲染与此前动态回放图RGB平均绝对差4.90–6.90/255，故后续必须对比本次两种静态渲染，不能把静态/动态渲染差异算腰部效果。训练/静态原姿态/修正腰的0与90帧拼图已人工检查，材质完整；日志仅原已知篮子空碰撞mesh，无新材质缺失。image-audit.json记录上述差值；仍未证实腰差是预测根因。
+
+后续复用compare_inference_modes.py作两组离线推理：同一VGQ40k/10步BF16/eager、预测30/无执行/无RTC，采样seed17/29/43，每组四帧，原图与95%中心裁剪，分别配对原训练图，共96次实际预测（包含跨组重复训练输入作一致性对照）。保留原v2统计、无颜色/旋转，诊断裁剪不改生产默认。来源沿本说明官方README及已保存权重契约；95%尺寸与官方训练一致、中心位置和三个seed为诊断选取。各组inputs.jsonl只替换原trace中image_path为本次静态左目PNG，VGQ不读state；无新策略/控制实现。GPU0渲染退出后启动，无DDS。完整命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+for WAIST_CASE in replay expert_waist; do
+  CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+    experiments/pi05_between/compare_inference_modes.py \
+    --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+    --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/static-waist-render/${WAIST_CASE}-inputs.jsonl" \
+    --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+    --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+    --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+    --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+    --sampling-steps 10 --noise-seeds 17 29 43 \
+    --center-crop-fractions 0.95 \
+    --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/static-waist-render/${WAIST_CASE}-predictions.json" \
+    > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/static-waist-render/${WAIST_CASE}-predictions.log" 2>&1
+done
+```
+
+CPU运动学核查已完成：保存qpos与原生观测腰关节对应误差小于3.7e-7rad。只把腰roll/pitch/yaw换成训练值、固定其余qpos，第0/30/60/90步躯干挂点朝向分别改变0.0403/0.8148/2.5061/3.0155度。这里state[28:31]是腰关节角，不是世界躯干姿态；MuJoCo头部偏置只作运动学代理，不是实际Isaac相机像素。训练数据没有完整浮动基座轨迹，不能声称恢复了全部专家姿态。收据replay-waist-kinematics.json，实际命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/audit_replay_waist.py \
+  --simple-source /root/workspace/Haoxuan/RHSCI-runtime/external/SIMPLE-official \
+  --trace /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl \
+  --expert-requests /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/expert-policy/expert_requests.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/replay-waist-kinematics.json
+```
+
+后续静态渲染按前述SIMPLE官方README的原生mujoco_isaac环境及已保存训练episode0配置；这是定位输入的诊断，非论文评测配置。GPU0/DDS226/8线程，四时刻各两种姿态，各保留左右目PNG与实际SDK相机world pose。只改三个腰关节，保持保存的基座/其他关节/物体qpos、原始材质与灯光，不运行策略、不调用MuJoCo物理步，不计成功率。原生Isaac同步/渲染执行三次，逐次验证MJ qpos未变与原生腰观测一致。正式30/30无RTC配置不变。启动前现场确认DDS226未占用、GPU0余量约15GiB。完整命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/render_replay_waist.py \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl" \
+  --expert-requests "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-policy/expert_requests.jsonl" \
+  --renderer-gpu 0 --dds-domain-id 226 --cpu-threads 8 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/static-waist-render" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/static-waist-render.log" 2>&1
+```
+
 ## 原生训练增强与原图的条件预测对照（2026-11-04）
 
 官方来源再次核对（用户询问SIMPLE如何实现）：SIMPLE仿真仓库README将策略端指向配套physical-superintelligence-lab/Psi0；实际只读GitHub API核其当前main=cda3fdfafe47cb6fa75400d013de1bd36e3cea05。该提交src/openpi/models_pytorch/preprocessing_pytorch.py仍固定95%尺寸/随机裁剪起点/恢复原尺寸；src/openpi/models_pytorch/pi0_pytorch.py训练forward第327行传train=True，sample_actions第392行传train=False。不能据“训练裁、推理不裁”认定RHSCI漏了官方步骤：这一点与官方默认一致，实验只支持当前权重局部尺度敏感。官方README给出的baseline训练入口是baselines/pi05/train_pi05.sh调用src/openpi/train_pytorch.py。网页搜索缓存展示的pi0_pytorch.py旧行号294/351与当前Git对象不同，应以API固定提交内容为准；未改官方代码或更新运行环境。

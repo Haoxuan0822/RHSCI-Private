@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "07f654a8a0ee27b59bd5ba575ced2ae7f976ae76492246ec6b7a8bd0ad9c39d0",
-      "bytes": 45037
+      "export_sha256": "7437304c1885fa0b283c9dbb9baa8fc889f6e3a42f7eb0dd6ce2cb6d147e40be",
+      "bytes": 47085
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "84a5cdc763a11e8c731dd5e2a9b775db4c6c6d1b3e0fb6ff583ea10b8b225d42",
-      "bytes": 128824
+      "export_sha256": "747b5680d96e8e5710a123abafa173924cef8951729cc68e7339205ae5646d54",
+      "bytes": 137575
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -5008,6 +5008,18 @@
     "experiments/pi05_between/audit_prefix_cache.py": {
       "export_sha256": "a96741d3382fdcf20567ade49767d39791b00275d62d55e8b3073dec12a05fda",
       "bytes": 8142
+    },
+    "experiments/pi05_between/audit_replay_waist.py": {
+      "export_sha256": "8e48c82dd3541caa4ef32638e707253c9c9423cba30ec6f36cfe418380772ac3",
+      "bytes": 4850
+    },
+    "experiments/pi05_between/render_replay_waist.py": {
+      "export_sha256": "7e106feb084505f72ec9f3532ba3bad3e53fd3f272a7b4734552030d6940ea08",
+      "bytes": 6148
+    },
+    "experiments/pi05_between/analyze_waist_intervention.py": {
+      "export_sha256": "186b658dff8677b23017ad3017836597867f39d58705a00eb71c50c5e3e59c60",
+      "bytes": 5264
     }
   }
 }
