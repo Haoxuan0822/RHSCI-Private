@@ -1,5 +1,60 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 三条训练轨迹的离线动作块接续（2026-11-04）
+
+复用已完成的recorded-chunk-inputs/predictions.jsonl，不增加模型/仿真请求。episode0/1/2各8块（0/30/…/210帧），21个自然相邻边界；仅原训练RGB输入。各轨迹VGQ-AE边界变化中位数/块内变化中位数为8.7596/7.6463/5.0911，STATE为2.5987/2.1505/1.6860。VGQ-AE双臂整块专家RMSE为0.01533/0.03861/0.01042rad，STATE为0.00339/0.01034/0.00381rad。每个边界的预测/专家自然变化、上一块终点和下一块起点相对当前真实状态的误差都保留在收据，不仅报告比例。
+
+此结果把“原训练输入也存在接续不连续”的证据从单条扩展到三条轨迹，但不是闭环成功率，也没有固定原生噪声；STATE和VGQ-AE是两份不同训练权重，不能称受控方法消融。部分块的误差随块内时间变化，不能把全部问题当统一常量偏移，再用平移首姿态掩盖。源文件SHA记录在recorded-chunk-boundary-audit.json。现有训练/推理源码中动作分支同用当前帧，历史Reader只用于训练辅助分支，不能把正常的单帧部署直接判成漏传历史的bug。
+
+实际CPU复算命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_recorded_chunks.py \
+  --predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-chunk-inputs/predictions.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-chunk-boundary-audit.json
+```
+
+## 历史v3导航契约对照（2026-11-04）
+
+已从原归档eval_environment.lock.json确认历史manifest所指协议为legacy-rate-v1-speed-selector-v1，而非纯legacy四维范数。只读原GitHub源码`enterx-x/Psi0@1f96adda:scripts/rsci_between_settings.py:navigation_method`核实：不按vyaw_flag<0.1抑制朝向校正；站走选择用同步前三维速度范数<0.05；返回旧角速度反馈。当前官方入口用flag门控、默认速度+flag范数<0.1，语义确有差异，但是否导致本次动作回跳必须实测。实验legacy_navigation.py只替换原生get_action中这三处，经原生方法SHA保护，并在trace记录实际selector/适配函数SHA；正式入口与控制器磁盘源码不变。
+
+另一并行工作启动的old-episode4-navigation两路180步使用旧包/GPU0/1/DDS220/221。其legacy进程在本轮校正前加载了旧四维范数实现，不代表v3。本轮最初启动的新包navigation-v3碰巧复用了220/221，已只停止自己两路并保留所有目录，current仅稳定阶段、无模型请求；DDS可能交叉干扰，两个目录均不能作为干净对照，不能计入模型失败或原正式分数。实际错误/停止验证见ERROR_LOG。
+
+独立重跑navigation-v3-corrected：新版level0/episode4、VGQ-AE40k服务8147、30/30、无RTC、10步BF16、wall时钟；每组120步只诊断不计成功率，两组均保存双目录像/完整trace。current=GPU2/DDS230，historical-v3=GPU3/DDS231；PID2076437/2076436已启动。trace新增真实lower_input/lower_output及原网络选择，便于离线同输入反事实；实验脚本audit_navigation_contract.py仅重用原生数学/分支，对ONNX用占位输出，禁止将其解释为物理回放。此段启动时尚未取得完整结果。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/navigation-v3-corrected"
+for spec in 'current 2 230' 'historical-v3 3 231'; do
+  (
+    read -r variant gpu domain <<< "$spec"
+    extra=()
+    if [[ "$variant" == historical-v3 ]]; then
+      extra+=(--diagnostic-legacy-navigation)
+    fi
+    mkdir -p "$probe_root"
+    mkdir "$probe_root/$variant"
+    cd "$probe_root/$variant"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+      psi0_decoupled_wbc train \
+      --data-format lerobot \
+      --data-dir "$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0" \
+      --sim-mode mujoco_isaac --host 127.0.0.1 --port 8147 --headless \
+      --num-episodes 1 --episode-start 4 \
+      --max-episode-steps 120 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" "${extra[@]}" \
+      > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
 ## 历史录像与导航单因素对照（2026-11-04）
 
 **运行状态更正：** 下方old-episode4-navigation两路与并行navigation-v3短暂复用DDS220/221，存在串扰风险，已TERM本会话PID2056693/2056694、保留产物，整组无效，不报告其跳变比或成功率。并行工作补查到manifest对应历史v3采用前三维速度范数，最初四维范数属于更早导航语义；下方命令仅作这次已作废尝试的溯源，不能称完整历史协议复现。后续导航由已有并行工作负责，本会话不启动重复实例。正式八路及旧包150次通信编号不同，未因此修改或停止。
