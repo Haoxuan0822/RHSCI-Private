@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--video", nargs="+", required=True, help="label=path")
     parser.add_argument("--png-trace", nargs="*", default=[], help="matching-video-label=trace")
     parser.add_argument("--instruction", required=True)
+    parser.add_argument("--max-frame", type=int, default=180)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -40,7 +41,9 @@ def main():
     model.cuda().eval()
     low, high = [np.asarray(processor.stats["action"][k], np.float32) for k in ("q01", "q99")]
     scale, offset = (high - low + 1e-6) / 2, low + (high - low + 1e-6) / 2
-    frames = sorted(set(range(0, 181, 24)) | set(range(0, 181, 30)))
+    if args.max_frame < 30:
+        raise ValueError("Need at least one complete 30-frame interval")
+    frames = sorted(set(range(0, args.max_frame + 1, 24)) | set(range(0, args.max_frame + 1, 30)))
     inputs, provenance = [], []
     for item in args.video:
         label, value = item.split("=", 1)
@@ -69,6 +72,8 @@ def main():
         for line in path.read_text().splitlines():
             row = json.loads(line)
             if row["kind"] != "model_chunk" or row["step"] not in (0, 30, 60, 90):
+                continue
+            if row["step"] > max(frames):
                 continue
             if row["instruction"] != args.instruction:
                 raise ValueError("Instruction mismatch")
