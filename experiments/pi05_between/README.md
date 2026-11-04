@@ -1,5 +1,34 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 120段新旧包录像的换块回撤分布（2026-11-04）
+
+针对用户“旧包整体基本没有顿挫”的观察，本轮直接读既有VGQ40k录像，不新启模型/评测。旧pi05-vgq-official-pre1102-singlethread-20261104与新pi05-between-30x30-5cycles-20261104/VGQ-AE，三级×两轮×10条各60段，共120段左目；只用闭合success/failed视频，不按成功筛选。原生日志实际返回长度均30，配置无24步截断，不混认证历史30/24。旧脚本/当前README已记录同权重，但旧新采样未配对、服务组织不同，不能当纯场景单变量实验。
+
+compare_video_recoils.py复用track_historical_video.track_points；后者只抽出原LK循环，既有online-original-motion.json的121帧三点轨迹及误差最大值逐位复现。先前模板法120段拒绝87段，主要因材质/灯光，选择偏差过大，video-recoil-distribution结果保留但不用于总体比较。检查120格初帧拼图后改直接跟踪腕部固定点，不降前后向0.5px可靠性阈值。左腕224,253全部120段通过；只比较前121帧、边界30/60/90前后各6帧，块内对照15/45/75。反转标准cos<-0.5且前后位移均≥阈值，单位为原640×360视频像素，不是关节角或停顿时长。
+
+| 各等级60个左腕换块窗口 | 旧≥1px | 新≥1px | 旧≥2px | 新≥2px |
+| --- | ---: | ---: | ---: | ---: |
+| level0 | 19 | 35 | 12 | 22 |
+| level1 | 31 | 51 | 21 | 46 |
+| level2 | 38 | 54 | 15 | 51 |
+
+两组块内对照各180窗在≥1px均0。支持新包前期换块回撤更频繁、更大，不再以旧个别也有回撤否认差异；不把窗口计数当独立样本或完整视频顺畅度/物理成功率。左腕报告wrist-recoil-distribution/result.json；initial-landmarks.jpg已人工检查红点均在腕部表面。右腕438,253通过112/120条（旧56/60、新56/60），8条可靠性拒绝保留，不算失败/不补造。分别看raw右腕及右减左相对轨迹，后者可消去共有二维平移但不能消除一般3D相机旋转/透视。相对≥1px换块反转旧17/54、32/54、42/60，新24/48、49/60、53/60；对照旧2/54、1/54、0/60，新1/48、0/60、0/60。仍支持差异，不证明视觉差异的具体原因。
+
+最终bilateral-wrist-recoil-with-provenance/result.json保留视频SHA、各轮配置/命令与实际30步日志SHA、左腕报告SHA、脚本及跟踪器SHA、全部轨迹、拒绝与阈值0.5/1/2px统计；process78420退出0。Ruff通过。完整根因仍未定，生产配置不变。实际最终命令如下；首份左腕运行使用--wrist 224 253、没有--relative-to，输出为wrist-recoil-distribution，其余两root相同；此前right-wrist-recoil-distribution与bilateral-wrist-recoil-distribution中间结果也保留。
+
+```bash
+cd /root/workspace/RHSCI-Private
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+/opt/rsci-data/.venv-simple/bin/python -u \
+  experiments/pi05_between/compare_video_recoils.py \
+  --old-root /opt/rsci-data/evals/pi05-vgq-official-pre1102-singlethread-20261104 \
+  --new-root /opt/rsci-data/evals/pi05-between-30x30-5cycles-20261104/VGQ-AE \
+  --wrist 438 253 \
+  --relative-to /opt/rsci-data/evals/stutter-root-cause-20261104/wrist-recoil-distribution/result.json \
+  --output-dir /opt/rsci-data/evals/stutter-root-cause-20261104/bilateral-wrist-recoil-with-provenance \
+  > /opt/rsci-data/evals/stutter-root-cause-20261104/bilateral-wrist-recoil-with-provenance.log 2>&1
+```
+
 ## 新旧包在线视频与物理状态同步核对（2026-11-04）
 
 用户指出旧包整体基本顺畅，不能用旧包局部回退反驳。本轮只排查在线观测滞后，不重启π0.5模型/评测。audit_image_joint_lag.py新增--observed-trace/--eval-config，与校准来源--trace分开。官方cli/eval_decoupled_wbc.py稳定后重置VideoRecorder，frame0为稳定末态、frame1为策略step0后态。视频新1201/旧181帧，对应1200/180策略步加初帧；模型输入PNG在0/30/60/90步与视频同编号帧的MAE均为邻域±2帧最小，压缩残差约2.83–3.14像素值，并非图像逐位相同。

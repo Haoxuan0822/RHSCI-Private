@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 120段VGQ40k新旧30/30既有录像完成CPU腕部换块分布核对：各包三级前两轮60段，左腕全部通过，前121帧各级60边界窗≥1px反转旧19/31/38、新35/51/54，≥2px旧12/21/15、新22/46/51；两组各180块内对照窗≥1px均0，支持用户新包更易回撤观察，不外推整段/纯场景因果。右腕8段拒绝显式保留，右减左后各级趋势仍在；全部视频/日志/配置SHA与原始轨迹见bilateral-wrist-recoil-with-provenance/result.json，session78420退出0。compare_video_recoils.py与复用track_points、完整命令/表在两桌README新节，Ruff通过；初版模板87/120拒绝不可作总体判断已记ERROR_LOG。无新模型/仿真/生产修改，根因未定。
+
 - 新旧包已有在线轨迹各121帧完成CPU 3D图像/真实关节lag核对，无新π模型/仿真。两组四校准×五刚体最佳均lag0；同帧指尖/手腕留出RMSE新0.2611/0.1837px、旧0.2410/0.2441px，±30帧新2.42–3.60/旧5.10–9.10px。官方稳定后writer初帧规则和0/30/60/90模型PNG同编号视频最小MAE均核实；仅支持这两窗口无整块在线滞后，不能反驳旧包整体顺畅观察/外推总体或称完整根因。audit_image_joint_lag.py新增可选在线输入，两个online-*-lag-with-provenance.json与输入SHA/命令在两桌README新节；sensor检查两次拒绝及有限缺省等价记录ERROR_LOG，未改生产配置。
 
 - 本轮CPU只读优化器与冻结骨干核对已完成（sessions47026/53236/70245退出0）：NO-STATE/STATE各208个可训练参数张量、430106660元素，保存model源码SHA7946e111匹配各契约；原训练源码与当前meta构造的参数名/顺序/形状/冻结标记完全一致。实际optimizer.pt均208槽、全部step40000、动量有限/二阶非负、无整张量零动量，最终lr1e-8；不证明中间恢复无同形参数置换或学习有效。三模型603个冻结VLM张量共2923335408元素逐位相同。VGQ远端optimizer按Range尝试因正确model repo返回401未读取，不能冒称223槽已验；受限pickle解析器在本地NO-STATE真实文件与torch.load的208槽/步数逐项一致（58470有效字节），远端范围缺口保留。三新脚本Ruff通过，无GPU/训练/模型更新；optimizer-payload-{nostate,state}.json、frozen-backbone-identity.json和远端失败日志保存，命令/范围在两桌README顶部，具体根因未确证、goal active。
