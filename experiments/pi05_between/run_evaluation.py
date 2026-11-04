@@ -328,7 +328,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--num-repeats", type=int, default=5)
-    parser.add_argument("--video-rounds", type=int, default=2)
+    parser.add_argument("--video-rounds", type=int, default=1)
     parser.add_argument("--repair-scene-references", action="store_true")
     arguments = parser.parse_args()
     if arguments.variant == "RGB" and (
@@ -338,8 +338,8 @@ if __name__ == "__main__":
         or arguments.expected_horizon != 30
     ):
         parser.error("Official RGB uses pi05 40000, its fixed local checkpoint and horizon 30")
-    if arguments.video_rounds < 2:
-        parser.error("Retain at least two complete video rounds")
+    if arguments.video_rounds < 1:
+        parser.error("Retain at least one complete video round")
     if (
         arguments.backbone != "pi05" or arguments.variant == "NO-STATE"
     ) and arguments.run_dir is None:

@@ -86,6 +86,6 @@ def worker_command(run, gpu, level, run_dir, *, output_root=OUTPUT):
         "--num-repeats",
         "5",
         "--video-rounds",
-        "2",
+        "1",
         "--repair-scene-references",
     ]

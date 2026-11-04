@@ -14,12 +14,26 @@ def configure_video(args, directory):
     repeat = args.evaluation_round
     if repeat is None:
         repeat = int(match[1]) if match else 1
-    if repeat < 1 or args.video_rounds < 2:
-        raise ValueError("Evaluation round must be positive; retain at least two video rounds")
+    requested_rounds = args.video_rounds
+    policy = next(
+        (
+            parent / "video-policy.json"
+            for parent in (directory, *directory.parents)
+            if (parent / "video-policy.json").is_file()
+        ),
+        None,
+    )
+    # 每次新轮次启动时读取批次设置，让已启动worker无需中断即可采用新录像要求。
+    if policy is not None:
+        args.video_rounds = json.loads(policy.read_text())["video_rounds"]
+    if repeat < 1 or not isinstance(args.video_rounds, int) or args.video_rounds < 1:
+        raise ValueError("Evaluation and video rounds must be positive integers")
     requested = args.save_video
     args.save_video = requested and repeat <= args.video_rounds
     return {
         "evaluation_round": repeat,
+        "requested_video_rounds": requested_rounds,
+        "video_policy_file": str(policy) if policy else None,
         "video_rounds": args.video_rounds,
         "requested_save_video": requested,
         "save_video": args.save_video,
@@ -44,7 +58,7 @@ def main():
     parser.add_argument("--eval-dir", required=True)
     parser.add_argument("--save-video", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--evaluation-round", type=int)
-    parser.add_argument("--video-rounds", type=int, default=2)
+    parser.add_argument("--video-rounds", type=int, default=1)
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
     parser.add_argument("--cpu-threads", type=int, default=8)
