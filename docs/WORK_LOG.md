@@ -11,6 +11,13 @@
 
 ## 当前 π0.5 两桌任务
 
+- 固定噪声图像配对已完成：`paired-render-training.json`共24次真实推理，VGQ-AE40k、同一专家episode0的0/30/60/90、seed17/29/43、10步eager/BF16。90帧训练图左肩首目标约-0.175rad，当前渲染图约-0.132rad，真实回放-0.186rad，渲染视图会放大早期姿态偏差；60帧反向，不能认定全局渲染错误。更关键：离线直接在原训练RGB上预测再拼接，无仿真控制参与，边界/块内变化比仍9.39/7.50/7.73（渲染图15.09/12.73/14.38），专家自然边界0.00938/0.01278/0.00393rad。当前权重本身在该训练轨迹已缺乏分块连续性，具体训练成因尚未查清。完整值、命令、范围在两桌README；脚本新增配对选项、Ruff通过，GPU1已释放，未改生产代码或在线服务。
+- 最新完整时限出生点诊断三路均已退出：新版episode4原位False、仅x+0.06为True，episode0前移仍False。保留反例，不外推普遍恢复。旧包全量复测仍运行，阶段VGQ成功4/1/1/NA、完成5/4/4/NA（仅13次，非最终成功率）；原400次阶段STATE成功0/0/0/0、完成35/36/37/38，VGQ成功0/1/2/0、完成38/34/35/34。goal保持active，尚未确认全部根因。
+
+- 出生点完整时限对照已有官方判定：`spawn-full/original-episode4/stats/eval_stats.txt` 为 `episode_4: False`；`spawn-full/plus006-episode4/stats/eval_stats.txt` 为 `episode_4: True`，对应双目视频已带success后缀。这支持新版仅恢复前向6cm可救回一个完整任务；原生噪声不同且仅一对，不能外推所有难度或唯一根因，更不能宣称已消除动作块跳变。episode0前移对照在该快照仍未结束。仅诊断，正式400次配置未改，goal未以此标记全部根因查清。
+
+- 独立完整模型补充对照已完成：GPU1依次构造归档STATE适配器和当前适配器，各自严格加载同一VGQ-AE40k真实权重，四张真实闭环图像、seed17、10步eager/BF16，处理器张量及全部30×36输出逐位相同、最大差0，结果 `evals/stutter-root-cause-20261104/archived-adapter-parity.json`。仍共享当前安装原生骨干，STATE归档不是VGQ训练快照；认证VGQ证据以另条为准。脚本 `compare_archived_inference.py` Ruff lint/format通过，进程正常退出，未改变正式服务。另用原训练RGB在专家回放同刻0/30/60/90补查询，结果 `recorded-replay-aligned-inputs-retry/predictions.jsonl`；训练图/当前渲染图VGQ误差并非同向增减，单次随机采样不足以认定渲染根因，配置与完整命令在两桌README。
+
 - **认证历史记录的新证据：** 已只读访问原GitHub，Pi05-QSAFE-VGQ-AE视频manifest的60条（前两轮）全部权重SHA51f037…与当前一致；成功level0/1/2=`7/7/0`，完成=`20/20/20`，14/60；不外推全部五轮。历史实际服务预测30但返回actions[:24]，无RTC，另外启用sim-step时钟、具名手指旧动作兼容、legacy导航。manifest stats_sha256为eval_stats.txt成绩摘要，非模型归一化统计。完整Git blob校验收据 `evals/stutter-root-cause-20261104/historical-pi05-manifests.json`；原仓库仅只读，未修改/推送。
 - **认证原VGQ适配层数值对照已完成：** 原分支feture/ARDY_PI05_QSAFE的HEAD1369f3e9…，外部稀疏检出external/Psi0-pi05-QSAFE-reference。模型/处理器SHA分别5a6cc3…/93150b…均匹配VGQ训练contract。4张真实闭环图像、seed17、双eager10步BF16，两版Processor全部输出相同、30×36动作最大差0。原骨干gemma_pytorch也与contract摘要一致；对照共享当前原生骨干，不扩称历史环境全链路等价。结果authenticated-adapter-comparison.json。STATE快照对照也0差，保留单独收据，不再冒充唯一来源。
 - **执行长度诊断已完成：** 旧level0 episode4（历史成功）两个独立180步探针，预测30执行30/24、同一VGQ8147、无RTC、官方wall时钟，GPU0/1、DDS213/214。两者边界/块内跳变比12.3423/12.2444，仍明显回跳；不能以24步作为消除顿挫的修复。逐块验证完整预测30步、执行精确前缀及实际边界30/60/…或24/48/…，双臂动作到WBC误差均0、观测对MuJoCo误差均小于6e-7rad。输出 `evals/stutter-root-cause-20261104/old-episode4-horizon/execute-{30,24}/control_analysis.{json,png}`，双目录像保留。两次原生随机采样/渲染不是固定噪声配对，不外推成功率；未给150次旧包或400次新包改为24。

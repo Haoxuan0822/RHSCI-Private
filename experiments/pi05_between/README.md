@@ -1,5 +1,28 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 训练原图与专家回放渲染图配对诊断（2026-11-04）
+
+离线对齐episode0第0/30/60/90帧，VGQ-AE忽略state，故成对变化仅图像。同40k权重、30步输出、10步eager/BF16；每对seed17/29/43固定噪声，保存完整双臂动作与专家动作RMSE。复用正式模型及处理器，不改变在线服务；范围只有一个专家轨迹的四个时刻，不能直接外推成功率或训练代码bug。输出 `evals/stutter-root-cause-20261104/paired-render-training.json`，日志同名 `.log`，24次真实推理已正常完成，GPU1释放，脚本Ruff检查通过。
+
+第90帧训练原图首目标左肩yaw为-0.17451/-0.17576/-0.17307rad，回放渲染图为-0.13500/-0.13308/-0.12931rad；该时刻真实回放/专家关节为-0.18602/-0.18968rad，渲染图明显偏向早期。两种输入双臂整块RMSE分别0.01996/0.01832/0.03076与0.05975/0.05859/0.06006rad。但第60帧渲染图反而更准，不能宣布所有回跳由渲染错误引起。所有时刻/seed平均RMSE训练图0.02197、渲染图0.03215rad。
+
+更强的范围判断：完全不接仿真，直接把同seed、0/30/60/90四张原训练RGB分别预测的完整动作块拼接，边界L2变化中位数/块内变化中位数仍为9.3924/7.5048/7.7330；对应渲染图为15.0884/12.7292/14.3769。专家动作三个自然边界仅0.00938/0.01278/0.00393rad，训练图预测边界按seed分别为[0.10229,0.09885,0.03910]/[0.22313,0.07998,0.05303]/[0.15862,0.08144,0.07303]rad。这是离线teacher-forcing输入上的分块不连续，不能当作新的闭环轨迹或全部训练样本；它说明同权重在原训练输入上也存在不连续，不能靠改视频录制/控制器/场景渲染一项解释或消除全部问题。尚未定位具体训练代码bug。
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+  --sampling-steps 10 --noise-seeds 17 29 43 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-render-training.json"
+```
+
 本目录存放本机实验编排，不属于正式训练/推理框架，不作为公开发布入口。数据、权重、环境和输出均在 `/root/workspace/Haoxuan/RHSCI-runtime`。正式推理调用 `rhsci.inference.http_server`，仿真直接调用官方 SIMPLE `run_eval`；没有复制模型或评测循环。
 
 ## 论文、README 与本次设置
@@ -102,9 +125,9 @@ python /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc
 
 ## 资源与进度
 
-### 独立加载归档适配层的备用入口（未完成运行）
+### 独立加载归档适配层对照（已完成）
 
-此前准备的入口会在 GPU1 依次独立加载归档 STATE 包内适配器和当前适配器，同一 VGQ-AE 40k 权重、四块真实 trace、seed17、eager/BF16/10步/30输出。未生成该入口的archived-adapter-parity.json，不能作为已完成验证；实际完成的是下节compare_inference_modes.py --archived-source的共享骨干对照及后续认证VGQ对照。此独立加载脚本目前仅通过静态检查，保留备用，不自动启动。原先准备命令：
+在 GPU1 依次独立构造、严格加载归档 STATE 包内适配器和当前适配器，使用同一 VGQ-AE 40k 权重、四块真实 trace、seed17、eager/BF16/10步/30输出。实际进程已正常退出，archived-adapter-parity.json 已生成：四组图像/tokens/mask/actions 处理器张量逐项相同，完整30×36归一化及物理动作最大差均0、输出逐位相同。两次模型分别构造和加载，仍共享当前安装的原生骨干代码；归档源码来自STATE包，认证VGQ源码范围以稍后单列对照为准。该实验不改变在线服务或正式评测。实际命令：
 
 ```bash
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
@@ -119,6 +142,16 @@ CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=4 python -u \
 ```
 
 ### 根因排查继续：旧评测初态对照（用户更正）
+
+另按专家回放相同时刻0/30/60/90读取原训练RGB，调用当前STATE/VGQ服务作训练图与渲染图对照。每图一次原生随机采样，不能当固定噪声配对或唯一根因证据。原训练图上STATE双臂整块RMSE依次0.00450/0.00413/0.00307/0.00350rad，VGQ为0.02705/0.03864/0.02677/0.02144rad；相应专家回放渲染图上VGQ为0.01865/0.01355/0.00921/0.05985rad，方向并不一致，不能从最后一帧误差较大就认定渲染根因。首次沙箱HTTP被拒，没有发出请求，保留空产物；提权后另目录完成。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+python -u experiments/pi05_between/probe_recorded_inputs.py \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry" \
+  --episodes 1 --frames 0 30 60 90 --state-port 8120 --vgq-port 8126
+```
 
 出生距离单因素补充：旧level0 episode4机器人x=-0.64261184994，新=-0.70334384994，后移0.060732m；目标位置两版均[-0.32878145576,-0.01041561365,0.76342171431]。先前训练初态+0.06及新版+0.12将盒子碰落，不是“新版只恢复这6厘米”的反例。已用prepare_layout_probe.py从新版level0建立 `eval-probes-20261104/new-level0-x-plus006`（--robot-x-offset 0.06），只改10条dr_state_dict.spatial.g1_sonic.position[0]，其余数据软链接/metadata保持；probe_source.json保留来源与变化。以下两组同一新版episode4、当前30/30/无RTC/10步BF16/wall时钟、各180步、原生随机采样，诊断不计成功率、不换官方数据，除x之外全部相同。来源为官方新旧metadata、保存的权重设置及上方README。实际命令：
 

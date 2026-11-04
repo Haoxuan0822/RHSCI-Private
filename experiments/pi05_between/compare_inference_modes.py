@@ -25,6 +25,12 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--instruction", required=True)
     parser.add_argument(
+        "--recorded-inputs",
+        type=Path,
+        help="Pair trace images with aligned recorded training inputs",
+    )
+    parser.add_argument("--noise-seeds", type=int, nargs="+", default=[17])
+    parser.add_argument(
         "--archived-source", type=Path, help="Compare archived rsci_pi05 model and processor"
     )
     parser.add_argument(
@@ -36,6 +42,10 @@ def main():
     args = parser.parse_args()
     if args.archived_source is not None and args.sampling_steps is not None:
         parser.error("Choose archived source or solver-step comparison")
+    if args.recorded_inputs is not None and args.sampling_steps is None:
+        parser.error("Recorded image pairing requires --sampling-steps")
+    if args.sampling_steps is None and args.noise_seeds != [17]:
+        parser.error("Multiple seeds require --sampling-steps")
     if args.sampling_steps is not None and any(step < 1 for step in args.sampling_steps):
         parser.error("Sampling steps must be positive")
     if args.output.exists():
@@ -43,6 +53,8 @@ def main():
     if torch.cuda.mem_get_info()[0] < 12 * 1024**3:
         raise RuntimeError("Need 12 GiB free for isolated inference comparison")
     saved = json.loads((args.checkpoint / "rsci_config.json").read_text())
+    if args.recorded_inputs is not None and saved["variant"] != "VGQ-AE":
+        raise ValueError("Image-only pairing is restricted to VGQ-AE, which ignores state")
     # rotary 的非持久 buffer 不在 checkpoint；沿用正常构造，不能只从 meta 赋权重。
     model = Pi05RHSCI(saved["variant"], compile_inference=False)
     model.load_state_dict(
@@ -91,6 +103,26 @@ def main():
         for line in args.trace.read_text().splitlines()
         if json.loads(line)["kind"] == "model_chunk"
     ]
+    if args.recorded_inputs is not None:
+        recorded = {
+            row["frame"]: row
+            for line in args.recorded_inputs.read_text().splitlines()
+            if (row := json.loads(line))["episode"] == 0
+        }
+        paired = []
+        for chunk in chunks:
+            reference = recorded[chunk["step"]]
+            if reference["instruction"] != args.instruction:
+                raise ValueError("Recorded instruction differs")
+            for source in ("rendered_replay", "training_recorded"):
+                item = dict(chunk, input_source=source, expert_actions=reference["expert_actions"])
+                if source == "training_recorded":
+                    item["image_path"] = str(
+                        args.recorded_inputs.parent / f"episode-000-frame-{chunk['step']:04d}.png"
+                    )
+                    item["observed_state"] = {"states": [reference["state"]]}
+                paired.append(item)
+        chunks = paired
     span = np.array(processor.stats["action"]["q99"]) - np.array(processor.stats["action"]["q01"])
     results = []
     for chunk in chunks:
@@ -142,7 +174,12 @@ def main():
             print(json.dumps(row), flush=True)
             continue
         if args.sampling_steps is not None:
-            for count in args.sampling_steps:
+            for count, seed in (
+                (count, seed) for count in args.sampling_steps for seed in args.noise_seeds
+            ):
+                noise = torch.randn(
+                    1, 30, 36, device="cuda", generator=torch.Generator("cuda").manual_seed(seed)
+                )
                 with (
                     torch.inference_mode(),
                     torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False),
@@ -154,12 +191,18 @@ def main():
                 row = {
                     "step": chunk["step"],
                     "sampling_steps": count,
+                    "seed": seed,
+                    "input_source": chunk.get("input_source", "trace"),
                     "first_arm_action": arms[0].tolist(),
                     "last_arm_action": arms[-1].tolist(),
                     "first_vs_observed_arm_l2_rad": float(
                         np.linalg.norm(arms[0] - sample["state"][14:28])
                     ),
                 }
+                if "expert_actions" in chunk:
+                    expert_arms = np.asarray(chunk["expert_actions"])[:, 14:28]
+                    row["arm_expert_rmse_rad"] = float(np.sqrt(np.mean((arms - expert_arms) ** 2)))
+                    row["arm_actions"] = arms.tolist()
                 results.append(row)
                 print(json.dumps(row), flush=True)
             continue
@@ -187,6 +230,8 @@ def main():
         json.dumps(
             {
                 "seed": 17,
+                "noise_seeds": args.noise_seeds,
+                "recorded_inputs": str(args.recorded_inputs) if args.recorded_inputs else None,
                 "num_steps": args.sampling_steps or 10,
                 "archived_source": str(args.archived_source) if source_info else None,
                 "source_info": source_info,
