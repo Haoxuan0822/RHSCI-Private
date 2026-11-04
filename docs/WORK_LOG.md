@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 原生静态接触/限位核对完成（session50730退出0，CPU、无模型/物理积分/评测）：旧/新episode4稳定末态＋前120步首次手臂环境接触为视频101/112帧，早期30/60/90回撤均在此前；旧level2 episode8全121帧无手臂环境或自碰撞，仍三次目标cos约-0.999。四条另含新前移6cm均无采样自碰撞，14臂关节实际/目标距限位最小0.815/0.722rad（旧停滞1.127/1.041rad），不支持碰撞或机械关节限位为这些回撤的必要原因。只50Hz姿态mj_forward，不能排除中间瞬时接触/力矩饱和；不是完整根因/修复。audit_recorded_contacts.py、recorded-contact-limits-boundaries.json/log保存源/资产/输入SHA与逐帧结果，Ruff及四组121帧/输入SHA/前版数值复核通过；完整实际CPU命令、范围在两桌README顶部。本会话工具get_goal实际active，继续只读排查，不恢复π评测、不动GR00T。
+
 - 已CPU核对91训练配置与新旧三级初态：训练configured target−robot x=0.30450–0.33537m，新30/30超出（0.36856–0.39305m），旧level0/1全在范围、level2仅2/10超出；不可称全训练帧支持范围或稳定后实测。RAW78训练0首帧真实距0.39552m、旧/新episode4稳定末态0.37515/0.43604m，四校准目标原点投影y差约20px，未新增仿真/模型。各包level0/1机器人/目标完整pose20/20对相同但场景/干扰物/外观改变、回撤不同；各组距离/回撤描述相关无一致单调，距离不能单独判完整根因。audit_spawn_conditioning.py及spawn-conditioning-audit-v2.json保存SHA/逐初态统计/四校准，完整命令及范围见两桌README新节；无生产修改，goal active。
 
 - 120段VGQ40k新旧30/30既有录像完成CPU腕部换块分布核对：各包三级前两轮60段，左腕全部通过，前121帧各级60边界窗≥1px反转旧19/31/38、新35/51/54，≥2px旧12/21/15、新22/46/51；两组各180块内对照窗≥1px均0，支持用户新包更易回撤观察，不外推整段/纯场景因果。右腕8段拒绝显式保留，右减左后各级趋势仍在；全部视频/日志/配置SHA与原始轨迹见bilateral-wrist-recoil-with-provenance/result.json，session78420退出0。compare_video_recoils.py与复用track_points、完整命令/表在两桌README新节，Ruff通过；初版模板87/120拒绝不可作总体判断已记ERROR_LOG。无新模型/仿真/生产修改，根因未定。

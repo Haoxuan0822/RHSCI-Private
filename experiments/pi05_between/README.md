@@ -1,5 +1,44 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 已记录姿态的原生碰撞与手臂限位核对（2026-11-04）
+
+`audit_recorded_contacts.py`复用官方MuJoCo的robot/object/primitive builder，以原始MJCF、凸分解碰撞网格和桌面尺寸重建旧level0/episode4、新level0/episode4、旧level2/episode8及新前移6cm四条已有trace的稳定末态＋前120个policy后状态。对象freejoint按角色恢复，逐帧验证物体与pelvis世界位置误差不超过1e-9m；记录121帧手臂对桌面/物体、自碰撞、14个命名手臂关节实际值和模型目标的限位余量及三个换块目标反向量。这里只调用`mj_forward`，不做`mj_step`、模型调用、渲染、DDS或评测；不是新启动π评测。
+
+| 既有轨迹 | 首次手臂接触视频帧 | 自碰撞帧数 | 实际/目标最小限位余量(rad) |
+| --- | ---: | ---: | --- |
+| 旧level0/episode4 | 101 | 0 | 1.09115 / 1.00925 |
+| 新level0/episode4原位 | 112 | 0 | 1.09638 / 1.01318 |
+| 旧level2/episode8停滞 | 前121帧无 | 0 | 1.12681 / 1.04062 |
+| 新level0/episode4前移6cm | 58 | 0 | 0.81504 / 0.72188 |
+
+发生的环境接触均为target，无桌面/干扰物接触。帧0是稳定末态，帧i+1是policy step i后状态；模型step30/60/90对应的新观测在视频帧30/60/90。旧/新episode4前3次换块均早于首次采样接触；旧episode8全窗口无采样接触，而模型目标反向cos为-0.99937/-0.99971/-0.99941、跳变量0.23120/0.26496/0.28538rad。故这些样本不支持“先撞住/到关节限位，再导致模型回撤”，也不能把碰撞或关节限位当所有回撤的必要条件。前移成功例step60的换块cos为+0.7812，不把所有换块变化统一叫回撤。
+
+限制：采样仅50Hz，不能排除200Hz积分中间的瞬时接触；无实际速度/力重建，不排除力矩饱和或全部控制问题；地面省略、房间背景不加入碰撞，不据此作全物理场景等价断言。该证据收窄接触候选，不是完整根因或修复。官方跟踪源码/正式模型配置未改，GR00T队列不动。
+
+初版两条环境接触报告`recorded-contact-audit.json/log`、四条含限位报告`recorded-contact-limits-audit.json/log`均保留；最终报告`recorded-contact-limits-boundaries.json/log`包含脚本、native builder、输入、各碰撞网格SHA和生成spec SHA。最终session50730退出0，Ruff通过；121帧×4、输入SHA、目标形状/有限值、命名关节映射/限位均验证，与前版接触及限位结果逐项相同。下方是本轮已实际执行的CPU静态审计命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+HF_HUB_OFFLINE=1 /opt/rsci-data/.venv-simple/bin/python \
+  experiments/pi05_between/audit_recorded_contacts.py \
+  --case old \
+    /opt/rsci-data/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+    "$AUDIT_ROOT/old-episode4-horizon/execute-30/control_trace.jsonl" \
+  --case new \
+    /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+    "$AUDIT_ROOT/paired-spawn-noise/original/control_trace.jsonl" \
+  --case old-stall \
+    /opt/rsci-data/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-2/meta/episodes.jsonl \
+    "$AUDIT_ROOT/old-level2-episode8/control_trace.jsonl" \
+  --case new-plus006 \
+    /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0/meta/episodes.jsonl \
+    "$AUDIT_ROOT/paired-spawn-noise/plus006/control_trace.jsonl" \
+  --robot-xml /opt/rsci-data/external/SIMPLE-official/data/robots/g1_sonic/g1_29dof_with_hand.xml \
+  --output "$AUDIT_ROOT/recorded-contact-limits-boundaries.json" \
+  > "$AUDIT_ROOT/recorded-contact-limits-boundaries.log" 2>&1
+```
+
 ## 初始目标距离、训练范围与回撤条件核对（2026-11-04）
 
 audit_spawn_conditioning.py只读91条训练source_binding、旧/新三级初态、已有120段左腕统计及两条trace，不调用模型/渲染/物理。训练配置target.x−robot.x范围0.3045005–0.3353721m；旧level0/1均0.3078294–0.3318245、10条均在内，旧level2为0.3021431–0.3364458、2/10超出；新level0/1为0.3685614–0.3925565、新level2为0.3716330–0.3930537，30/30全部超出训练的**配置初态x范围**。不能写成模型在全部训练帧从未见过这些距离，也不能把配置值当稳定后的实测距离。

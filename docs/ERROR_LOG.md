@@ -1,5 +1,7 @@
 # 错误记录
 
+- **静态接触审计的环境/路径检查（2026-11-04）：** 辅助汇总误用系统python3，因无NumPy立即失败，未修改报告；改用既有.venv-simple/bin/python后核验通过。源码查询首次漏掉官方仓库src层级，rg报路径不存在；以报告native_builder的实际路径定位后完成核对。防复发：诊断数值处理显式使用模型/仿真环境，源码定位优先既有收据中的绝对路径。两桌physics_dt来自任务metadata=0.005，不用引擎通用默认0.002代替；本审计仅forward不积分。
+
 - **跨材质模板筛选不能作总体新旧录像比较（2026-11-04）：** compare_video_recoils初版21px模板相关阈值0.8导致120段中87段拒绝，多数仅背景/光照变化，剩余33段有明显选择偏差，不据此判断新旧总体。首份video-recoil-distribution/result.json与日志保留。检查120格初帧后改直接腕部固定点，复用原LK前后向0.5px门限、不降低门限：左120/120通过，右112/120通过，右8拒绝及分母保留，不能当模型失败。抽出track_points前后原保存121帧三点轨迹/误差max逐位一致；Ruff初次仅import空行排序未过，修正后通过。最终结果支持新包早期换块回撤较多，但不外推完整任务/纯因果或称根因找到。
 
 - **在线lag诊断的sensor字典检查两次拒绝（2026-11-04）：** 首版完整字典比较拒绝，二版仅补capture_depth/capture_pointcloud=False仍拒绝；逐字段核实另有intrinsics/depth_intrinsics/depth_to_color_extrinsics=None，RAW来源省略五个新增字段。改为只补这五项关闭/空值后再严格比较完整字典，width/height/fov/mount/pose/baseline等仍必须相同，不吞其他差异。online-image-joint-lag-audit.log及*-v2.log保留失败，v3及旧包分析退出0；最终带episodes SHA版本另写online-new/old-lag-with-provenance.json，不覆盖初次成功报告。防复发：区分序列化缺省字段与几何变化，不笼统放宽相机检查。此为诊断预检问题，不是生产顿挫根因。
