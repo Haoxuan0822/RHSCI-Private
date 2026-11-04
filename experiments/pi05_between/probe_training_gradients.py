@@ -1,4 +1,4 @@
-"""真实生产尺寸模型的执行方式梯度对照；使用显式合成ARDY标签，不更新参数。"""
+"""生产尺寸模型执行方式梯度对照；区分正式与合成ARDY标签，不更新参数。"""
 
 import argparse
 import hashlib
@@ -76,6 +76,7 @@ def main():
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--frame", type=int, default=60)
     parser.add_argument("--repeat-control", action="store_true")
+    parser.add_argument("--sidecar", type=Path)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -97,16 +98,29 @@ def main():
     archived_module = importlib.import_module("rsci_pi05.model")
     if Path(archived_module.__file__).resolve() != source.resolve():
         raise ValueError("Imported another archived implementation")
-    dataset = SimpleRHSCIDataset(args.dataset, "STATE")
+    if args.sidecar is not None:
+        if (
+            hashlib.sha256((args.sidecar / "manifest.json").read_bytes()).hexdigest()
+            != contract["sidecar"]
+        ):
+            raise ValueError("ARDY sidecar manifest differs from the training contract")
+        dataset = SimpleRHSCIDataset(args.dataset, "VGQ-AE", sidecar=args.sidecar)
+    else:
+        dataset = SimpleRHSCIDataset(args.dataset, "STATE")
     if args.frame < 6 or args.frame + 30 > dataset.episodes[0]["length"]:
         raise ValueError("Need four valid history frames and a full episode-0 action window")
-    samples = [dataset.raw_sample(args.frame + offset) for offset in (-6, -4, -2, 0)]
-    sample = dict(samples[-1], images=np.concatenate([row["images"] for row in samples]))
-    sample.update(
-        rsci_history_valid=np.ones(4, bool),
-        rsci_ardy_target=np.zeros(128, np.float32),
-        rsci_ardy_valid=True,
-    )
+    if args.sidecar is not None:
+        sample = dataset.raw_sample(args.frame)
+        if not sample["rsci_ardy_valid"]:
+            raise ValueError("Selected formal ARDY label is invalid")
+    else:
+        samples = [dataset.raw_sample(args.frame + offset) for offset in (-6, -4, -2, 0)]
+        sample = dict(samples[-1], images=np.concatenate([row["images"] for row in samples]))
+        sample.update(
+            rsci_history_valid=np.ones(4, bool),
+            rsci_ardy_target=np.zeros(128, np.float32),
+            rsci_ardy_valid=True,
+        )
     processor = Processor(
         args.dataset, args.tokenizer, "VGQ-AE", normalization=saved["normalization"]
     )
@@ -122,10 +136,14 @@ def main():
     original.load_state_dict(model.state_dict(), strict=True, assign=True)
     original.cuda()
     reports = []
-    targets = ["synthetic_zero", "synthetic_linear"]
+    formal_target = batch["ardy_target"].clone() if args.sidecar is not None else None
+    formal_reference = None
+    targets = (
+        ["formal_ardy"] if args.sidecar is not None else ["synthetic_zero", "synthetic_linear"]
+    )
     profiles = ["reference", "query", "history", "both", "authenticated_original_both"]
     if args.repeat_control:
-        targets.append("synthetic_masked")
+        targets.append("formal_masked" if args.sidecar is not None else "synthetic_masked")
         profiles = [
             "reference",
             "reference_repeat",
@@ -138,11 +156,13 @@ def main():
     for target_name in targets:
         target_index = int(target_name == "synthetic_linear")
         batch["ardy_target"] = (
-            torch.zeros(1, 128, device="cuda")
+            formal_target.clone()
+            if formal_target is not None
+            else torch.zeros(1, 128, device="cuda")
             if target_index == 0
             else torch.linspace(-1, 1, 128, device="cuda")[None]
         )
-        batch["ardy_valid"].fill_(target_name != "synthetic_masked")
+        batch["ardy_valid"].fill_(not target_name.endswith("masked"))
         reference = reference_rng = both_gradients = None
         for name in profiles:
             model.zero_grad(set_to_none=True)
@@ -185,6 +205,12 @@ def main():
             )
             if name == "both":
                 both_gradients = gradients
+            if name == "reference" and target_name == "formal_ardy":
+                formal_reference = gradients
+            if name == "reference" and target_name == "formal_masked":
+                row["comparison_to_formal_combined"] = compare_gradients(
+                    gradients, formal_reference
+                )
             if name in ("both_repeat", "authenticated_original_both"):
                 row["comparison_to_current_both"] = compare_gradients(gradients, both_gradients)
             reports.append(row)
@@ -194,11 +220,12 @@ def main():
     report = dict(
         checkpoint=str(args.checkpoint),
         frame=args.frame,
+        sidecar=str(args.sidecar) if args.sidecar is not None else None,
         history_frames=[args.frame + offset for offset in (-6, -4, -2, 0)],
         archived_model_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         rows=reports,
-        scope="Production-size trained weights, actual episode-0 RGB/action history, batch 1 BF16, native augmentation/noise and backward. Synthetic auxiliary targets explicitly exercise computational equivalence; the original ARDY sidecar is not installed. No optimizer, parameter update, DDP or claim of historical training reproduction.",
+        scope="Production-size trained weights, actual episode-0 RGB/action history, batch 1 BF16, native augmentation/noise and backward. Formal targets are used only when --sidecar matches the training contract and passes the native dataset/sidecar validation; otherwise explicitly synthetic targets exercise computational equivalence. Masked versus combined gradient subtraction includes measured backward variability. No optimizer, parameter update, DDP or claim of historical training reproduction.",
     )
     with args.output.open("x") as stream:
         json.dump(report, stream, indent=2)

@@ -1,5 +1,119 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 生产尺寸梯度与历史执行优化对照（2026-11-04）
+
+正式ARDY对照已实际完成14次forward/backward、退出0，原生Reader/data context及全部episode标签验收通过，GPU2释放。训练manifest d209f886…匹配不只是文件名；不再受合成监督范围限制，但仍仅一个实际样本/seed、batch1、无DDP/更新。formal组reference/query的loss0.06435004（action0.03376529，ARDY0.30584741）；history/both及认证原both为0.06431679（action完全相同，ARDY0.30551493）。history/both整体梯度相对reference为2.4761%/2.4803%，最大单值差0.00128174，只有reader.attn.v_proj_weight超过现有BF16容差；reference重复0.44265%，both重复对both0.35812%，当前/认证原both0.38158%，均无超限。masked组全部方式0.45%–0.58%内、无超限，ARDY梯度为零、动作loss与formal同值；所有223梯度有限、VLM冻结及RNG核验均通过。不能称合批“完整GPU逐位等价”，也不能将其数值差异直接当作顿挫因果。
+
+formal组合梯度减同seed masked动作梯度作近似分解，共享AE的加权辅助/动作范数比0.2982、方向余弦0.00282，时间MLP比0.1784、余弦-0.00322，未显示本样本强烈梯度抵消。此差分含已测CUDA backward波动，尤其动作专用投影的约0.27%差只是波动量级，不冒称精确分支梯度或全训练结论。真实原始结果training-gradient-formal-ardy.json（script SHA随文件保存）与formal-summary.json保留；脚本Ruff通过。尚未证明具体实现根因，未修改旧训练/推理公式、归一化、执行优化默认或正式评测。
+
+补充重复对照已完成21次backward：相同profile重复的整体梯度相对L2约0.0449%–0.5178%，均未超现有容差；开启辅助时history/both对reference仍约3.43%/6.11%，明显更大。关闭辅助valid后所有profile差异约0.45%–0.51%，无超限参数；支持较大差异来自历史辅助路径，而非动作损失分支直接换了公式。认证原both与当前both也有同量级重复数值波动，不能把微型CPU“query逐位等价”外推生产CUDA。原始training-gradient-repeat-control.json保留，脚本当时版本0e90346。以上仍为合成标签证据，不证明原训练被破坏。
+
+随后只补下载同一固定HF数据revision中的两桌原ARDY归档16311154字节，SHA619b1d31…与HF LFS一致，安全解压93成员；manifest SHA d209f886…与VGQ训练契约sidecar字段完全相同。目录data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0，归档路径train-data/between/simple-between-tables-new-training-ardy-h264--G1WholebodyLocomotionPickBetweenTablesTeleop-v0--584656211f.tar.zst，下载/解压收据ardy-restoration.json、HF固定tree原文保留。首次simple解释器缺zstandard，在发请求前退出；改用已有依赖的miniforge完成，没有重复下载或安装包。没有下载其他权重。
+
+随后用--sidecar走原生真实数据与正式ARDY Reader，要求manifest匹配权重契约并验证数据context、逐episode哈希/标签有效性；仍batch1/frame60、三历史帧、原生增强/Beta/noise、无optimizer，仅formal和masked两组×七方式，GPU2。新路径保留所有合成对照，实际结果以上方完成记录为准。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/probe_training_gradients.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --archived-source "$PSI_RUNTIME_ROOT/external/Psi0-pi05-QSAFE-reference/src/rsci_pi05" \
+  --sidecar "$PSI_RUNTIME_ROOT/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --frame 60 --repeat-control \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-formal-ardy.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-formal-ardy.log" 2>&1
+```
+
+第一轮GPU2/PID2161457已实际退出0：两组合成标签、五方式共10次forward/backward，223个可训练参数全部取得有限梯度、冻结VLM无梯度，RNG全部相同、峰值8.822GiB。action_loss逐profile完全相同；history/both相对reference整体梯度相对L2为zero组3.431%/3.432%、linear组6.111%/6.111%，最大单值差0.002563/0.003664，最坏reader.attn.v_proj_weight，分别1/5个参数超现有BF16容差。query去重算也并非全GPU逐位等价：相对L2 0.2523%/0.04670%、未超现有容差；当前both对认证原both的loss全同，梯度相对L2 0.2999%/0.04478%。这些不能直接归为训练bug：需先衡量同一profile的重复运行波动；原始training-gradient-parity-gpu2.json/log完整保留，脚本初版在0c4113d可追溯。
+
+补充--repeat-control：每组增加reference_repeat/both_repeat，并追加masked合成标签组（与zero组相同增强/噪声seed，辅助valid=False）来隔离动作分支；报告共享AE/时间、动作投影与辅助专用梯度分组。仍不更新参数，未以合成标签的梯度差证明原训练成功率因果。GPU2，同样空闲预检/分配预算，输出新路径以保留原报告。补充实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/probe_training_gradients.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --archived-source "$PSI_RUNTIME_ROOT/external/Psi0-pi05-QSAFE-reference/src/rsci_pi05" \
+  --frame 60 --repeat-control \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-repeat-control.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-repeat-control.log" 2>&1
+```
+
+继续排查7000步后execution=both是否改变训练梯度。先读现有scripts/validate_pi05_speed.py与tests/test_pi05_speed.py：已有微型模型的梯度/更新对照，完整验证器会创建optimizer并要求正式ARDY sidecar；本机未安装此sidecar。此次独立实验复用现有真实Pi05RHSCI/Processor/Dataset及认证历史Pi05RSCI（model.py摘要必须匹配VGQ契约），不调用optimizer、不更新权重。真实episode0/frame60的30步动作及54/56/58/60 RGB，四帧有效；辅助标签显式为zero和linear(-1,1)两组128维合成值，仅用于计算等价审计，不冒充原ARDY/训练复现。单卡batch1 BF16、原生增强/Beta时间/噪声，逐profile重置同一RNG，比较所有可训练梯度、loss、RNG及冻结VLM无梯度；reference/query/history/both四种当前执行方式和认证原both。BF16容差沿用已有验证器rtol0.03/atol5e-4，同时报告原始误差、逐位差异和所有超限参数，不用容差隐藏差异。
+
+论文/README及保存配方来源沿用本说明；这是梯度诊断，batch1不是原八卡batch16，也不估计成功率。首个GPU1尝试在加载模型前被16GiB空闲预检拒绝，原日志training-gradient-parity.log保留、不计模型失败；GPU1随后空闲8.6GiB，已有其他8148诊断服务。改用现场空闲17.1GiB的GPU2，保留原进程2GiB分配预算。修正后的实际命令（未完成前不记通过）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/probe_training_gradients.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --archived-source "$PSI_RUNTIME_ROOT/external/Psi0-pi05-QSAFE-reference/src/rsci_pi05" \
+  --frame 60 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-parity-gpu2.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-gradient-parity-gpu2.log" 2>&1
+```
+
+## 固定动作噪声的出生点反事实（2026-11-04，运行状态另见工作记录）
+
+此前原位/前移对照使用原生独立噪声。为减少这个混杂，本会话新诊断在每条stream复用原生RequestActionNoise（同seed17、episode0、逐块相同inference_index），单线程调用原Server.predict_action；不改模型/处理器/采样公式，不开启额外确定性数值配置。paired_noise.py的服务只接收显式stream/seed，客户端通过真实HttpActionClient.query_action的history参数添加既有协议元数据；诊断开关只能用于单episode trace。simple环境需显式PYTHONPATH指当前src以复用协议常量。该开关默认关闭，正式入口行为保持原配置。
+
+来源仍为本说明已核对论文/README、保存权重与官方任务设置：同VGQ40k、预测30执行30、无RTC、10步BF16、wall时钟、1200步/0.4；新版level0/episode4原位与仅x+0.06，两路GPU2/3、DDS240/241、服务GPU1/8148，保存完整双目录像和trace。逐块噪声SHA需按实际日志核对；渲染/物理数值不是逐位配对，单seed结果不能外推总体成功率。当前仅诊断，不修复官方初态。实际服务命令（重定向至paired-spawn-noise/server-foreground.log，工具session72407；首次后台PID2156261已缺失且空日志，未启动客户端，第二次确认PID2156408实际在初始化）：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=8 \
+TORCHINDUCTOR_CACHE_DIR="$PSI_RUNTIME_ROOT/cache/paired-spawn-noise" \
+python -u experiments/pi05_between/paired_noise.py \
+  --backbone pi05 \
+  --run-dir "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1" \
+  --checkpoint-step 40000 \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --device cuda:0 --host 127.0.0.1 --port 8148 --no-deterministic-eval
+```
+
+客户端预定命令；完成真实配对请求预检后才执行，准备不称为rollout：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+export PYTHONPATH=/root/workspace/RHSCI-Private/src
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-spawn-noise"
+for spec in 'original 2 240' 'plus006 3 241'; do
+  (
+    read -r variant gpu domain <<< "$spec"
+    data_dir="$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0"
+    if [[ "$variant" == plus006 ]]; then
+      data_dir="$PSI_RUNTIME_ROOT/eval-probes-20261104/new-level0-x-plus006"
+    fi
+    mkdir "$probe_root/$variant"
+    cd "$probe_root/$variant"
+    CUDA_VISIBLE_DEVICES="$gpu" python -u \
+      /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+      simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 psi0_decoupled_wbc train \
+      --data-format lerobot --data-dir "$data_dir" --sim-mode mujoco_isaac \
+      --host 127.0.0.1 --port 8148 --headless \
+      --num-episodes 1 --episode-start 4 --max-episode-steps 1200 --success-criteria 0.4 \
+      --eval-dir "$PWD/stats" --save-video \
+      --renderer-gpu "$gpu" --dds-domain-id "$domain" --cpu-threads 8 \
+      --trace-control "$PWD/control_trace.jsonl" \
+      --diagnostic-noise-seed 17 --diagnostic-noise-stream "$variant" \
+      > "$PWD/console.log" 2>&1
+  ) &
+done
+wait
+```
+
 ## 新旧包完整首轮与历史首轮逐编号核对（2026-11-04）
 
 旧包复测首轮三级各10次已全部完成，不能再沿用仅共同episode0–7的早期快照。相同权重、当前30/30代码下，旧包成功4/1/1，新包首轮0/1/1；认证历史首轮为4/3/0（其执行30/24、时钟/导航协议不同）。均只比较三级30次，旧包无hard，不是150次最终结果。旧包level0成功episode0/1/3/4，新包均失败；旧level1/2成功均episode1，新包分别episode4/3；历史level0成功4/5/6/7，历史level1成功4/6/9。因此旧包level0在这一轮恢复到历史同样的4/10，但成功身份明显不同；level1未恢复到历史3/10，不能把回归归为一个统一初态平移或据此宣称旧协议已复现。原生噪声未配对，当前旧/新推理服务组织不同，不作显著性或全因果结论。
