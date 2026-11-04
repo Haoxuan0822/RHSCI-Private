@@ -17,6 +17,24 @@ cd /root/workspace/RHSCI-Private
   --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/sampling-bias-audit.json
 ```
 
+## 完整任务的失败阶段核对（2026-11-04）
+
+只读spawn-full三条完整轨迹，按连续5个策略步满足的几何阈值记录事件：目标原点比首步高0.08m、与篮子XY距离小于0.1m、目标原点高度低于0.1m、机器人XY位移超过0.3m。阈值不是抓取接触分类器或官方成功判定，三路原生噪声未配对。
+
+新版episode4原位失败：1200步最高目标z=0.76832m，初始0.76275m，从未达到抬升阈值；机器人第471步累计移动超过0.3m，盒子最终仍在第一桌（z=0.68872m，不能误写落地），离篮子最近2.10788m。前移6cm的同episode官方True：第105步抬升、第497步进入篮子XY 0.1m范围，749步结束，最近距离0.00750m。前移episode0官方False：第146步抬升、第544步进入篮子附近，第1046步落到z<0.1m，最终z=0.03755m。这说明距离变化可影响抓取，但前移后仍有搬运后掉落的失败，不能合并为一个抓取错误或宣称普遍恢复。
+
+task-stage-audit.json保存完整trace SHA与官方统计原文，PNG三曲线已人工检查。没有启动额外模型或仿真。实际复算命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_task_stages.py \
+  /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-full/original-episode4 \
+  /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-full/plus006-episode4 \
+  /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-full/plus006-episode0 \
+  --output /opt/rsci-data/evals/stutter-root-cause-20261104/task-stage-audit.json
+```
+
 ## 原v2动作标签往返审计（2026-11-04）
 
 只读全91条/58637帧动作及既有24块预测，实际调用当前Processor.normalize，再按正式serve.py同一v2公式反变换。没有启用已撤回的v3，没有改统计、数据或模型。训练统计和输入预测SHA记录在training-label-roundtrip-audit.json，逐维全训练集往返误差与三个诊断episode的自然边界一并保留。
