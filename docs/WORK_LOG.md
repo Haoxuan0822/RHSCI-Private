@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 已CPU核对91训练配置与新旧三级初态：训练configured target−robot x=0.30450–0.33537m，新30/30超出（0.36856–0.39305m），旧level0/1全在范围、level2仅2/10超出；不可称全训练帧支持范围或稳定后实测。RAW78训练0首帧真实距0.39552m、旧/新episode4稳定末态0.37515/0.43604m，四校准目标原点投影y差约20px，未新增仿真/模型。各包level0/1机器人/目标完整pose20/20对相同但场景/干扰物/外观改变、回撤不同；各组距离/回撤描述相关无一致单调，距离不能单独判完整根因。audit_spawn_conditioning.py及spawn-conditioning-audit-v2.json保存SHA/逐初态统计/四校准，完整命令及范围见两桌README新节；无生产修改，goal active。
+
 - 120段VGQ40k新旧30/30既有录像完成CPU腕部换块分布核对：各包三级前两轮60段，左腕全部通过，前121帧各级60边界窗≥1px反转旧19/31/38、新35/51/54，≥2px旧12/21/15、新22/46/51；两组各180块内对照窗≥1px均0，支持用户新包更易回撤观察，不外推整段/纯场景因果。右腕8段拒绝显式保留，右减左后各级趋势仍在；全部视频/日志/配置SHA与原始轨迹见bilateral-wrist-recoil-with-provenance/result.json，session78420退出0。compare_video_recoils.py与复用track_points、完整命令/表在两桌README新节，Ruff通过；初版模板87/120拒绝不可作总体判断已记ERROR_LOG。无新模型/仿真/生产修改，根因未定。
 
 - 新旧包已有在线轨迹各121帧完成CPU 3D图像/真实关节lag核对，无新π模型/仿真。两组四校准×五刚体最佳均lag0；同帧指尖/手腕留出RMSE新0.2611/0.1837px、旧0.2410/0.2441px，±30帧新2.42–3.60/旧5.10–9.10px。官方稳定后writer初帧规则和0/30/60/90模型PNG同编号视频最小MAE均核实；仅支持这两窗口无整块在线滞后，不能反驳旧包整体顺畅观察/外推总体或称完整根因。audit_image_joint_lag.py新增可选在线输入，两个online-*-lag-with-provenance.json与输入SHA/命令在两桌README新节；sensor检查两次拒绝及有限缺省等价记录ERROR_LOG，未改生产配置。

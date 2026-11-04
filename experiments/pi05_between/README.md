@@ -1,5 +1,33 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 初始目标距离、训练范围与回撤条件核对（2026-11-04）
+
+audit_spawn_conditioning.py只读91条训练source_binding、旧/新三级初态、已有120段左腕统计及两条trace，不调用模型/渲染/物理。训练配置target.x−robot.x范围0.3045005–0.3353721m；旧level0/1均0.3078294–0.3318245、10条均在内，旧level2为0.3021431–0.3364458、2/10超出；新level0/1为0.3685614–0.3925565、新level2为0.3716330–0.3930537，30/30全部超出训练的**配置初态x范围**。不能写成模型在全部训练帧从未见过这些距离，也不能把配置值当稳定后的实测距离。
+
+用身份匹配RAW78完整base/43关节和两条episode4稳定末态，原生MJCF FK加既有四安装校准投影目标位姿原点：训练0/frame0实测target.x−base.x=0.395521m、左目深度0.55110–0.55136m；旧episode4相应0.375152m、0.53735–0.53762m，新episode4为0.436042m、0.57546–0.57573m。旧/新目标原点投影y约202.52–202.72/182.55–182.73px，相差约20px。此处是body位姿原点，不冒称mesh bbox中心；训练仅一帧实测，不能推及91条全部稳定后范围。RAW SHA必须匹配manifest，四份标定均报告，未当完全刚性安装。
+
+距离候选有明确反证/限制：各包level0/1同编号机器人和目标**完整position/quaternion**在20/20对中相同，但干扰物、spatial其他项、scene、lighting、material均改变，左腕回撤旧19→31、新35→51，不能说距离单独解释等级差异。各级10初态、先合并两轮每初态6边界再作描述性Spearman，旧0/1/2为0.3084/0.1115/0.0566，新0/1/2为0.1046/−0.3838/−0.2901，无一致单调关系；不作显著性或独立窗口检验。既有前移6cm成功例仍回跳，也不能称直接修复。当前支持“新包初态距离分布发生变化、其视觉投影有实质差异”，尚不能判为周期顿挫完整根因，亦不擅改官方初态。
+
+spawn-conditioning-audit-v2.json含各元数据/原始来源/trace/校准/视频报告/脚本SHA、逐初态距离和回撤计数、四校准投影。初版spawn-conditioning-audit.json保留，仅其投影键center更正为origin，数值不变。进程退出0、Ruff通过；正式评测/推理配置不变。完整实际命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+/opt/rsci-data/.venv-simple/bin/python \
+  experiments/pi05_between/audit_spawn_conditioning.py \
+  --manifest /opt/rsci-data/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/manifest.json \
+  --old-root /opt/rsci-data/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  --new-root /opt/rsci-data/SIMPLE-eval-20261103/snapshot-fb67cd9a/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  --recoil-report "$AUDIT_ROOT/wrist-recoil-distribution/result.json" \
+  --calibration "$AUDIT_ROOT/image-joint-lag-audit.json" \
+  --raw "$AUDIT_ROOT/upstream-raw-historical-episode0/episode_000078.parquet" \
+  --old-trace "$AUDIT_ROOT/old-episode4-horizon/execute-30/control_trace.jsonl" \
+  --new-trace "$AUDIT_ROOT/paired-spawn-noise/original/control_trace.jsonl" \
+  --xml /opt/rsci-data/external/SIMPLE-official/data/robots/g1_sonic/g1_29dof_with_hand.xml \
+  --output "$AUDIT_ROOT/spawn-conditioning-audit-v2.json" \
+  > "$AUDIT_ROOT/spawn-conditioning-audit-v2.log" 2>&1
+```
+
 ## 120段新旧包录像的换块回撤分布（2026-11-04）
 
 针对用户“旧包整体基本没有顿挫”的观察，本轮直接读既有VGQ40k录像，不新启模型/评测。旧pi05-vgq-official-pre1102-singlethread-20261104与新pi05-between-30x30-5cycles-20261104/VGQ-AE，三级×两轮×10条各60段，共120段左目；只用闭合success/failed视频，不按成功筛选。原生日志实际返回长度均30，配置无24步截断，不混认证历史30/24。旧脚本/当前README已记录同权重，但旧新采样未配对、服务组织不同，不能当纯场景单变量实验。
