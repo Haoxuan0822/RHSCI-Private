@@ -11,6 +11,14 @@
 
 ## 当前 π0.5 两桌任务
 
+- **当前GR00T队列2329010/session37378活跃，日志`logs/gr00t-old-package-queue-usd-compat.log`。** 六份warmup均有限(16,36)，六路Kit内修复各79处原场景引用，已开始原生episode初始化/双目录像；现场日志缺失USD/纹理/UsdToMdl/Traceback均0，尚无完成episode。不据初始化通过宣称全部渲染/完整评测验收。第三次2321277因Isaac内置USD缺少GetAppliedItems退出，输出完整保留为`*-before-usd-api-compat`；改为两个USD版本均支持的原始list-op计数，CPU三场景复验仍组合错误0（logs/gr00t-old-scene-reference-audit-listop/result.json）。完整错误已记ERROR_LOG。下文旧PID均为历史快照。
+
+- **当前状态覆盖下文所有旧PID快照：** π0.5/NO-STATE均已停止。GR00T首试2292579因场景引用错误停止，输出完整移至`gr00t-official-pre1102-5cycles-20261104-before-oven-usd-repair`；二试2314573因Kit初始化前调用pxr失败，输出完整移至`*-before-kit-hook`，均不计成绩。现修复为包装原生`BaseDualSim._init_isaac`、先调用原方法再修正进程内Layer，保留torch/curobo/Kit原生顺序。第三次队列2321277/session97966、六worker2321278–2321283已启动，日志`logs/gr00t-old-package-queue-kit-hook.log`；当前仅确认模型加载，实际渲染与完成结果待核。原场景三个ZIP共1240文件的集合/大小/CRC32全部匹配，收据`logs/gr00t-old-scene-original-inventory.json`。命令及完整配置见队列README顶部。
+
+- **最新用户指令覆盖以下历史运行状态：停止所有π0.5评测，不测新包，仅用官方旧包评测此前指定且下载完整的GR00T四组（烤箱STATE/VGQ-AE、交接STATE、水龙头STATE）。** 已TERM队列420186，原NO-STATE四worker及模型/仿真子进程均正常清理退出；旧π0.5父1812071/2/3已TERM，客户端2195095/2195572/2223472已INT，8147/8148服务1801072/2156408已TERM，现场ps无上述评测/服务残留。已有文件保留，不自动恢复，不把中断算失败，logs/evaluation-scope-change-20261104.json记录用户中止身份。新调度仍复用旧worker，只增加显式evaluation-root；plan只含GR00T及三级，每组150次，共600次，hard=NA。三旧任务ZIP仅1.177MB已下载并HF SHA校验、三级各10初态核验，权重不补下载。**新队列2292579已实际启动，工具session52445，日志gr00t-old-package-queue.log；六worker2292580–2292585、服务2292967–2292972均活跃，六份真实warmup.json确认有限(16,36)，首轮仿真正在初始化，尚无完成成绩。** 首波烤箱STATE GPU0–2 / VGQ GPU3–5，8120–8125、DDS100–105；后续交接STATE再水龙头STATE。完整配置（内部50、有效16/执行16、4次去噪BF16无RTC）、来源和命令见队列README顶部。
+
+- 用户指定旧包level2/repeat01/episode8停滞已补同初态120步诊断（session71467退出0，GPU7/DDS227释放，既有8148服务保留）：4块模型0.068–0.093s，双臂边界回跳为块内中位26.864倍，与上一块推进方向cos约-0.999，真实关节跟随回撤；模型→WBC臂映射差0。120步盒子最大移动0.904mm、基地0.792mm、下身全部stand。原两轮录像都见类似停滞，首轮日志40×30动作/1201帧，非推理停止。直接机制是反复起手/退回，不将其说成完整训练根因或材质因果。analyze_stall.py及完整来源/命令/范围在两桌README，运行根old-level2-episode8保留trace/JSON/图/双目视频；无生产改动。
+
 - 最新现场复核：原400次已全部完成，8份COMPLETE.json齐；STATE成功0/0/0/0、VGQ-AE成功0/1/2/0，均完成50/50/50/50。前两轮每模型/难度/轮均20份非空、带success/failed后缀的闭合双目MP4，共320份（本次核文件数量/大小，不冒称再次全量解码）。队列420186实际活跃，已启动NO-STATE GPU0–3四难度；不要重复启动。旧150次父进程1812071/2/3仍活跃，现场成功12/5/2/NA、完成24/23/21/NA，非最终。
 - 独立会话固定噪声出生点episode4两路现均已出官方统计：original False、plus006 True。仅只读复用analyze_control_trace.analyze解析完整trace，原位1200步40块比12.1971、前移804步27块比12.6705，动作到WBC双臂差均0；收据paired-spawn-noise-independent-summary.json位于运行根。不操作其8148服务或目录源文件；不同完成时长/阶段的全程比不能当作出生点对顿挫效应量。成功仍伴随显著边界跳变，支持将任务出生位置影响与顿挫区分，非总体成功率结论。
 

@@ -5,9 +5,11 @@ from pathlib import Path
 ROOT = Path("/root/workspace/Haoxuan/RHSCI-runtime")
 REPO = Path("/root/workspace/RHSCI-Private")
 CURRENT = ROOT / "evals/pi05-between-30x30-5cycles-20261104"
-OUTPUT = ROOT / "evals/followup-pi05-gr00t-5cycles-20261104"
+PREPARATION = ROOT / "evals/followup-pi05-gr00t-5cycles-20261104/preparation"
+OUTPUT = ROOT / "evals/gr00t-official-pre1102-5cycles-20261104"
+EVALUATION_ROOT = ROOT / "eval-official-pre1102"
 REVISION = "59a1ea14d4346496d4e55c9fa58ea2f3330fd298"
-LEVELS = ("dr-level-0", "dr-level-1", "dr-level-2", "dr-level-hard")
+LEVELS = ("dr-level-0", "dr-level-1", "dr-level-2")
 TASKS = {
     "between": ("G1WholebodyLocomotionPickBetweenTablesTeleop-v0", 1200, 0.4),
     "oven": ("G1WholebodyOpenOvenTeleop-v0", 1000, 0.5),
@@ -37,12 +39,12 @@ RUNS = [
     ],
 ]
 
-# 只续传烤箱两份；其他指定模型仅使用已经下载完整的归档。
-DOWNLOAD_RUNS = [run for run in RUNS if run["task"] == "oven"]
+# 用户已停止补下载；仅使用本地已经完整下载的指定GR00T归档。
+DOWNLOAD_RUNS = []
 ACTIVE_RUNS = [
     run
     for run in RUNS
-    if run in DOWNLOAD_RUNS or (ROOT / "hf/RHSCI/model-59a1ea14" / run["archive"]).is_file()
+    if run["backbone"] == "gr00t" and (ROOT / "hf/RHSCI/model-59a1ea14" / run["archive"]).is_file()
 ]
 
 
@@ -54,7 +56,7 @@ def worker_command(run, gpu, level, run_dir):
     """声明实际启动参数；模型、仿真与进程清理仍由已有 worker 完成。"""
     task, maximum, success = TASKS[run["task"]]
     return [
-        str(ROOT / ".venv-pi05-rsci/bin/python"),
+        str(ROOT / f".venv-{run['backbone']}-rsci/bin/python"),
         "-u",
         str(REPO / "experiments/pi05_between/run_evaluation.py"),
         "--gpu",
@@ -77,10 +79,13 @@ def worker_command(run, gpu, level, run_dir):
         str(success),
         "--output-root",
         str(OUTPUT / run_key(run)),
+        "--evaluation-root",
+        str(EVALUATION_ROOT),
         "--level",
         level,
         "--num-repeats",
         "5",
         "--video-rounds",
         "2",
+        "--repair-scene-references",
     ]

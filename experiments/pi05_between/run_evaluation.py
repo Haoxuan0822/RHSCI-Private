@@ -116,6 +116,7 @@ def worker(args):
                         "cycles": args.num_repeats,
                         "episodes_per_cycle": args.num_episodes,
                         "video_rounds": args.video_rounds,
+                        "evaluation_root": str(args.evaluation_root),
                     },
                     indent=2,
                 )
@@ -202,7 +203,7 @@ def worker(args):
                     "--sim-mode",
                     "mujoco_isaac",
                     "--data-dir",
-                    str(ROOT / "SIMPLE-eval-20261103/snapshot-fb67cd9a" / task / level),
+                    str(args.evaluation_root / task / level),
                     "--host",
                     "127.0.0.1",
                     "--port",
@@ -231,6 +232,9 @@ def worker(args):
                     "8",
                 ]
                 import shlex
+
+                if args.repair_scene_references:
+                    sim_command.append("--repair-scene-references")
 
                 (destination / "command.sh").write_text(
                     "# Working directory: "
@@ -294,12 +298,19 @@ if __name__ == "__main__":
     parser.add_argument("--success-criteria", type=float, default=0.4)
     parser.add_argument("--output-root", type=Path, default=OUT)
     parser.add_argument(
+        "--evaluation-root",
+        type=Path,
+        default=ROOT / "SIMPLE-eval-20261103/snapshot-fb67cd9a",
+        help="Explicit official evaluation package root; recorded in worker metadata",
+    )
+    parser.add_argument(
         "--level",
         choices=["dr-level-0", "dr-level-1", "dr-level-2", "dr-level-hard"],
         required=True,
     )
     parser.add_argument("--num-repeats", type=int, default=5)
     parser.add_argument("--video-rounds", type=int, default=2)
+    parser.add_argument("--repair-scene-references", action="store_true")
     arguments = parser.parse_args()
     if arguments.video_rounds < 2:
         parser.error("Retain at least two complete video rounds")

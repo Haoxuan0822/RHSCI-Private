@@ -1,4 +1,4 @@
-"""Wait for the current verified 400 episodes, then execute the requested follow-ups."""
+"""Run the selected GR00T models on the three-level official old evaluation package."""
 
 import json
 import os
@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, REPO, run_key, worker_command
+from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, PREPARATION, REPO, run_key, worker_command
 
 next_pause_renewal = 0.0
 
@@ -56,7 +56,7 @@ def current_complete():
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    preparation = OUTPUT / "preparation"
+    preparation = PREPARATION
     while not current_complete() or not (preparation / "READY.json").exists():
         maintain_gpu_reservation()
         if (preparation / "FAILED.txt").exists():
@@ -64,10 +64,10 @@ def main():
         print("WAIT_CURRENT_400_AND_ASSETS", flush=True)
         time.sleep(30)
     ready = json.loads((preparation / "READY.json").read_text())
-    # NoState 两桌先跑；之后依次按任务同时跑 STATE / VGQ-AE，各占四张卡。
+    # 用户最新范围：不再评测π0.5，只用官方旧包的三个等级。
     waves = [
         [run for run in ACTIVE_RUNS if run["task"] == task]
-        for task in ("between", "oven", "handover", "faucet")
+        for task in ("oven", "handover", "faucet")
     ]
     environment = dict(
         os.environ, PYTHONPATH=str(REPO / "src"), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"
@@ -81,7 +81,7 @@ def main():
                 directory = OUTPUT / key
                 directory.mkdir(parents=True, exist_ok=True)
                 for offset, level in enumerate(LEVELS):
-                    gpu = slot * 4 + offset
+                    gpu = slot * len(LEVELS) + offset
                     command = worker_command(run, gpu, level, ready[key]["run_dir"])
                     lines = [shlex.join(command[:3])]
                     lines.extend(
@@ -125,7 +125,8 @@ def main():
             for handle in handles:
                 handle.close()
     (OUTPUT / "COMPLETE.json").write_text(
-        json.dumps({"models": len(ACTIVE_RUNS), "episodes": 200 * len(ACTIVE_RUNS)}) + "\n"
+        json.dumps({"models": len(ACTIVE_RUNS), "episodes": 50 * len(LEVELS) * len(ACTIVE_RUNS)})
+        + "\n"
     )
 
 

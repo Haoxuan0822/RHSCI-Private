@@ -48,6 +48,7 @@ def main():
     parser.add_argument("--renderer-gpu", type=int, required=True)
     parser.add_argument("--dds-domain-id", type=int, required=True)
     parser.add_argument("--cpu-threads", type=int, default=8)
+    parser.add_argument("--repair-scene-references", action="store_true")
     parser.add_argument("--trace-control", type=Path)
     parser.add_argument("--control-clock", choices=["wall", "simulation"], default="wall")
     parser.add_argument("--diagnostic-execute-horizon", type=int, choices=[24, 30])
@@ -90,6 +91,15 @@ def main():
     ]
     from simple.cli.eval_decoupled_wbc import _make_sonic_config, run_eval
     from simple.evals.api import EvalConfig
+
+    if args.repair_scene_references:
+        from scene_references import install_scene_reference_repair
+
+        install_scene_reference_repair(
+            args.data_dir,
+            Path(os.environ["SIMPLE_HOME"]) / "data/scenes/hssd",
+            Path.cwd() / "scene-reference-repair.json",
+        )
 
     if args.diagnostic_noise_seed is not None:
         from paired_noise import install_client

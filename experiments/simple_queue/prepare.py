@@ -1,4 +1,4 @@
-"""Prepare selected checkpoints; only the two oven downloads may continue."""
+"""Restore selected local checkpoints; the current plan enables no weight downloads."""
 
 import concurrent.futures
 import hashlib
@@ -13,10 +13,10 @@ import traceback
 from pathlib import Path
 
 import zstandard
-from plan import ACTIVE_RUNS, DOWNLOAD_RUNS, OUTPUT, REVISION, ROOT, run_key
+from plan import ACTIVE_RUNS, DOWNLOAD_RUNS, PREPARATION, REVISION, ROOT, run_key
 
 MODEL_ROOT = ROOT / "hf/RHSCI/model-59a1ea14"
-LOG = OUTPUT / "preparation"
+LOG = PREPARATION
 LOG.mkdir(parents=True, exist_ok=True)
 
 

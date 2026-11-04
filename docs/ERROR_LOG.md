@@ -1,5 +1,11 @@
 # 错误记录
 
+- **独立USD检查版本不等于Isaac内置USD版本：** 第三次Kit已正常初始化，但其`ListEditorProxy_SdfReferenceTypePolicy`没有独立usd-core的`GetAppliedItems`，六路在场景加载前退出。输出完整移至`*-before-usd-api-compat`。计数改用两个版本均提供的explicit/added/prepended/appended/deleted/ordered列表逐项计数，不改变引用本身；第四次日志`gr00t-old-package-queue-usd-compat.log`，实际验收仍以Isaac运行结果为准。
+
+- **pxr必须在原生Kit初始化后导入：** 第二次GR00T启动2314573中，导入SIMPLE CLI/API仍未启动Kit，修复器立即调用pxr导致六路ModuleNotFoundError，未开始物理评测。输出移动保留为`gr00t-official-pre1102-5cycles-20261104-before-kit-hook`。改为在实验入口包装原生`BaseDualSim._init_isaac`，先完整执行原初始化再修正Layer，随后才由原生框架加载场景；不在Isaac环境安装另一个usd-core、不手工抢先创建SimulationApp。第三次实际启动及验证状态见WORK_LOG。
+
+- **GR00T三个场景USD跨目录引用及大小写错误：** 首次旧包烤箱六路预热通过，但102344280初始化出现180条props缺失警告/路，引用../../../../../../props落到运行根。旧修复器只识别/root/tmp/UID或/tmp/UID，未覆盖此种路径。已TERM队列2292579及其完整子树，将目录移动保留为*-before-oven-usd-repair，不计成绩。三个当前任务场景均有同类引用；全场景扫描75个同名不同内容，不能给运行根建共享props软链接。scene_references.py仅在当前进程内重定向至本场景原props，持有Sdf.Layer保证原生加载复用，不保存官方文件。初次CPU核查因交接black.usd不存在拒绝；仅在唯一大小写候选且文件内精确同名材质prim存在时启用black→Black及White→WHITE（对应/World/Looks/black、White），不猜别的材质。三场景79/27/202路径完成修正，引用位置总数与磁盘USD SHA保持，原生USD组合错误0。原ZIP清单/大小/CRC核对、实际Kit渲染验证分别记录，不把CPU组合成功当全部渲染通过。完整命令/收据见队列README顶部。该问题不同于此前两桌的临时目录失效别名；不得据此推翻已验两桌材质或宣称π0.5顿挫根因已找到。
+
 每次开始工作前必须完整阅读本文件和 `AGENTS.md`。错误按实际证据记录，不用静态检查、下载成功或进程存活替代实际运行验证；修复后更新原条目中的状态与验证范围。
 
 - **DDS不能仅靠编号不重复保证可用：** 出生点配对准备记录预留240/241，客户端尚未启动。DDS RTPS基础端口7400+250*domain，240已为67400，超过UDP65535；domain还需容纳participant端口，不能使用233以上。已在WORK_LOG提示后续选现场未占用224/225，不重启尚未开始的客户端，不将此准备错误计模型失败。GPU2梯度诊断已结束可释放给该对照；8148模型服务不使用DDS编号。
