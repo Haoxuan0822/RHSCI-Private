@@ -1,5 +1,7 @@
 # 错误记录
 
+- **在线lag诊断的sensor字典检查两次拒绝（2026-11-04）：** 首版完整字典比较拒绝，二版仅补capture_depth/capture_pointcloud=False仍拒绝；逐字段核实另有intrinsics/depth_intrinsics/depth_to_color_extrinsics=None，RAW来源省略五个新增字段。改为只补这五项关闭/空值后再严格比较完整字典，width/height/fov/mount/pose/baseline等仍必须相同，不吞其他差异。online-image-joint-lag-audit.log及*-v2.log保留失败，v3及旧包分析退出0；最终带episodes SHA版本另写online-new/old-lag-with-provenance.json，不覆盖初次成功报告。防复发：区分序列化缺省字段与几何变化，不笼统放宽相机检查。此为诊断预检问题，不是生产顿挫根因。
+
 - **小幅快照安装差异不能直接判错帧或静默当零：** FK/像素时间诊断首次预设相机/torso安装矩阵差<1e-4，实际0.00048018触发拒绝，无结果；image-joint-lag-audit.log保留。实测四份快照平移差最大0.488mm、旋转差0.00926度，改为每份独立校准分别扫描所有lag并报告敏感性，不通过放宽阈值来宣称完全刚性。最终20组最佳均lag0，1220拟合全成功/有限；结论仅限选定训练窗口，不把标定误差当数据错帧证据。
 
 - **跨初态的开环下身目标不是有效物理基线：** 完整RAW目标诊断中，将当前WBC保存目标改从RAW初态开始，第120步躯干偏53.05度，不能拿RAW下身恢复至0.63度宣布修复。补从trace自身稳定初态重放，现场腰max误差0.003228rad；相同初态/手臂条件下换RAW腿腰目标反使第120步误差8.77→16.21度。保存目标依赖原反馈，跨状态不能当闭环控制；后续必须先验证基线，再报告完整轨迹和反例。首版contact bodyid的NumPy隐式标量转换警告用.item()修正，两次补跑无此警告，物理计算未改变。

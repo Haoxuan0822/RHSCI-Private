@@ -46,7 +46,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("raw", "raw-info", "manifest", "trace", "render", "motion", "xml", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--observed-trace", type=Path)
+    parser.add_argument("--eval-config", type=Path)
     args = parser.parse_args()
+    if bool(args.observed_trace) != bool(args.eval_config):
+        parser.error("Online poses require both --observed-trace and --eval-config")
     if args.output.exists():
         raise FileExistsError(args.output)
     source = json.loads(args.manifest.read_text())["context"]["source_binding"]["0"]["raw_source"]
@@ -95,6 +99,52 @@ def main():
         raise ValueError("Need four independent camera-mount snapshots")
     mount_error = float(np.max(np.abs(np.asarray(mounts) - mounts[0])))
     sensor = source["raw_environment_config"]["sensor_cfgs"]["head_stereo"]
+    online_poses = None
+    online_sensor = None
+    online_metadata = None
+    if args.observed_trace:
+        config = json.loads(args.eval_config.read_text())
+        episodes_path = Path(config["data_dir"]) / "meta/episodes.jsonl"
+        online_metadata = dict(
+            path=str(episodes_path.resolve()),
+            sha256=hashlib.sha256(episodes_path.read_bytes()).hexdigest(),
+        )
+        episode = next(
+            row
+            for row in map(json.loads, episodes_path.read_text().splitlines())
+            if row["episode_index"] == config["episode_start"]
+        )
+        environment = json.loads(episode["environment_config"])
+        online_sensor = environment["sensor_cfgs"]["head_stereo"]
+        # 旧采集配置省略后增字段；只接受关闭深度流/无覆盖内参的显式空值。
+        optional_fields = {
+            "capture_depth": False,
+            "capture_pointcloud": False,
+            "intrinsics": None,
+            "depth_intrinsics": None,
+            "depth_to_color_extrinsics": None,
+        }
+        normalized = []
+        for config_sensor in (sensor, online_sensor):
+            normalized.append({**optional_fields, **config_sensor})
+        if normalized[0] != normalized[1]:
+            raise ValueError("Online sensor config differs from calibration provenance")
+        stable, steps = None, []
+        for row in map(json.loads, args.observed_trace.read_text().splitlines()):
+            if row["kind"] != "env_step":
+                continue
+            if row["phase"] == "stabilize":
+                if steps:
+                    raise ValueError("Multiple episodes are not supported")
+                stable = row
+            elif len(steps) < 120:
+                if row["step"] != len(steps):
+                    raise ValueError("Online policy steps must be contiguous from zero")
+                steps.append(row)
+        if stable is None or len(steps) != 120:
+            raise ValueError("Need final stabilized state and first 120 policy afterstates")
+        # 官方VideoRecorder在稳定后重置writer：frame0为稳定末态，frame1为step0后态。
+        online_poses = np.asarray([row["qpos"][: model.nq] for row in [stable, *steps]])
     width, height = sensor["width"], sensor["height"]
     focal = width / (2 * np.tan(sensor["fov"] / 2))
     intrinsic = np.array([[focal, 0, width / 2], [0, focal, height / 2], [0, 0, 1]])
@@ -109,8 +159,11 @@ def main():
     projections = {name: [[] for _ in mounts] for group in candidates.values() for name in group}
     for frame in range(121):
         data.qpos[:] = model.qpos0
-        data.qpos[:7] = bases[frame]
-        data.qpos[addresses] = joints[frame]
+        if online_poses is None:
+            data.qpos[:7] = bases[frame]
+            data.qpos[addresses] = joints[frame]
+        else:
+            data.qpos[:] = online_poses[frame]
         mujoco.mj_forward(model, data)
         for calibration, mount in enumerate(mounts):
             camera_world = np.linalg.inv(body_pose(torso) @ mount)
@@ -143,16 +196,23 @@ def main():
                 path=str(path.resolve()), sha256=hashlib.sha256(path.read_bytes()).hexdigest()
             )
             for key, path in vars(args).items()
-            if key not in ("render", "output")
+            if key not in ("render", "output") and path is not None
         },
         render_sha256=hashlib.sha256((args.render / "result.json").read_bytes()).hexdigest(),
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         camera_mount_max_matrix_difference=mount_error,
         intrinsic=intrinsic.tolist(),
         camera_mounts_torso_to_ros=np.asarray(mounts).tolist(),
+        online_sensor_config=online_sensor,
+        online_episode_metadata=online_metadata,
         video_frames=indices.tolist(),
         train_frames=indices[train].tolist(),
         heldout_frames=indices[~train].tolist(),
+        pose_source=(
+            "Online: frame0=final stabilized state; frame i+1=policy env_step i afterstate"
+            if online_poses is not None
+            else "Identity-matched RAW78 observation state and base pose"
+        ),
         results=results,
         scope="CPU native FK, no rendering, model inference or physics rollout. Positive lag "
         "pairs video frame i with state i+lag. Fixed frames30..89 and alternating5-frame "

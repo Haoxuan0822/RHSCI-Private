@@ -186,8 +186,8 @@
       "bytes": 14405
     },
     "docs/ERROR_LOG.md": {
-      "export_sha256": "54e3b9eb86d1556870d27efe818102dbfecb410babc1e4cc1aa6d2361bb64985",
-      "bytes": 28204
+      "export_sha256": "5c5cedb61fbf1fc76774ac52c6dc42d4688f5482f88ea988f42a4b6778f024fa",
+      "bytes": 28969
     },
     "docs/GR00T_DISCOVERY_AUDIT_20261104.json": {
       "export_sha256": "235175004b55a7506a06ac604f699d7f2ec72cccd8a64908ac434951949ae18d",
@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "33bdf33b13999d38e5b819ab636476366ea945fb2efccf5506e23cb0677d3280",
-      "bytes": 58289
+      "export_sha256": "e9470e8d647700e4ae6a529d55a8a9fce5d081d81a186d5412ebc9ca782c8c71",
+      "bytes": 59982
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "6345124115982ed35979123c2b75c2f44331c909e61e7e47e5e0f841a3972c3d",
-      "bytes": 153763
+      "export_sha256": "36593860619658aead6d122792067c3ea0bc51cec8a4d5c0eba89da219e1f394",
+      "bytes": 157041
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",

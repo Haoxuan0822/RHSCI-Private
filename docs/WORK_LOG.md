@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 新旧包已有在线轨迹各121帧完成CPU 3D图像/真实关节lag核对，无新π模型/仿真。两组四校准×五刚体最佳均lag0；同帧指尖/手腕留出RMSE新0.2611/0.1837px、旧0.2410/0.2441px，±30帧新2.42–3.60/旧5.10–9.10px。官方稳定后writer初帧规则和0/30/60/90模型PNG同编号视频最小MAE均核实；仅支持这两窗口无整块在线滞后，不能反驳旧包整体顺畅观察/外推总体或称完整根因。audit_image_joint_lag.py新增可选在线输入，两个online-*-lag-with-provenance.json与输入SHA/命令在两桌README新节；sensor检查两次拒绝及有限缺省等价记录ERROR_LOG，未改生产配置。
+
 - 本轮CPU只读优化器与冻结骨干核对已完成（sessions47026/53236/70245退出0）：NO-STATE/STATE各208个可训练参数张量、430106660元素，保存model源码SHA7946e111匹配各契约；原训练源码与当前meta构造的参数名/顺序/形状/冻结标记完全一致。实际optimizer.pt均208槽、全部step40000、动量有限/二阶非负、无整张量零动量，最终lr1e-8；不证明中间恢复无同形参数置换或学习有效。三模型603个冻结VLM张量共2923335408元素逐位相同。VGQ远端optimizer按Range尝试因正确model repo返回401未读取，不能冒称223槽已验；受限pickle解析器在本地NO-STATE真实文件与torch.load的208槽/步数逐项一致（58470有效字节），远端范围缺口保留。三新脚本Ruff通过，无GPU/训练/模型更新；optimizer-payload-{nostate,state}.json、frozen-backbone-identity.json和远端失败日志保存，命令/范围在两桌README顶部，具体根因未确证、goal active。
 
 - 新CPU真实FK/训练像素lag分析已退出0：RAW78完整实录基座/关节＋现有视频手部跟踪，固定30–89帧、5帧块交替拟合/留出、lag±30；四份SDK安装校准×五候选刚体共1220拟合全部成功/有限，20组最佳均lag0（不是20独立轨迹）。index指尖/wrist_yaw同帧留出RMSE0.289/0.217px，±30帧约5.75–17.13px，不支持本窗口整块错帧。快照安装差0.488mm/0.00926度显式作四份校准敏感性分析；初版刚性阈值拒绝日志保留，不称完全刚性。audit_image_joint_lag.py及image-joint-lag-audit.json、完整命令/范围在两桌README顶部，Ruff通过，无新模型/仿真/正式配置修改。全数据/完整根因仍未定。

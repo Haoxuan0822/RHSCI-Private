@@ -1,5 +1,40 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 新旧包在线视频与物理状态同步核对（2026-11-04）
+
+用户指出旧包整体基本顺畅，不能用旧包局部回退反驳。本轮只排查在线观测滞后，不重启π0.5模型/评测。audit_image_joint_lag.py新增--observed-trace/--eval-config，与校准来源--trace分开。官方cli/eval_decoupled_wbc.py稳定后重置VideoRecorder，frame0为稳定末态、frame1为策略step0后态。视频新1201/旧181帧，对应1200/180策略步加初帧；模型输入PNG在0/30/60/90步与视频同编号帧的MAE均为邻域±2帧最小，压缩残差约2.83–3.14像素值，并非图像逐位相同。
+
+新paired-spawn-noise/original与旧old-episode4-horizon/execute-30，各取121帧，左指尖245,193、手腕224,253；背景新300,169、旧300,182。前后向跟踪最大误差新0.0671px、旧0.0606px。3D拟合使用未扣背景的手部原坐标，固定视频30–89帧、交替5帧块拟合/留出、lag±30、四安装校准×五候选刚体；两组各20组最佳全部lag0，不是40条独立轨迹。校准0指尖/手腕同帧留出RMSE：新0.2611/0.1837px、旧0.2410/0.2441px；错±30帧：新2.42–3.60px、旧5.10–9.10px。支持这两个窗口无整块在线图像/关节滞后，不能外推全部评测、亚帧延迟、总体新旧顿挫程度或完整根因。两条轨迹噪声未配对。
+
+首版完整sensor字典检查拒绝，二版仅补两个False开关仍拒绝，日志online-image-joint-lag-audit.log及*-v2.log保留。实际差别仅在线新增capture_depth/capture_pointcloud=False及intrinsics/depth_intrinsics/depth_to_color_extrinsics=None；最终只补这五项缺省空值后严格比较，其余几何配置不放宽。初次成功报告online-image-joint-lag-audit.json/online-old30-image-joint-lag-audit.json保留；最终online-new-lag-with-provenance.json、online-old-lag-with-provenance.json含在线episodes.jsonl及全部输入SHA，进程退出0。纯CPU，无DDS/GPU/新模型/物理仿真/生产修改；Ruff通过。实际最终命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+for CASE in new old; do
+  if [ "$CASE" = new ]; then
+    TRACE_ROOT="$AUDIT_ROOT/paired-spawn-noise/original"
+    MOTION="$AUDIT_ROOT/online-original-motion.json"
+  else
+    TRACE_ROOT="$AUDIT_ROOT/old-episode4-horizon/execute-30"
+    MOTION="$AUDIT_ROOT/online-old30-motion.json"
+  fi
+  /opt/rsci-data/.venv-simple/bin/python \
+    experiments/pi05_between/audit_image_joint_lag.py \
+    --raw "$AUDIT_ROOT/upstream-raw-historical-episode0/episode_000078.parquet" \
+    --raw-info "$AUDIT_ROOT/upstream-raw-historical-episode0/info.json" \
+    --manifest /opt/rsci-data/data/ardy/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/manifest.json \
+    --trace "$AUDIT_ROOT/expert-replay-vgq/control_trace.jsonl" \
+    --render "$AUDIT_ROOT/static-waist-render" \
+    --motion "$MOTION" \
+    --xml /opt/rsci-data/external/SIMPLE-official/data/robots/g1_sonic/g1_29dof_with_hand.xml \
+    --observed-trace "$TRACE_ROOT/control_trace.jsonl" \
+    --eval-config "$TRACE_ROOT/effective_eval_config.json" \
+    --output "$AUDIT_ROOT/online-$CASE-lag-with-provenance.json" \
+    > "$AUDIT_ROOT/online-$CASE-lag-with-provenance.log" 2>&1 || exit
+done
+```
+
 ## 真实FK与训练视频的帧偏移核验（2026-11-04）
 
 此前跨渲染器二维位置/速度拟合给出不同lag，不能据此宣布同步或错帧。新增audit_image_joint_lag.py仅CPU读取身份匹配RAW78（训练0）的基座/43关节及已有121帧手部跟踪，使用原生MJCF正运动学、保存的SDK左目位姿、Camera world→ROS轴约定与sensor_cfgs内参，不运行模型/物理/渲染。固定视频30–89帧，lag=-30..30，每个lag保持同60帧、按5帧块交替30帧拟合/30帧留出；只拟合附着在刚体上的一个固定3D点，不逐帧拟合相机或特征点。
