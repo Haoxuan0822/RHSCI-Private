@@ -13,12 +13,19 @@ def main():
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--recorded-inputs", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--center-crop-fraction", type=float)
     args = parser.parse_args()
+    if args.center_crop_fraction is not None and not 0 < args.center_crop_fraction < 1:
+        parser.error("--center-crop-fraction must be between zero and one")
     if args.output.exists():
         raise FileExistsError(args.output)
     content = args.predictions.read_bytes()
     recorded_content = args.recorded_inputs.read_bytes()
-    chunks = json.loads(content)["chunks"]
+    all_chunks = json.loads(content)["chunks"]
+    # 保留原先不裁剪的默认分析；混合报告显式选择同一种几何处理再比较种子。
+    chunks = [
+        row for row in all_chunks if row.get("center_crop_fraction") == args.center_crop_fraction
+    ]
     identities = [(row["input_source"], row["seed"], row["step"]) for row in chunks]
     if len(set(identities)) != len(chunks):
         raise ValueError("Repeated source/seed/step identity")
@@ -106,6 +113,8 @@ def main():
     report = dict(
         predictions_sha256=hashlib.sha256(content).hexdigest(),
         recorded_inputs_sha256=hashlib.sha256(recorded_content).hexdigest(),
+        center_crop_fraction=args.center_crop_fraction,
+        selected_prediction_count=len(chunks),
         seeds=seeds,
         steps=steps,
         results=results,
