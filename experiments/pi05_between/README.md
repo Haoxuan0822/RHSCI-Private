@@ -1,5 +1,47 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 新旧包完整首轮与历史首轮逐编号核对（2026-11-04）
+
+旧包复测首轮三级各10次已全部完成，不能再沿用仅共同episode0–7的早期快照。相同权重、当前30/30代码下，旧包成功4/1/1，新包首轮0/1/1；认证历史首轮为4/3/0（其执行30/24、时钟/导航协议不同）。均只比较三级30次，旧包无hard，不是150次最终结果。旧包level0成功episode0/1/3/4，新包均失败；旧level1/2成功均episode1，新包分别episode4/3；历史level0成功4/5/6/7，历史level1成功4/6/9。因此旧包level0在这一轮恢复到历史同样的4/10，但成功身份明显不同；level1未恢复到历史3/10，不能把回归归为一个统一初态平移或据此宣称旧协议已复现。原生噪声未配对，当前旧/新推理服务组织不同，不作显著性或全因果结论。
+
+compare_matched_results.py复用既有官方统计解析器，拒绝任何不足十条/重复/越界的轮次，并核对历史网格。收据matched-first-round-results.json记录六份官方统计及历史审计输入SHA、30条逐编号三方标签和旧/新四格计数；脚本实际运行、Ruff通过，无额外仿真。实际命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+python3 experiments/pi05_between/compare_matched_results.py \
+  --old-root /opt/rsci-data/evals/pi05-vgq-official-pre1102-singlethread-20261104 \
+  --new-root /opt/rsci-data/evals/pi05-between-30x30-5cycles-20261104/VGQ-AE \
+  --historical /opt/rsci-data/evals/stutter-root-cause-20261104/historical-pi05-manifests.json \
+  --repeat 1 \
+  --output /opt/rsci-data/evals/stutter-root-cause-20261104/matched-first-round-results.json
+```
+
+## 专家加噪与自主采样路径的条件诊断（2026-11-04）
+
+实际PID2149625已退出0，完成四帧×三seed=12组，每组记录10步；全部加hook与不加hook的原生采样输出逐位相同。flow-conditioning.json及summary/PNG保存在同名运行根，图已人工检查。第30/60/90帧在t=1，当前图的双臂干净动作估计RMSE（三seed均值）0.02679/0.02431/0.02271rad；只替换初始图prefix、保持同一专家加噪输入后为0.06282/0.10030/0.10957rad。模型确实利用视觉条件，不能把问题说成完全忽略图像。第0帧两prefix本来相同，全部teacher指标完全相同。
+
+在t=0.1，四帧专家加噪路径的当前图干净动作估计RMSE依次0.00560/0.00434/0.00414/0.00381rad；自主路径为0.03198/0.01315/0.01972/0.02301rad。最终10步输出对v2训练标签的三seed均值0.03199/0.01315/0.01972/0.02301rad。支持这些样本的自主路径偏离专家路径，后期模型没有将偏差纠回；但teacher误差含t缩放，不能直接将两种路径比较称训练loss异常或某个训练bug已证。全部36维velocity MSE在不同帧/t不相同，不把单个低t误差当原训练loss复现；原日志含Beta抽样/增强/ARDY，当前诊断不含这些步骤。
+
+额外只读导入本机五个patched Transformers模块，Gemma配置/实现、PaliGemma实现、SigLIP check/实现的实际__file__及SHA全部匹配launch_contract，五个声明依赖版本（Torch/Transformers/TorchCodec/Accelerate/SentencePiece）也全部匹配。收据installed-transformers-contract-audit.json包含路径、实际/期望摘要和版本；这缩小了此前“共享当前底层”的未验证范围，不证明所有传递依赖/物理闭环等价。没有生产参数更新、未恢复训练或下载其他权重，GPU1已释放。正式400次和旧150次继续，具体实现根因仍未确证。
+
+此前已证明原训练RGB输入也会产生块边界偏差，但不能据此解释低训练loss的原因。继续核对认证原model.py forward/sample_actions：训练使用x_t=t*noise+(1-t)*actions、target=noise-actions，推理从t=1沿负velocity积分，符号/维度一致。本次只读诊断在现有真实sample_actions投影层加记录hook，逐位检查加记录与不记录的10步输出完全相同；再在同一专家加噪路径各t评估模型，分别用当前图和初始图prefix，观察视觉条件作用。自主路径只报告干净动作估计误差，不错误地给离开专家直线路径的状态套用训练velocity target。
+
+配置来源为本说明已核对论文/README、保存VGQ40k契约及认证历史forward/sample_actions。原训练episode0的0/30/60/90帧，seed17/29/43、输出30、10步eager/BF16、v2原统计不变；无增强、无梯度/训练、无仿真控制/RTC，GPU1额外模型、12GiB空闲预检，不计成功率。此t网格诊断不是训练loss无偏估计（不采Beta分布），四帧不能代表全训练集。实际启动命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/probe_flow_conditioning.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --noise-seeds 17 29 43 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/flow-conditioning.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/flow-conditioning.log" 2>&1
+```
+
 ## 出生点稳定位移与机器人朝向恢复缺陷（2026-11-04）
 
 复用已完成的旧包episode4/execute-30和新版spawn-full/original-episode4轨迹，两者均有160步稳定记录：旧配置x=-0.64261184994m、稳定后-0.70395204182m；新配置-0.70334384994m、稳定后-0.76468403519m。两者自身稳定后退均6.134cm，新旧配置差6.0732cm，稳定后差仍6.0732cm（误差约7nm）。目标相对机器人前向距离由37.515cm增至43.604cm；稳定阶段盒子z均保持约0.76261–0.76311m，没有先掉落。此处证明两段位移叠加，不证明上游未发布生成器重复稳定或其意图有误。官方入口reset后仅一次稳定循环；PR29说明零臂初始化后约6.1cm为正常WBC稳定位移。现有初态视频/parquet的base位姿为占位值，不能由其倒推出正确生成器逻辑。

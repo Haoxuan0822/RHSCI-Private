@@ -11,6 +11,9 @@
 
 ## 当前 π0.5 两桌任务
 
+- 旧包首轮三级30次现已完整，compare_matched_results.py实际逐编号对齐：旧包成功4/1/1/NA，新包首轮0/1/1/NA、历史首轮4/3/0/NA，各三级完成10/10/10/NA。净计数下降集中level0，但旧与历史成功身份不同、level1仍偏低；不能把全部回归归为单一平移。原生噪声未配对、历史30/24且协议不同，仅描述首轮，不当150次最终结果。matched-first-round-results.json保留输入SHA/全部30行/四格计数，完整命令及限制见两桌README，Ruff通过。三路旧包父进程1812071/2/3现场仍活跃、已进入下一轮，不重复启动。
+
+- 离线flow条件诊断PID2149625已退出0、GPU1释放：同VGQ40k/原训练episode0四帧/三seed/10步eager BF16，共12组，加hook与不加hook输出全部逐位相同。第90帧t=1当前图干净动作双臂估计RMSE均值0.02271rad，固定同一加噪输入只改初始图prefix为0.10957rad，证实模型利用视觉；t=0.1当前图专家路径0.00381rad，自主路径0.02301rad，偏差仍未纠回。不能把低t缩放误差当训练loss复现或代码bug证明。flow-conditioning.json/summary/PNG保留、图已检查；probe_flow_conditioning.py Ruff通过、完整启动命令/来源/范围在两桌README，无生产修改/训练/额外权重下载。另实际导入五个patched Transformers模块，实际文件SHA与契约全同，五个声明依赖版本全同，收据installed-transformers-contract-audit.json。旧包首轮三级已各10次，成功4/1/1/NA、完成10/10/10/NA；正式STATE成功0/0/0/0完成42/42/43/44，VGQ成功0/1/2/0完成44/40/41/40；不是最终结果，具体根因未确证，goal仍active。
 - 新增只读审计完成：audit_spawn_settling.py从旧/新episode4真实160步稳定记录测得各后退6.134cm，新配置另后移6.0732cm，策略前目标前向距离37.515→43.604cm；只证明位移叠加，未发现公开生成器代码，不能称重复稳定bug。audit_spatial_robot_restore.py直接调用原生SpatialDR/RobotActor/Pose，复现机器人只恢复position、漏读并覆盖保存quaternion；旧level0十条无误差，新四难度40条均0.00304073025rad（0.17422°）朝向误差、位置误差0。已记ERROR_LOG，未改官方源码或做修复反事实，尚不能解释主要回归。两个实际JSON收据、完整命令/来源/范围在两桌README；脚本Ruff通过，goal仍active。
 
 - 相机动态时序诊断PID2138037已完成：旧level0/episode4/120步/同VGQ8147，GPU0/DDS222已释放，输出camera-timing-vgq。完整160稳定＋120策略、4块；双目各280次观测的callback/direct帧差和world减reference时间均0，相邻图像SHA无重复，4次模型请求SHA精确对应紧邻上一观测。不能把Isaac步进0.08s与MJ0.02s不同直接当图像延迟，也不以元数据证明逐像素/骨骼绝对同步。边界回跳比仍13.3971、模型到WBC臂映射误差0；图已人工检查，双目各121帧50Hz闭合。实验analyze_camera_timing.py实际运行、Ruff通过，命令/来源/范围在两桌README；不计120步False为正式模型失败。最新旧包150次阶段成功4/1/1/NA、完成9/9/9/NA；正式STATE成功0/0/0/0完成41/41/42/43、VGQ成功0/1/2/0完成43/39/40/39。仍未确证具体训练/部署根因，goal继续active。
