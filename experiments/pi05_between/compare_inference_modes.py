@@ -11,7 +11,9 @@ import numpy as np
 import torch
 from PIL import Image
 from safetensors.torch import load_file
+from torch.nn import functional as F
 
+from openpi.rhsci.augmentation import augment_training_images
 from openpi.rhsci.model import Pi05RHSCI
 from openpi.rhsci.processing import Processor
 
@@ -31,6 +33,15 @@ def main():
     )
     parser.add_argument("--noise-seeds", type=int, nargs="+", default=[17])
     parser.add_argument(
+        "--augmentation-seeds", type=int, nargs="+", help="Compare native training augmentation"
+    )
+    parser.add_argument(
+        "--center-crop-fractions",
+        type=float,
+        nargs="+",
+        help="Isolate crop/resize without color or rotation",
+    )
+    parser.add_argument(
         "--archived-source", type=Path, help="Compare archived rsci_pi05 model and processor"
     )
     parser.add_argument(
@@ -44,6 +55,19 @@ def main():
         parser.error("Choose archived source or solver-step comparison")
     if args.recorded_inputs is not None and args.sampling_steps is None:
         parser.error("Recorded image pairing requires --sampling-steps")
+    if args.augmentation_seeds is not None and args.recorded_inputs is None:
+        parser.error("Training augmentation diagnosis requires paired recorded inputs")
+    if args.center_crop_fractions is not None:
+        if args.recorded_inputs is None or args.augmentation_seeds is not None:
+            parser.error("Center crop diagnosis requires paired inputs and no random augmentation")
+        if any(not 0 < fraction < 1 for fraction in args.center_crop_fractions):
+            parser.error("Center crop fractions must be between zero and one")
+        if len(set(args.center_crop_fractions)) != len(args.center_crop_fractions):
+            parser.error("Repeated center crop fractions")
+    if args.augmentation_seeds and len(set(args.augmentation_seeds)) != len(
+        args.augmentation_seeds
+    ):
+        parser.error("Repeated augmentation seeds")
     if args.sampling_steps is None and args.noise_seeds != [17]:
         parser.error("Multiple seeds require --sampling-steps")
     if args.sampling_steps is not None and any(step < 1 for step in args.sampling_steps):
@@ -123,6 +147,18 @@ def main():
                     item["observed_state"] = {"states": [reference["state"]]}
                 paired.append(item)
         chunks = paired
+    if args.augmentation_seeds is not None:
+        chunks = [
+            dict(chunk, augmentation_seed=seed)
+            for chunk in chunks
+            for seed in (None, *args.augmentation_seeds)
+        ]
+    if args.center_crop_fractions is not None:
+        chunks = [
+            dict(chunk, center_crop_fraction=fraction)
+            for chunk in chunks
+            for fraction in (None, *args.center_crop_fractions)
+        ]
     span = np.array(processor.stats["action"]["q99"]) - np.array(processor.stats["action"]["q01"])
     results = []
     for chunk in chunks:
@@ -137,6 +173,30 @@ def main():
         )
         batch = processor(sample)
         inputs = [batch[key][None].to("cuda") for key in ("images", "tokens", "token_mask")]
+        augmentation_seed = chunk.get("augmentation_seed")
+        if augmentation_seed is not None:
+            # 固定增强参数且保留调用前RNG；采样噪声使用下方独立generator。
+            with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
+                torch.manual_seed(augmentation_seed)
+                inputs[0] = augment_training_images(inputs[0])
+        crop_fraction = chunk.get("center_crop_fraction")
+        if crop_fraction is not None:
+            # 单独复用原生增强首步的裁剪/resize公式；不旋转、不改颜色。
+            image = inputs[0]
+            height, width = image.shape[-2:]
+            crop_height, crop_width = int(height * crop_fraction), int(width * crop_fraction)
+            top, left = (height - crop_height) // 2, (width - crop_width) // 2
+            cropped = (image / 2 + 0.5)[..., top : top + crop_height, left : left + crop_width]
+            inputs[0] = (
+                F.interpolate(
+                    cropped.flatten(0, 1),
+                    size=(height, width),
+                    mode="bilinear",
+                    align_corners=False,
+                ).reshape_as(image)
+                * 2
+                - 1
+            )
         # 固定同一噪声，只比较执行后端，不影响在线服务的随机数或控制流程。
         noise = torch.randn(
             1, 30, 36, device="cuda", generator=torch.Generator("cuda").manual_seed(17)
@@ -193,6 +253,11 @@ def main():
                     "sampling_steps": count,
                     "seed": seed,
                     "input_source": chunk.get("input_source", "trace"),
+                    "augmentation_seed": augmentation_seed,
+                    "center_crop_fraction": crop_fraction,
+                    "processed_image_sha256": hashlib.sha256(
+                        inputs[0].contiguous().cpu().numpy().tobytes()
+                    ).hexdigest(),
                     "first_arm_action": arms[0].tolist(),
                     "last_arm_action": arms[-1].tolist(),
                     "first_vs_observed_arm_l2_rad": float(
@@ -231,8 +296,11 @@ def main():
             {
                 "checkpoint": str(args.checkpoint),
                 "variant": saved["variant"],
+                "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "seed": 17,
                 "noise_seeds": args.noise_seeds,
+                "augmentation_seeds": args.augmentation_seeds,
+                "center_crop_fractions": args.center_crop_fractions,
                 "recorded_inputs": str(args.recorded_inputs) if args.recorded_inputs else None,
                 "num_steps": args.sampling_steps or 10,
                 "archived_source": str(args.archived_source) if source_info else None,

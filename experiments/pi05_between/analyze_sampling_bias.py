@@ -46,6 +46,17 @@ def main():
         inside_median = np.median(inside, axis=(1, 2))
         boundary_median = np.median(np.linalg.norm(jump, axis=-1), axis=1)
         error = jump - expert_jump
+        start_error = actions[:, 1:, 0] - expert[1:, 0]
+        end_error = actions[:, :-1, -1] - expert[:-1, -1]
+        if not np.allclose(error, start_error - end_error, rtol=1e-12, atol=1e-14):
+            raise ValueError("Boundary start/end error decomposition failed")
+        error_square = np.sum(error**2, axis=-1)
+        start_projection = np.divide(
+            np.sum(start_error * error, axis=-1),
+            error_square,
+            out=np.zeros_like(error_square),
+            where=error_square > 0,
+        )
         mean_error = error.mean(0)
         mean_square = np.mean(np.sum(error**2, axis=-1), axis=0)
         squared_mean = np.sum(mean_error**2, axis=-1)
@@ -64,6 +75,20 @@ def main():
                             boundary_median[index] / max(inside_median[index], 1e-12)
                         ),
                         arm_expert_rmse_rad=float(np.sqrt(np.mean((actions[index] - expert) ** 2))),
+                        boundary_start_error_l2_rad=np.linalg.norm(
+                            start_error[index], axis=-1
+                        ).tolist(),
+                        boundary_end_error_l2_rad=np.linalg.norm(
+                            end_error[index], axis=-1
+                        ).tolist(),
+                        boundary_error_start_signed_projection=[
+                            float(value) if square > 0 else None
+                            for value, square in zip(start_projection[index], error_square[index])
+                        ],
+                        boundary_error_end_signed_projection=[
+                            float(1 - value) if square > 0 else None
+                            for value, square in zip(start_projection[index], error_square[index])
+                        ],
                     )
                     for index, seed in enumerate(seeds)
                 ],
@@ -85,6 +110,7 @@ def main():
         steps=steps,
         results=results,
         limitation="Exact decomposition of these finite seed samples, not an estimate of the true conditional expectation or a confidence interval. Averaged predictions were never executed; this is not a smoothing fix or a success-rate test.",
+        boundary_origin_note="Error jump = next-start expert error minus previous-end expert error. Signed projections sum to one when error is nonzero; they may be negative or exceed one and are not causal percentages. With zero error both expert errors cancel and the origin is undefined.",
     )
     with args.output.open("x") as stream:
         json.dump(report, stream, indent=2)

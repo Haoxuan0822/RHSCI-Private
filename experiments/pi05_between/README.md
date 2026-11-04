@@ -1,5 +1,62 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 原生训练增强与原图的条件预测对照（2026-11-04）
+
+中心裁剪单因素72次已完成、退出0、GPU0释放。按noise17/29/43，原训练RGB：原图边界比9.39241/7.50480/7.73296；97.5%裁剪2.24769/1.43775/1.50111；95%裁剪1.19350/1.64640/1.71196。95%双臂专家RMSE0.0056522/0.0122103/0.0087646rad，对应原图0.0189394/0.0270025/0.0251502。训练固定95%随机裁剪而正常部署用原图，这个输入尺度差异确实影响本episode接续；几何干预保持30步、相同噪声，改善不能解释成缩短horizon/旋转/颜色作用。但当前专家回放渲染图95%后仍边界比6.72345/14.97671/8.51532、RMSE0.0312378/0.0341249/0.0323127rad，未完整修复。不是常规增强必然有bug或全训练集/闭环因果证明，不直接部署裁剪补丁。center-crop-paired.json保留72预测、处理后图像SHA与源脚本SHA，summary保留18组指标。
+
+另复用已有paired-render-training.json三seed结果作边界起点/终点误差分解，无新增推理：jump−expert_jump=(new_first−expert_first)−(old_last−expert_last)。渲染图第90步，新首双臂L2误差seed17/29/43为0.146264/0.143204/0.144558rad，旧末为0.010773/0.017467/0.011596rad，说明此边界不能仅归因长执行导致旧块过冲。seed17左肩旧末−0.173662、专家旧末−0.171849；新首−0.134996、专家新首−0.169954rad。原训练RGB相同边界旧末误差较大，不能把局部解释泛化全轨迹。analyze_sampling_bias.py报告起点/终点误差及带符号投影；投影可小于0或大于1，非因果百分比，零误差时为null。实际复算命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_sampling_bias.py \
+  --predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/paired-render-training.json \
+  --recorded-inputs /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/boundary-origins-vgq.json
+```
+
+48次实际预测已完成、退出0：原训练RGB不增强时边界比9.39241、双臂专家RMSE0.0189394rad；增强seed101/203/307/409/503分别为边界比1.40007/3.53514/4.97270/1.81403/4.27223、RMSE0.0114507/0.0074524/0.0157467/0.0158668/0.0112059rad。渲染RGB增强后仍边界比9.0776–15.2429、RMSE0.0320478–0.0376944rad，原图15.0884/0.0361582。是同noise17的干预证据，支持输入处理有影响；还不能区分缩放、旋转和颜色，也不能称全部顿挫已修复。native-augmentation-paired.json SHA03ec98dced5116f19ee25ee97e14cad703f41f43007bd83af26f2816c6a5184a，summary保留逐case三边界、四帧首肩角和整块RMSE。
+
+追加单因素：原图/97.5%/95%中心裁剪后恢复224尺寸，沿原生增强的首步[0,1]变换、bilinear/align_corners=False，不旋转、不改颜色；95%是训练crop尺寸，97.5%用于敏感性比较，不是论文配置。仍同四时刻/两图源，采样noise17/29/43，每个输入严格同噪声10步eager/BF16，共72次离线预测，无动作执行。目的是隔离几何缩放，不能直接作为部署补丁，正式30/30无RTC不变。实际启动命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+  --sampling-steps 10 --noise-seeds 17 29 43 \
+  --center-crop-fractions 0.975 0.95 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/center-crop-paired.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/center-crop-paired.log" 2>&1
+```
+
+前缀缓存对照后继续检查训练/部署图像分布。论文/官方README的来源沿本说明，增强的确切规则以已选权重保存的training_augmentation=openpi-pytorch-shared-history-v1及其认证历史源码为准，不称论文规定了这些随机种子。复用现有augment_training_images及preprocess_observation_pytorch：95%裁剪再resize、约±5度旋转、亮度0.7–1.3、对比0.6–1.4、颜色0.5–1.5。当前正常推理不增强；本项只做离线反事实，不修改生产默认、旧统计或已训练配方。
+
+GPU0/无DDS，VGQ40k，专家episode0四时刻0/30/60/90的原训练RGB和专家回放渲染RGB；原图加五组增强seed101/203/307/409/503，采样噪声全部固定17，10步eager/BF16、预测30，不执行动作，共48次预测。逐图保留增强后输入张量SHA、全部动作，增强RNG与采样generator隔离；每个增强seed跨四时刻固定，便于对照，并非重现整条训练shuffle/RNG。不能根据单次改善宣称增强是根因，不以此改变正式30/30无RTC。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+cd /root/workspace/RHSCI-Private
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=8 python -u \
+  experiments/pi05_between/compare_inference_modes.py \
+  --checkpoint "$PSI_RUNTIME_ROOT/hf/RHSCI/model-59a1ea14/checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1/checkpoint-40000" \
+  --trace "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/expert-replay-vgq/control_trace.jsonl" \
+  --recorded-inputs "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl" \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --tokenizer "$PSI_RUNTIME_ROOT/models/paligemma_tokenizer.model" \
+  --instruction ' pick up the cracker box from table1,locomotion to table2,and place  on table2.' \
+  --sampling-steps 10 --noise-seeds 17 \
+  --augmentation-seeds 101 203 307 409 503 \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/native-augmentation-paired.json" \
+  > "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/native-augmentation-paired.log" 2>&1
+```
+
 ## 共用视觉前缀缓存与原生联合前向（2026-11-04）
 
 补充完整采样已退出0、GPU0释放：native joint eager的三个双臂边界L2为0.101185/0.100177/0.039713rad，cached SDPA为0.102290/0.098852/0.039104rad；边界中位/块内中位比9.82928对9.39240。两入口全4块双臂RMSE0.000488641rad、最大单值差0.00225258rad。原生联合前向也保留同类接续偏差，不能将当前KV分离/缓存处理认作本样本主要来源。仍未证明训练具体哪处有误；这是离线单episode、单seed对照，不等同闭环成功率、全模型/全部输入正确。prefix-cache-native-joint-sampling.json SHA43bb76c37fbe8d1cc8c592c969e589ccaaeb71ce542fb0f2e27ab6cfb6ea9364；sampling-summary.json逐模式保存三个边界及块内中位、首步肩角、全输出差。原始四图SHA、全部30×14目标与脚本SHA在采样报告内。
@@ -147,7 +204,7 @@ CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=8 python -u \
 
 此前原位/前移对照使用原生独立噪声。为减少这个混杂，本会话新诊断在每条stream复用原生RequestActionNoise（同seed17、episode0、逐块相同inference_index），单线程调用原Server.predict_action；不改模型/处理器/采样公式，不开启额外确定性数值配置。paired_noise.py的服务只接收显式stream/seed，客户端通过真实HttpActionClient.query_action的history参数添加既有协议元数据；诊断开关只能用于单episode trace。simple环境需显式PYTHONPATH指当前src以复用协议常量。该开关默认关闭，正式入口行为保持原配置。
 
-来源仍为本说明已核对论文/README、保存权重与官方任务设置：同VGQ40k、预测30执行30、无RTC、10步BF16、wall时钟、1200步/0.4；新版level0/episode4原位与仅x+0.06，两路GPU2/3、DDS240/241、服务GPU1/8148，保存完整双目录像和trace。逐块噪声SHA需按实际日志核对；渲染/物理数值不是逐位配对，单seed结果不能外推总体成功率。当前仅诊断，不修复官方初态。实际服务命令（重定向至paired-spawn-noise/server-foreground.log，工具session72407；首次后台PID2156261已缺失且空日志，未启动客户端，第二次确认PID2156408实际在初始化）：
+来源仍为本说明已核对论文/README、保存权重与官方任务设置：同VGQ40k、预测30执行30、无RTC、10步BF16、wall时钟、1200步/0.4；新版level0/episode4原位与仅x+0.06，两路GPU2/3、DDS224/225、服务GPU1/8148，保存完整双目录像和trace。早期240/241越出UDP端口范围，仅预留、未启动，现已更正。逐块噪声SHA需按实际日志核对；渲染/物理数值不是逐位配对，单seed结果不能外推总体成功率。当前仅诊断，不修复官方初态。实际服务命令（重定向至paired-spawn-noise/server-foreground.log，工具session72407；首次后台PID2156261已缺失且空日志，未启动客户端，第二次确认PID2156408实际在初始化）：
 
 ```bash
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
@@ -163,13 +220,13 @@ python -u experiments/pi05_between/paired_noise.py \
   --device cuda:0 --host 127.0.0.1 --port 8148 --no-deterministic-eval
 ```
 
-客户端预定命令；完成真实配对请求预检后才执行，准备不称为rollout：
+真实配对请求预检已完成：verify_paired_noise.py读取原训练frame0、stream-prefix verified-v2、seed17，四请求200，index0/1各两流完整动作逐位相同；preflight-verified.json及服务日志保留动作/噪声SHA。客户端现已执行（工具session4868，PID2189396/2189397），尚在初始化，结果待完整统计与trace：
 
 ```bash
 source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
 export PYTHONPATH=/root/workspace/RHSCI-Private/src
 probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-spawn-noise"
-for spec in 'original 2 240' 'plus006 3 241'; do
+for spec in 'original 2 224' 'plus006 3 225'; do
   (
     read -r variant gpu domain <<< "$spec"
     data_dir="$SIMPLE_EVAL_ROOT/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0"

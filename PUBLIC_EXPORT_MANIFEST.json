@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "a689607308a73174113b69c96d1ea4b0266cb9b6946b91fa0d37ec026e3e3a82",
-      "bytes": 41505
+      "export_sha256": "0b5659d1a3c2dbd895bb4e5345369db89bf6823a501afa92edcc6f0d739b9c07",
+      "bytes": 44080
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "5ecc3fbfa04f91d19d169e3008a8dc1951772c56883e1087e3a97bf792ab5def",
-      "bytes": 119516
+      "export_sha256": "4c319c4deb3197c1918a8647011ec019c04dddf986bfb51608bbea29a5187898",
+      "bytes": 126563
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
@@ -4938,8 +4938,8 @@
       "bytes": 5660
     },
     "experiments/pi05_between/compare_inference_modes.py": {
-      "export_sha256": "373d5781a20277e6162a8714d2dd2f8b21577a7d883c8ed077e6880cdbe67162",
-      "bytes": 11593
+      "export_sha256": "8c0af9b91c4e0514789d751450b9f4148e41d9d0cfc5924dbb2b94c7346b01a7",
+      "bytes": 15038
     },
     "experiments/pi05_between/prepare_layout_probe.py": {
       "export_sha256": "5750846a38f063ac6fbd109d2788fe55bf0ab3a23dae6ef6a95bfa69169fc00f",
@@ -4986,8 +4986,8 @@
       "bytes": 5140
     },
     "experiments/pi05_between/analyze_sampling_bias.py": {
-      "export_sha256": "5f1856f200a3ba79d1dcaeea7c6f2a22caa9814bf19fe666c2a2d2d4c4b0e0a3",
-      "bytes": 4709
+      "export_sha256": "3d1df0031b37f3c68dfecd46cd9f9db84808aeb7c2d3389796f156bb35e95b03",
+      "bytes": 6362
     },
     "experiments/pi05_between/audit_training_history.py": {
       "export_sha256": "6fd9bd37ab6faa54c15c118283a42c48e6352bac6f2e69b0da24c6976181703b",
