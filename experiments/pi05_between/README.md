@@ -2,6 +2,10 @@
 
 ## 原生训练增强与原图的条件预测对照（2026-11-04）
 
+官方来源再次核对（用户询问SIMPLE如何实现）：SIMPLE仿真仓库README将策略端指向配套physical-superintelligence-lab/Psi0；实际只读GitHub API核其当前main=cda3fdfafe47cb6fa75400d013de1bd36e3cea05。该提交src/openpi/models_pytorch/preprocessing_pytorch.py仍固定95%尺寸/随机裁剪起点/恢复原尺寸；src/openpi/models_pytorch/pi0_pytorch.py训练forward第327行传train=True，sample_actions第392行传train=False。不能据“训练裁、推理不裁”认定RHSCI漏了官方步骤：这一点与官方默认一致，实验只支持当前权重局部尺度敏感。官方README给出的baseline训练入口是baselines/pi05/train_pi05.sh调用src/openpi/train_pytorch.py。网页搜索缓存展示的pi0_pytorch.py旧行号294/351与当前Git对象不同，应以API固定提交内容为准；未改官方代码或更新运行环境。
+
+固定来源：[官方增强源码](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/src/openpi/models_pytorch/preprocessing_pytorch.py)、[官方训练/采样调用](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/src/openpi/models_pytorch/pi0_pytorch.py)、[配套baseline README](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/baselines/pi05/README.md)。
+
 针对用户“训练已有增强，为何中心裁剪还能改善”的核查：保存权重training_augmentation确为openpi-pytorch-shared-history-v1；model.forward仅training=True时执行增强。preprocessing_pytorch.py使用int(height*0.95)/int(width*0.95)，随机的是裁剪起点，而非从95%到100%随机裁剪比例。224输入每次裁至212再resize224，等效约1.0566倍放大；正常Processor的224 letterbox后推理没有这一步。“原训练图”指磁盘原始RGB经常规Processor后的图，不是训练forward增强后的实际网络输入。中心裁剪改善支持本样本对几何尺度敏感、输入更接近训练尺度有帮助；不能把常规增强本身判为bug，不能证明模型具体用哪个视觉特征或全部回跳因果。此处不应再笼统表述为“训练随机尺度已覆盖原图”。
 
 中心裁剪单因素72次已完成、退出0、GPU0释放。按noise17/29/43，原训练RGB：原图边界比9.39241/7.50480/7.73296；97.5%裁剪2.24769/1.43775/1.50111；95%裁剪1.19350/1.64640/1.71196。95%双臂专家RMSE0.0056522/0.0122103/0.0087646rad，对应原图0.0189394/0.0270025/0.0251502。训练固定95%随机裁剪而正常部署用原图，这个输入尺度差异确实影响本episode接续；几何干预保持30步、相同噪声，改善不能解释成缩短horizon/旋转/颜色作用。但当前专家回放渲染图95%后仍边界比6.72345/14.97671/8.51532、RMSE0.0312378/0.0341249/0.0323127rad，未完整修复。不是常规增强必然有bug或全训练集/闭环因果证明，不直接部署裁剪补丁。center-crop-paired.json保留72预测、处理后图像SHA与源脚本SHA，summary保留18组指标。
