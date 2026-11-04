@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 真实训练forward/eval动作分支6组对照已退出0（GPU7/PID2465327/session24084结束）：VGQ40k、训练episode0帧30/60/90、seed17/29、原生历史图/增强/Beta时间；捕获实际训练动作embedding及当前图，train重复、eval同cache、eval重新编码三路全部逐位相同、最大差0。仅no_grad离线前向、ARDY目标无效占位，无训练/服务/仿真。action-train-eval.json/log保留，脚本audit_action_train_eval.py Ruff通过，完整命令及范围见两桌README顶部。不支持模式切换制造回跳，未证明全训练正确或找到根因，goal仍active。
+
 - 用户否定腰部/相机追因方向后，本会话转查无状态模型共享训练链路。新CPU原始轨迹核对已退出0：固定HF1885a61a的RAW78与训练0，586帧完整32Dstate/36Daction最大差9.54e-9/1.15e-7，未见本条标签转换错位；RAW/action与state列序不同，按各自名字映射。新增Range只取该条parquet和视频。两种渲染器121帧手部跟踪前后向误差<0.183px，固定30–89窗口水平位置最佳lag0，但速度最佳-28、指标不一致，不能称绝对同步验收。91条元数据只68条唯一匹配，其余不定性。raw-training-alignment-episode0-motion-v2.json与完整命令/限制在两桌README顶部；两份新脚本Ruff通过。无新模型/仿真/正式评测，无生产修改，goal仍active、具体根因未确证。
 
 - 已找到训练episode0对应的官方RAW episode78（非0），仅HTTP Range新增738904字节parquet，HF固定79baf58、文件SHA c41a9683…与训练manifest完全一致；586帧双臂/腰states逐位相同，绑定offset0。新增CPU audit_recorded_base_camera.py用完整实录基座/关节核对原生FK：专家动作回放第90步躯干角差5.07666度，只修腰仍4.97216度、只修基座3.01548度；此前RGB-D补偿剩0.65663度/躯干位置21.22mm，支持角度估计但非完整位姿真值。完整命令/收据recorded-base-camera-factorial-audit.json在两桌README新节，Ruff通过，无新模型调用/评测。用户指出旧包基本顺畅，不能用个别旧样本回跳外推新旧相同；新旧总体差异及完整根因仍待解释，goal保持active。
