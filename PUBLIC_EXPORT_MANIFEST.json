@@ -325,41 +325,9 @@
       "export_sha256": "5ecc3fbfa04f91d19d169e3008a8dc1951772c56883e1087e3a97bf792ab5def",
       "bytes": 119516
     },
-    "experiments/pi05_between/analyze_camera_timing.py": {
-      "export_sha256": "b52c29b26c94a8062e6a15994a9426061e50a3fdbca343444e08c2f7413d9e85",
-      "bytes": 3965
-    },
-    "experiments/pi05_between/analyze_control_trace.py": {
-      "export_sha256": "f80713a575a8c6b8cc8bca85acf7fc5277f4b6a1912eeb252d90a9b36769e075",
-      "bytes": 5660
-    },
-    "experiments/pi05_between/analyze_recorded_chunks.py": {
-      "export_sha256": "4e892e3656d509831a82e977c7aab4724f27d399ac3f33230e516b19befbed58",
-      "bytes": 4437
-    },
-    "experiments/pi05_between/analyze_sampling_bias.py": {
-      "export_sha256": "5f1856f200a3ba79d1dcaeea7c6f2a22caa9814bf19fe666c2a2d2d4c4b0e0a3",
-      "bytes": 4709
-    },
-    "experiments/pi05_between/audit_historical_results.py": {
-      "export_sha256": "6a45c54cf63143daa20812976c3ad4d96ed7a320a62ab249d1fc8284c1c40d90",
-      "bytes": 3882
-    },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
       "bytes": 3766
-    },
-    "experiments/pi05_between/audit_prefix_cache.py": {
-      "export_sha256": "a96741d3382fdcf20567ade49767d39791b00275d62d55e8b3073dec12a05fda",
-      "bytes": 8142
-    },
-    "experiments/pi05_between/audit_training_history.py": {
-      "export_sha256": "6fd9bd37ab6faa54c15c118283a42c48e6352bac6f2e69b0da24c6976181703b",
-      "bytes": 4709
-    },
-    "experiments/pi05_between/audit_training_labels.py": {
-      "export_sha256": "2b453626c972439a64ff1dfca4d96e78e75d202b94ce165e089daf55f62090a7",
-      "bytes": 5140
     },
     "experiments/pi05_between/check_material_rendering.py": {
       "export_sha256": "bee8b23dad92bbab1e464610d6f774e4dec168d708ac28d052598c8cbdb822e3",
@@ -368,14 +336,6 @@
     "experiments/pi05_between/check_materials.py": {
       "export_sha256": "5eb801378cacd0a33dba5925f45fda4cbf3a818d526ec80778333820411ab077",
       "bytes": 2560
-    },
-    "experiments/pi05_between/compare_archived_inference.py": {
-      "export_sha256": "f80800943fcd5e57a4b6c4d5f7f7981fb899fcc86f4998342643c06c3c3c9af9",
-      "bytes": 4803
-    },
-    "experiments/pi05_between/compare_inference_modes.py": {
-      "export_sha256": "373d5781a20277e6162a8714d2dd2f8b21577a7d883c8ed077e6880cdbe67162",
-      "bytes": 11593
     },
     "experiments/pi05_between/download_checkpoints.py": {
       "export_sha256": "63257cb87267754b41c792f34b35af7b1bedc75dc56cb1b62185ca849740766b",
@@ -393,61 +353,17 @@
       "export_sha256": "dd10f1e3f68b4f1200d2ac56833fb48d2acec9005642b792fcc0ca464d3b0e7b",
       "bytes": 2155
     },
-    "experiments/pi05_between/prepare_layout_probe.py": {
-      "export_sha256": "5750846a38f063ac6fbd109d2788fe55bf0ab3a23dae6ef6a95bfa69169fc00f",
-      "bytes": 4446
-    },
     "experiments/pi05_between/probe_dual_gpu.py": {
       "export_sha256": "11830f1e8cd4acfca1f855f0c8a32c3a80ac4495fdfe1768173e95d43e6dc2e9",
       "bytes": 2708
-    },
-    "experiments/pi05_between/probe_feedback.py": {
-      "export_sha256": "b9303c7cc4f7f7afa9ad6d63bd394f0d1147bfae6a4ec432568b5dfcf7f7fc34",
-      "bytes": 4385
-    },
-    "experiments/pi05_between/probe_flow_conditioning.py": {
-      "export_sha256": "42b078dbd9d52d71af665155abc0a80517c53e553410e3bf93d7c04eb1d3e61f",
-      "bytes": 7165
-    },
-    "experiments/pi05_between/probe_recorded_inputs.py": {
-      "export_sha256": "54294a7e66c638acf437b6727b682df2c60c6bf6e1ecae8086ddad663d30dc62",
-      "bytes": 4506
-    },
-    "experiments/pi05_between/probe_training_gradients.py": {
-      "export_sha256": "499ce20dffbff45142e2d9d3a21b28574b6e907d90734fb0068900d0d1b671bb",
-      "bytes": 11000
     },
     "experiments/pi05_between/repair_usd_paths.py": {
       "export_sha256": "fdb6f59e3206a01cdfb35f21528c5a07841405ce86928db1eeb234273f7d8782",
       "bytes": 2017
     },
-    "experiments/pi05_between/replay_expert_policy.py": {
-      "export_sha256": "35e5ed0fdec320352bee33cacb4933235c0518c2bc0996ea95cf6c2ca3e34fbb",
-      "bytes": 2613
-    },
     "experiments/pi05_between/run_evaluation.py": {
       "export_sha256": "241d59ae196682b2b23d4b3f30a0a7195edee8ee91fc40f35bb443b33cfcdf75",
       "bytes": 12554
-    },
-    "experiments/pi05_between/run_old_eval.sh": {
-      "export_sha256": "55a32e3d94e99f1b74c92193714056d9aa6612daadcaed8ae7dcc4ac448201d7",
-      "bytes": 2507
-    },
-    "experiments/pi05_between/serve_single_thread.py": {
-      "export_sha256": "3c6e1d9e749d6d2ef441cd2c43366be350fd959253e4a2e4e1e0a5a5748b0c82",
-      "bytes": 756
-    },
-    "experiments/pi05_between/summarize_results.py": {
-      "export_sha256": "8be67d02a39ab228646e6592c87c1c74d8c3abcc15e6bc64fcef25a01cbccfd6",
-      "bytes": 2046
-    },
-    "experiments/pi05_between/trace_control.py": {
-      "export_sha256": "e713c41603b3a4845becad3270b7845854899912d1458bcccbad0d1b339901c0",
-      "bytes": 8316
-    },
-    "experiments/pi05_between/track_historical_video.py": {
-      "export_sha256": "5aaa4cb9cf212ac36fe490542da63c68936adcb34e1c520b5872f42cbe255b87",
-      "bytes": 3931
     },
     "experiments/simple_queue/README.md": {
       "export_sha256": "1747c8a7a6fb61e2de8d30c7a7c05c82bad5f5d2a97fc94eed266a7f62e68e9e",
@@ -5008,6 +4924,90 @@
     "uv.lock": {
       "export_sha256": "15001e722216085c2caa7f8f0d5115ae3476dc9a114eb18cf450c784e6766654",
       "bytes": 321440
+    },
+    "experiments/pi05_between/summarize_results.py": {
+      "export_sha256": "8be67d02a39ab228646e6592c87c1c74d8c3abcc15e6bc64fcef25a01cbccfd6",
+      "bytes": 2046
+    },
+    "experiments/pi05_between/trace_control.py": {
+      "export_sha256": "e713c41603b3a4845becad3270b7845854899912d1458bcccbad0d1b339901c0",
+      "bytes": 8316
+    },
+    "experiments/pi05_between/analyze_control_trace.py": {
+      "export_sha256": "f80713a575a8c6b8cc8bca85acf7fc5277f4b6a1912eeb252d90a9b36769e075",
+      "bytes": 5660
+    },
+    "experiments/pi05_between/compare_inference_modes.py": {
+      "export_sha256": "373d5781a20277e6162a8714d2dd2f8b21577a7d883c8ed077e6880cdbe67162",
+      "bytes": 11593
+    },
+    "experiments/pi05_between/prepare_layout_probe.py": {
+      "export_sha256": "5750846a38f063ac6fbd109d2788fe55bf0ab3a23dae6ef6a95bfa69169fc00f",
+      "bytes": 4446
+    },
+    "experiments/pi05_between/probe_feedback.py": {
+      "export_sha256": "b9303c7cc4f7f7afa9ad6d63bd394f0d1147bfae6a4ec432568b5dfcf7f7fc34",
+      "bytes": 4385
+    },
+    "experiments/pi05_between/probe_recorded_inputs.py": {
+      "export_sha256": "54294a7e66c638acf437b6727b682df2c60c6bf6e1ecae8086ddad663d30dc62",
+      "bytes": 4506
+    },
+    "experiments/pi05_between/replay_expert_policy.py": {
+      "export_sha256": "35e5ed0fdec320352bee33cacb4933235c0518c2bc0996ea95cf6c2ca3e34fbb",
+      "bytes": 2613
+    },
+    "experiments/pi05_between/run_old_eval.sh": {
+      "export_sha256": "55a32e3d94e99f1b74c92193714056d9aa6612daadcaed8ae7dcc4ac448201d7",
+      "bytes": 2507
+    },
+    "experiments/pi05_between/audit_historical_results.py": {
+      "export_sha256": "6a45c54cf63143daa20812976c3ad4d96ed7a320a62ab249d1fc8284c1c40d90",
+      "bytes": 3882
+    },
+    "experiments/pi05_between/compare_archived_inference.py": {
+      "export_sha256": "f80800943fcd5e57a4b6c4d5f7f7981fb899fcc86f4998342643c06c3c3c9af9",
+      "bytes": 4803
+    },
+    "experiments/pi05_between/serve_single_thread.py": {
+      "export_sha256": "3c6e1d9e749d6d2ef441cd2c43366be350fd959253e4a2e4e1e0a5a5748b0c82",
+      "bytes": 756
+    },
+    "experiments/pi05_between/track_historical_video.py": {
+      "export_sha256": "5aaa4cb9cf212ac36fe490542da63c68936adcb34e1c520b5872f42cbe255b87",
+      "bytes": 3931
+    },
+    "experiments/pi05_between/analyze_recorded_chunks.py": {
+      "export_sha256": "4e892e3656d509831a82e977c7aab4724f27d399ac3f33230e516b19befbed58",
+      "bytes": 4437
+    },
+    "experiments/pi05_between/audit_training_labels.py": {
+      "export_sha256": "2b453626c972439a64ff1dfca4d96e78e75d202b94ce165e089daf55f62090a7",
+      "bytes": 5140
+    },
+    "experiments/pi05_between/analyze_sampling_bias.py": {
+      "export_sha256": "5f1856f200a3ba79d1dcaeea7c6f2a22caa9814bf19fe666c2a2d2d4c4b0e0a3",
+      "bytes": 4709
+    },
+    "experiments/pi05_between/audit_training_history.py": {
+      "export_sha256": "6fd9bd37ab6faa54c15c118283a42c48e6352bac6f2e69b0da24c6976181703b",
+      "bytes": 4709
+    },
+    "experiments/pi05_between/analyze_camera_timing.py": {
+      "export_sha256": "b52c29b26c94a8062e6a15994a9426061e50a3fdbca343444e08c2f7413d9e85",
+      "bytes": 3965
+    },
+    "experiments/pi05_between/probe_flow_conditioning.py": {
+      "export_sha256": "42b078dbd9d52d71af665155abc0a80517c53e553410e3bf93d7c04eb1d3e61f",
+      "bytes": 7165
+    },
+    "experiments/pi05_between/probe_training_gradients.py": {
+      "export_sha256": "499ce20dffbff45142e2d9d3a21b28574b6e907d90734fb0068900d0d1b671bb",
+      "bytes": 11000
+    },
+    "experiments/pi05_between/audit_prefix_cache.py": {
+      "export_sha256": "a96741d3382fdcf20567ade49767d39791b00275d62d55e8b3073dec12a05fda",
+      "bytes": 8142
     }
   }
 }
