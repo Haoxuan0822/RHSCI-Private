@@ -70,7 +70,18 @@ def main():
     parser.add_argument("--trace-camera-timing", action="store_true")
     parser.add_argument("--diagnostic-noise-seed", type=int)
     parser.add_argument("--diagnostic-noise-stream")
+    # simple 激活脚本会清空 PYTHONPATH；从既有公共包读取参数定义。
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+    from rhsci.inference.measurement_noise import add_arguments, config_from_arguments
+
+    add_arguments(parser)
     args = parser.parse_args()
+    try:
+        state_noise = config_from_arguments(args)
+    except ValueError as error:
+        parser.error(str(error))
+    if state_noise is not None and args.policy != "psi0_decoupled_wbc":
+        parser.error("State noise requires the psi0_decoupled_wbc HTTP client")
     if args.trace_control is not None and args.num_episodes != 1:
         parser.error("--trace-control requires --num-episodes 1 to keep step indices unambiguous")
     if args.control_clock != "wall" and args.trace_control is None:
@@ -90,7 +101,16 @@ def main():
     video = configure_video(args, Path.cwd())
     # 在 Kit 导入前记录实际配置；close() 可能提前结束 Python。
     (Path.cwd() / "effective_eval_config.json").write_text(
-        json.dumps({**vars(args), "video_policy": video}, indent=2, default=str) + "\n"
+        json.dumps(
+            {
+                **vars(args),
+                "video_policy": video,
+                "state_noise_config": state_noise.metadata() if state_noise else {"enabled": False},
+            },
+            indent=2,
+            default=str,
+        )
+        + "\n"
     )
     print("VIDEO_POLICY", json.dumps(video), flush=True)
     # 保留材质、纹理和 USD 引用警告，便于本次资源恢复验收。
@@ -130,6 +150,12 @@ def main():
             legacy_navigation=args.diagnostic_legacy_navigation,
             camera_timing=args.trace_camera_timing,
         )
+
+    if state_noise is not None:
+        from rhsci.inference.state_noise_client import install
+
+        install(state_noise, episode_start=args.episode_start)
+        print("STATE_NOISE", json.dumps(state_noise.metadata()), flush=True)
 
     sonic = _make_sonic_config()
     sonic["DOMAIN_ID"] = args.dds_domain_id

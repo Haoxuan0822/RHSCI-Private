@@ -1,5 +1,7 @@
 # 错误记录
 
+- 2026-11-05 测量噪声CPU验证环境：simple环境无fastapi，旧history_client测试在导入psi.deploy.helpers时失败；改用已有pi05环境后2项通过，无安装依赖或改生产代码。官方get_action原文轻量替身初次漏设upsample_factor，在动作入队前报AttributeError；补原生默认值1后完整HTTP/state/WBC隔离检查通过。该检查使用真实官方方法及消息编解码，但WBC/机器人为CPU替身，不当作物理闭环验收。
+
 - **待执行历史组合方案重复预留越界DDS且漏PYTHONPATH（2026-11-04）：** 准备命令误填240–243，与既有DDS错误教训相同；均未启动。已改180–183，并核实时六活动客户端仅100–105。另simple激活会unset PYTHONPATH，CPU复核rhsci无法发现，故配对噪声客户端必须显式PYTHONPATH仓库src，补后协议导入成功；不能把这一启动前问题当已发生顿挫原因。实际CLI四组参数已在首个写文件/仿真导入前静态解析验证。源码首次搜索误用baselines/pi05/src（实现实际在src/openpi），一次README补丁因仅匹配长段落前半行被拒绝，均未造成内容修改，随后按实际完整路径/整行处理。防复发：复现命令须核对激活脚本副作用、合法端口与实际CLI，再提出授权请求。
 
 - **静态接触审计的环境/路径检查（2026-11-04）：** 辅助汇总误用系统python3，因无NumPy立即失败，未修改报告；改用既有.venv-simple/bin/python后核验通过。源码查询首次漏掉官方仓库src层级，rg报路径不存在；以报告native_builder的实际路径定位后完成核对。防复发：诊断数值处理显式使用模型/仿真环境，源码定位优先既有收据中的绝对路径。两桌physics_dt来自任务metadata=0.005，不用引擎通用默认0.002代替；本审计仅forward不积分。

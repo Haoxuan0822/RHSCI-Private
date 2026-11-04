@@ -76,6 +76,78 @@ The servers use the local protocol's SplitMix64 mapping and private per-request 
 
 ## State measurement noise
 
+### Client noise switch and four severity levels
+
+The existing SIMPLE wrapper `experiments/pi05_between/eval_decoupled_wbc.py` and
+its multi-round worker `run_evaluation.py` accept an optional client-side switch:
+`--state-noise --state-noise-type TYPE --state-noise-level LEVEL`. Supported types
+are `gaussian`, `zero-offset`, `delay`, and `dropout`; levels are `low`, `medium`,
+`high`, and `extreme`. With the switch absent, the native agent and HTTP client
+are left untouched: no measurement cache, noise generator, or random draws are
+created. Enabling requires both type and level. Supplying type, level, or seed
+without the switch is an error. `--state-noise-seed` is optional (default 0).
+
+| Parameter | low | medium | high | extreme |
+| --- | --- | --- | --- | --- |
+| Gaussian standard deviation | 5° | 15° | 30° | 60° |
+| Uniform zero-offset bounds | ±5° | ±15° | ±30° | ±60° |
+| Measurement delay | 100 ms | 300 ms | 600 ms | 1200 ms |
+| Consecutive dropout duration | 200 ms | 600 ms | 1200 ms | 2400 ms |
+
+These are user-selected stress-test levels, not sensor specifications. Angles
+are converted to radians before use. Gaussian noise is independent for each
+joint and each control-step measurement; it is not bounded at its standard
+deviation. Zero offsets are sampled independently per joint once per episode.
+There is no additional clipping or angular wrapping in the client; the model's
+saved normalization and clipping still apply afterwards.
+
+Only raw `state['states'][0, :31]` is replaced before sending the HTTP request.
+The current height command at index 31, extra state fields, images, instruction,
+action queue, simulation joint positions, and WBC feedback are preserved. This
+works across model servers using the SIMPLE HTTP schema; a policy that does not
+consume state will not gain state dependence from this switch.
+
+The common implementation is `rhsci.inference.measurement_noise`; the small
+`rhsci.inference.state_noise_client` adapter reuses the native agent, state
+joint slices, and HTTP client without duplicating the evaluation/control loop.
+It records measurements on every policy control step, including steps between
+HTTP requests. Time comes from MuJoCo, relative to the first policy observation
+after stabilization. Delay selects the newest sample at or before the target
+time, padding with the first measurement when history is insufficient. Dropouts
+start at 4, 8, 12… simulation seconds, freeze the last valid measured joints,
+and resume with the latest measurement at the end of each interruption.
+
+Each agent reset clears temporal history and derives an independent NumPy
+generator from `[state_noise_seed, episode_index]`. The index starts at the CLI's
+`--episode-start` and advances on each reset. Repeating the same seed and episode
+repeats the measurement stream; it does not seed model action sampling. For
+independent repetitions, explicitly change the noise seed. A worker forwards
+the same chosen seed to each round and records it, rather than silently changing
+the experiment. Use a separate output root for each noise condition/seed.
+
+For example, after activating the model environment, this **launch template**
+adds medium Gaussian noise to the existing worker (not an experiment started
+as part of implementation):
+
+```bash
+python experiments/pi05_between/run_evaluation.py \
+  --gpu 0 --variant STATE --level dr-level-0 \
+  --evaluation-root "$PSI_RUNTIME_ROOT/eval-official-pre1102" \
+  --output-root "$PSI_RUNTIME_ROOT/evals/pi05-between-gaussian-medium-seed73" \
+  --repair-scene-references \
+  --state-noise --state-noise-type gaussian --state-noise-level medium \
+  --state-noise-seed 73
+```
+
+The worker records resolved parameters in `worker.json`; each client records
+them in `effective_eval_config.json` before Kit initializes and prints
+`STATE_NOISE` to its log. Keep the existing server-side inference noise below
+off when using this client experiment, to avoid applying noise twice. CPU
+unit/integration tests validate measurement and request behavior; GPU physical
+rollouts under these noise levels have not yet been run.
+
+### Existing server-side Gaussian option
+
 PSI0 and π0.5 STATE serving accept `--state-inference-measurement-noise-std-rad S` and `--state-noise-seed SEED`. Noise is off by default, including for a checkpoint trained with noise. The standard deviation is in raw radians; the flag without a value selects `0.02`.
 
 For PSI0, add those options to `scripts/deploy/serve_psi0_simple.sh`. For π0.5:

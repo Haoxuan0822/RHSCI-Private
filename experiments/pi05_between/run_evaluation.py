@@ -5,10 +5,19 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 from summarize_results import read_stats
+
+# 调度器也可直接从脚本启动，不要求调用者额外配置 PYTHONPATH。
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from rhsci.inference.measurement_noise import (  # noqa: E402
+    add_arguments,
+    command_arguments,
+    config_from_arguments,
+)
 
 ROOT = Path("/root/workspace/Haoxuan/RHSCI-runtime")
 REPO = Path("/root/workspace/RHSCI-Private")
@@ -31,6 +40,7 @@ def worker(args):
     from rhsci.runtime.processes import cleanup, process_table, remember_tree, run_worker_process
 
     variant = args.variant
+    state_noise = config_from_arguments(args)
     level = args.level
     task = args.task
     dataset = ROOT / "data/processed" / task
@@ -136,6 +146,9 @@ def worker(args):
                         "episodes_per_cycle": args.num_episodes,
                         "video_rounds": args.video_rounds,
                         "evaluation_root": str(args.evaluation_root),
+                        "state_noise_config": (
+                            state_noise.metadata() if state_noise else {"enabled": False}
+                        ),
                     },
                     indent=2,
                 )
@@ -254,6 +267,7 @@ def worker(args):
 
                 if args.repair_scene_references:
                     sim_command.append("--repair-scene-references")
+                sim_command.extend(command_arguments(state_noise))
 
                 (destination / "command.sh").write_text(
                     "# Working directory: "
@@ -330,7 +344,12 @@ if __name__ == "__main__":
     parser.add_argument("--num-repeats", type=int, default=5)
     parser.add_argument("--video-rounds", type=int, default=1)
     parser.add_argument("--repair-scene-references", action="store_true")
+    add_arguments(parser)
     arguments = parser.parse_args()
+    try:
+        config_from_arguments(arguments)
+    except ValueError as error:
+        parser.error(str(error))
     if arguments.variant == "RGB" and (
         arguments.backbone != "pi05"
         or arguments.checkpoint_step != 40000
