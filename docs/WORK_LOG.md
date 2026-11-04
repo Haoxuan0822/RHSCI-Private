@@ -1,5 +1,7 @@
 # 必要工作记录
 
+- 作者咨询材料补实际推理代码：报告新增HTTP→processor→Eagle/DiT四步Euler→反归一化→16×36响应→官方WBC调用链、源码路径、NextGr00t历史标记/当前AutoModel注册、STATE与VGQ去state-token分支及修改边界。仓库外logs/gr00t-oven-author-inference-20261104.zip已生成，174文件/434866字节，ZIP CRC及内置逐文件SHA复核通过，归档SHA1e83dddbf9e6be622239b450fd8069bda0a1cf6d407429e3b3ef6b5437dab123；含保存配置/实际命令和当前及启动时scene脚本，非完整安装包、未发送外部消息。
+
 - 用户补充旧评测包/场景边界后复核：旧烤箱ZIP75文件仅json/jsonl/parquet/mp4，不含USD/纹理/MDL二进制；旧environment_config控制场景选择、灯光、材质引用及初态，资源独立来自USC-PSI-Lab/SIMPLE@0e8f23cc，102344280 ZIP SHA88b98529、336个非目录文件与原ZIP集合/大小/CRC一致。尚未证实与作者历史旧评测资产逐文件相同，不把旧配置包称全部资源回滚。作者报告已补独立资源版本与明确待问边界。
 
 - 已按用户请求整理docs/GR00T_OVEN_AUTHOR_REPORT_20261104.md并登记AGENTS：09:48:49 UTC快照STATE成功1/0/0/NA、完成40/41/43/NA（未完成），VGQ-AE成功34/23/23/NA、完成50/50/50/NA（已完成）；包含版本/归档SHA、保存训练配方、32D状态/36D动作、原生95%eval裁剪、16/16/4步BF16无RTC、WBC墙钟、成功判定累计逻辑、材质修复范围、实际命令、视频和作者问题。明确论文表8多任务不可直接作单任务复现对照，初始化身份未确证。只整理材料，未发送外部消息或更改/重启评测。

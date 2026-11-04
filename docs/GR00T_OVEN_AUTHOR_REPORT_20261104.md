@@ -159,6 +159,64 @@ level0/repeat1/episode0视频人工检查：STATE接近把手后基本停滞至�
 
 烤箱STATE L0/1/2分别GPU0/1/2、端口8120/8121/8122、DDS100/101/102；VGQ-AE对应GPU3/4/5、端口8123/8124/8125、DDS103/104/105。每实例模型和仿真同卡，每进程8CPU线程，Kit单GPU渲染；DDS loopback接口lo。各实例独立服务，不并发共享一个模型对象。前向预热实际返回有限(16,36)后才启动仿真。后来抱箱另用GPU6/7，与本次任务不同。
 
+## 实际推理代码：调用链、源码与修改边界
+
+本次运行的是RHSCI仓库中带适配的GR00T N1.6代码，不应向作者描述为“官方推理代码完全未修改”。SIMPLE原仓库跟踪文件干净，但模型服务端与外层评测包装器属于我们的代码。权重的历史训练源码也随归档保存；当前部署使用当前仓库代码，不是自动执行归档内源码。
+
+主要调用链（箭头为数据流，不代表异步并发）：
+
+```text
+SIMPLE Psi0DecoupledWbcAgent.get_action
+  → HttpActionClient.query_action → POST /act
+  → rhsci.inference.http_app → Server.predict_action
+  → Server._build_observation
+  → Gr00tSimPolicyWrapper → Gr00tPolicy._get_action
+  → processor(EPISODE_STEP) → collator → BF16
+  → Gr00tN1d6.get_action
+      → Eagle视觉/语言骨干
+      → action_head._encode_features
+      → action_head.get_action_with_features：随机噪声＋4步Euler流匹配
+  → processor.decode_action → unapply_action：还原物理单位
+  → Server._action_to_psi_format → (16,36) HTTP响应
+  → SIMPLE动作队列 → 官方关节重排/腰部/身高/导航目标 → WBC → MuJoCo
+```
+
+| 代码位置（相对RHSCI根） | 本次实际职责 |
+| --- | --- |
+| `src/rhsci/inference/http_server.py` main | 解析backbone/run-dir/step/device，检查点定位，选择GR00T builder并启动Uvicorn |
+| `src/rhsci/inference/http_app.py` create_policy_app | 注册/act与健康接口、调用策略predict_action |
+| `src/gr00t/rhsci/serve.py` build_server | 固定G1_LOCO_DOWNSTREAM、返回动作16步，video.delta_indices=[0]，检查model/processor为eval |
+| `src/gr00t/deploy/gr00t_serve_simple.py` Server | HTTP协议反序列化、图像/32D状态分组、调用policy、36D拼接及有限数校验 |
+| `src/gr00t/policy/gr00t_policy.py` Gr00tPolicy | AutoModel/AutoProcessor从本地checkpoint加载；BF16、eval；原生processor→collator→model.get_action→decode_action |
+| `src/gr00t/model/gr00t_n1d6/processing_gr00t_n1d6.py` | 输入归一化、补零、Eagle输入处理；decode_action截取有效前16步，按组切分并反归一化 |
+| `src/gr00t/model/gr00t_n1d6/image_augmentations.py` | 实际eval短边256→95%中心裁剪→短边256；训练随机位置裁剪及颜色增强 |
+| `src/gr00t/data/state_action/state_action_processor.py` | state/action统计归一化和逆变换，按组rep决定是否相对转换 |
+| `src/gr00t/model/gr00t_n1d6/gr00t_n1d6.py` | 实际N1.6骨干与动作头；含STATE/无状态分支和VGQ-AE扩展 |
+| `src/gr00t/model/gr00t_n1d6/rhsci_query.py` | VGQ-AE的Reader/Query辅助方法；STATE不走该条件替代路径 |
+| `experiments/pi05_between/eval_decoupled_wbc.py` | 包装官方run_eval，设置录像轮数、GPU/DDS/线程及场景引用修复；目录名不表示加载π0.5 |
+| `experiments/pi05_between/scene_references.py` | 进程内场景原文件引用重定向；不是策略动作后处理 |
+
+模型加载细节：STATE保存architectures=[NextGr00t]，当前部署由AutoConfig/AutoModel注册的Gr00tN1d6配置/模型加载；不能仅看历史architectures字符串断言实际运行了一个独立NextGr00t类。rsci_variant=STATE、rsci_memory_mode=none时，state_encoder编码本体状态，与action tokens拼接；不进入NO-STATE/VGQ-AE的去state-token分支。VGQ-AE则真正不拼state tokens，不是仅把真实state置零。
+
+实际非RTC采样函数是`Gr00tN1d6ActionHead.get_action_with_features`，不是另一个旧版`model/action_head/flow_matching_action_head.py`，也不调用get_action_with_rtc：
+
+```python
+# 当前采样逻辑的等义摘录，完整实现见对应源码。
+actions = torch.randn((batch_size, 50, action_dim), device=device, dtype=dtype)
+dt = 1.0 / 4
+for t in range(4):
+    # 编码当前噪声动作与离散时间；与state条件一起送入DiT，
+    # 由action_decoder给出pred_velocity。
+    actions = actions + dt * pred_velocity
+# processor.decode_action按保存delta_indices保留前16步并反归一化。
+```
+
+上段为解释性摘录，不能脱离完整DiT调用独立运行。实际policy在torch.inference_mode下调用model.get_action；原生噪声torch.randn未替换为固定配对噪声。GR00T本次入口没有π0.5那套torch.compile/max-autotune/CUDA-graph改动，也没有人为平滑、EMA、重叠动作融合、额外插值或执行30步的补丁；下层WBC自身的官方目标插值仍在。
+
+**代码来源边界：** 原生GR00T加载、processor和流匹配推理结构被沿用，但源码已有RHSCI分支/配置兼容修改；不是已验证与某一官方commit逐字、逐输出相同。训练来源契约、归档源码和当前部署源码须分别看。当前scene_references.py后来为抱箱修正了软链接路径解析；烤箱活动进程此前已经导入旧版本。随附源码包同时保留“当前文件”和“烤箱启动时期HEAD中的scene_references.py”，不把后来的磁盘版本冒充进程已加载代码。
+
+随附代码审阅包：`/opt/rsci-data/logs/gr00t-oven-author-inference-20261104.zip`。包含当前GR00T/RHSCI Python源码、相关SIMPLE客户端/控制源码、两模型config/processor/statistics/契约、实际命令与本报告，文件SHA256清单置于包内SNAPSHOT_MANIFEST.json；不包含大权重、优化器或完整可运行依赖环境。该包供代码审阅，不标称自动复现实验安装包。没有向作者或外部服务发送。
+
 ## 实际启动命令：STATE level0第1轮
 
 以下据保存的worker.json/command.sh整理为相同参数的易读格式。端口及输出路径属于当时运行；正在运行时不要再次执行造成冲突。其它难度/变体替换上表对应GPU、端口、DDS、权重和输出路径；每级五轮由既有worker调度，后3轮关闭录像。
