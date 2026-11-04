@@ -1,5 +1,21 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 训练数据时间索引与预测动作进度审计（2026-11-04）
+
+只读检查实际91条训练轨迹、58637帧：parquet episode/frame identity、有限36维动作/32维状态、视频nb_frames、r_frame_rate/avg_frame_rate与50Hz、逐帧timestamp=frame/50全部通过，最大时间戳误差0。读取裁剪列，不实体化depth、不重建缓存、不改训练数据。它排除了本数据中可观察的容器帧率、帧数、行索引与时间戳错配，不能证明采集源物理RGB/状态绝对同步；腰部状态也不逐项等于上一条动作指令，不能照搬另一个raw转换脚本的字段语义。
+
+同一配对推理结果用14维双臂最近专家姿态作描述（只搜索episode0前240帧，非模型内部状态估计）：seed17四个原训练输入的预测首/末动作最接近专家7→35、24→53、71→101、85→115帧；渲染输入为10→41、21→51、60→86、59→87。90帧渲染输入在seed29/43也分别最接近56→85、56→87帧，而训练输入为85→116、82→113。这个结果更符合“不同块对动作进度定位不一致”，并非所有动作块统一漏/多了固定一帧，不能靠整体平移时间索引解释。最近姿态可能有歧义，不能称唯一时间配准或具体训练代码bug。
+
+完整收据 `evals/stutter-root-cause-20261104/training-timing-phase-audit.json`。实际完成命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh pi05
+python experiments/pi05_between/audit_training_alignment.py \
+  --dataset "$PSI_RUNTIME_ROOT/data/processed/G1WholebodyLocomotionPickBetweenTablesTeleop-v0" \
+  --predictions "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/paired-render-training.json" \
+  --output "$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/training-timing-phase-audit.json"
+```
+
 ## 训练原图与专家回放渲染图配对诊断（2026-11-04）
 
 离线对齐episode0第0/30/60/90帧，VGQ-AE忽略state，故成对变化仅图像。同40k权重、30步输出、10步eager/BF16；每对seed17/29/43固定噪声，保存完整双臂动作与专家动作RMSE。复用正式模型及处理器，不改变在线服务；范围只有一个专家轨迹的四个时刻，不能直接外推成功率或训练代码bug。输出 `evals/stutter-root-cause-20261104/paired-render-training.json`，日志同名 `.log`，24次真实推理已正常完成，GPU1释放，脚本Ruff检查通过。
