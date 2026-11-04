@@ -1,5 +1,22 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 固定种子预测的共同偏差与波动（2026-11-04）
+
+只分析既有paired-render-training.json（seed17/29/43、同40k/10步BF16/四个时刻），无新增推理/仿真。对三个自然边界的14臂关节接续误差，逐项验证有限样本恒等式：平均平方误差=均值的平方+围绕均值的方差。原训练图与渲染图的合计平方误差中，三样本共同均值偏差占88.40%/95.77%；不是主要由这三个种子彼此的波动贡献。它不是总体条件期望、置信区间或任意噪声都无影响的证明。
+
+三份预测均值的边界L2变化，原训练图为0.15649/0.08488/0.05384rad，渲染图0.22407/0.03981/0.14053rad；专家自然变化为0.00938/0.01278/0.00393rad。因此这批样本不能靠“只是碰巧采到坏噪声”解释。90帧渲染输入的首左肩yaw均值-0.13246、种子间ddof0标准差0.00236rad，原训练输入均值-0.17445、标准差0.00110rad。结合已有最近专家姿态匹配，支持稳定的条件预测偏差，而非仅噪声重新采样；不把最近姿态当成已解码的模型内部阶段。平均动作从未执行，不能当平滑方案或新闭环分数。
+
+完整收据sampling-bias-audit.json包含两份输入SHA和逐边界误差分解。实际CPU命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/analyze_sampling_bias.py \
+  --predictions /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/paired-render-training.json \
+  --recorded-inputs /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/recorded-replay-aligned-inputs-retry/predictions.jsonl \
+  --output /root/workspace/Haoxuan/RHSCI-runtime/evals/stutter-root-cause-20261104/sampling-bias-audit.json
+```
+
 ## 原v2动作标签往返审计（2026-11-04）
 
 只读全91条/58637帧动作及既有24块预测，实际调用当前Processor.normalize，再按正式serve.py同一v2公式反变换。没有启用已撤回的v3，没有改统计、数据或模型。训练统计和输入预测SHA记录在training-label-roundtrip-audit.json，逐维全训练集往返误差与三个诊断episode的自然边界一并保留。
