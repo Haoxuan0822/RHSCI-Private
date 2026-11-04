@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- rate/flag原始数据审计和episode8导航门限单变量物理重放均完成：RAW78第三维与heading闭环角速度相关0.9990，前120帧target_yaw恒0但第三维75帧非0；全91轨迹21845帧非零但abs<0.1。官方f169793将返回rate改flag、5b304e4再加flag门限。episode8真实trace原生输出逐项复现，门限影响44/120次、转速差max0.04813rad/s、站走选择不变。原生CPU MJ/WBC重放相同VLA目标，基线43关节max误差3.17e-5rad；仅取消门限后双臂max差0.000298rad、基座0.112mm/0.1674度、躯干0.2183度，短窗口物理影响有限，不能判大幅手臂回退根因。session79485/88559退出0、DDS226/GPU6上下文释放；前两次环境/预检失败详ERROR_LOG。rate-flag-semantics-dataset-and-episode8.json、episode8-gate-physics-v2.json保留；命令/范围在README顶部。无生产修复/新正式π评测，goal仍active。
+
 - 已只读比较旧包episode4/30-30与新固定噪声原位/前移6cm三条已有轨迹，前三边界旧跳变0.1537/0.1337/0.2551rad、新原位0.1649/0.1642/0.2124、前移0.0901/0.1003/0.1379。前91步均未持续抬高盒子8cm；前180步旧/新原位双臂净移动0.678/0.696rad相近，盒子升高0.171/0.00578m，不能把新失败等同手臂没有净推进。持续抬起首步旧159/前移103，新原位1200步无。compare_approach_progress.py及approach-progress-comparison.json保留配置/trace SHA、逐边界保留投影及范围，命令见两桌README新节、Ruff通过。旧/新噪声未配对，旧180步诊断False非完整失败，个例不外推旧包整体顺畅程度。无新模型/评测/生产修改，完整根因仍未定。
 
 - 新增纯CPU原生PD完整RAW目标重放及两种初态对照，三个进程均退出0/DDS230释放，无新π0.5模型调用。RAW初态+RAW完整目标腰RMSE0.000189/0.000637/0.000227rad、第90步躯干0.518度；但不能和换初态后失稳的WBC保存目标53.05度比较来称修复。恢复trace自身初态后基线腰相对现场max0.003228rad，腿腰15维换RAW目标使第120步躯干误差8.770→16.206度、base x RMSE9.97→61.02mm，反证直接移植原始下身目标不是修法。两份*-paired-replay/trace-initial-replay.json及日志保留，脚本/完整命令在两桌README新节，Ruff通过。当前下身目标对初态/反馈敏感，视角差仍不能单独判控制bug；新旧包差异与完整根因未定，goal仍active。
