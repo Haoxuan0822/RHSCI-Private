@@ -1,5 +1,29 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 已有新旧包接近阶段的回撤与抓取进展（2026-11-04）
+
+`compare_approach_progress.py`只读已有三条level0/episode4轨迹，不启动模型或评测：旧包execute30的180步诊断、新包固定噪声original与仅出生x+0.06的两条完整实验。全部核对30/30、逐步模型→WBC双臂误差0，metadata记录同任务/编号；旧/新噪声未配对，不是全协议复现或总体顺畅度结论。统一前91步，三条均在盒子相对初始z抬高8cm并持续5步之前，但不把此条件冒称抓取接触/动作阶段精确匹配。
+
+第30/60/90步双臂目标跳变L2：旧包0.1537/0.1337/0.2551rad，新包原位0.1649/0.1642/0.2124rad，新包前移0.0901/0.1003/0.1379rad。旧包此局部样本也有回撤，不能据此推翻用户旧包整体基本顺畅的观察。新块起点沿上一块净运动方向的保留投影分别为旧0.3756/0.5712/0.0405、新原位0.3446/0.2940/0.3831、前移0.7154/1.2694/0.5566；投影不是概率或因果百分比，允许小于0或大于1。
+
+前180步物理双臂净位移旧0.67818rad、新原位0.69555rad，路径长2.06961/1.97764rad，而盒子最高升高0.17105/0.00578m；这例新包没有抬起不能归为手臂完全没有净推进。盒子持续抬高8cm首步为旧159、新原位全1200步无、前移103；前移组前180步盒子升高0.16407m。前移/原位同噪声seed17的配对身份见各自effective_eval_config.json、console.log的DIAGNOSTIC_PAIRED_NOISE与既有preflight-verified.json；只是一个初态的干预，不能外推五轮成功率。180步旧诊断的官方False是人为截短，不计完整任务模型失败；其旧包完整评测成功记录也不能拿来冒充该诊断成功。
+
+新增收据`evals/stutter-root-cause-20261104/approach-progress-comparison.json`保留三条trace/配置SHA、逐边界几何与两个时间窗；同名.log保留输出。Ruff lint/format通过。实际命令：
+
+```bash
+cd /root/workspace/RHSCI-Private
+AUDIT_ROOT=/opt/rsci-data/evals/stutter-root-cause-20261104
+/opt/rsci-data/.venv-simple/bin/python \
+  experiments/pi05_between/compare_approach_progress.py \
+  --trace "old30=$AUDIT_ROOT/old-episode4-horizon/execute-30/control_trace.jsonl" \
+  --trace "new_original=$AUDIT_ROOT/paired-spawn-noise/original/control_trace.jsonl" \
+  --trace "new_plus006=$AUDIT_ROOT/paired-spawn-noise/plus006/control_trace.jsonl" \
+  --output "$AUDIT_ROOT/approach-progress-comparison.json" \
+  > "$AUDIT_ROOT/approach-progress-comparison.log"
+```
+
+这些证据区分换块回撤与抓取阶段未达成，支持出生位置改变会影响本例早期接续与抓取；尚未定位完整视觉预测根因或证明新旧包总体顿挫差异，不修改正式初态/动作配置。
+
 ## 完整原始电机目标的CPU物理反证（2026-11-04）
 
 继续遵守停止π0.5评测/服务，不新增模型调用。`replay_recorded_motor_targets.py`只调用已有原生MJ场景、机器人PD及ActionCmd；200Hz物理/50Hz目标、120步、DDS230、无渲染/成功率/下身RL重算。来源核对本机固定b75 README的client/server评测边界、原生G1Sonic.apply_action和官方ReplayDecoupledAgent：本诊断刻意跳过WBC，仅检验全关节最终目标的PD解释，不冒称官方上层动作重放。RAW78/info SHA必须与训练manifest一致，action按其独立的关节名称排序，不能套用state列顺序。

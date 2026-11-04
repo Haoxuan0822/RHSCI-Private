@@ -11,6 +11,8 @@
 
 ## 当前 π0.5 两桌任务
 
+- 已只读比较旧包episode4/30-30与新固定噪声原位/前移6cm三条已有轨迹，前三边界旧跳变0.1537/0.1337/0.2551rad、新原位0.1649/0.1642/0.2124、前移0.0901/0.1003/0.1379。前91步均未持续抬高盒子8cm；前180步旧/新原位双臂净移动0.678/0.696rad相近，盒子升高0.171/0.00578m，不能把新失败等同手臂没有净推进。持续抬起首步旧159/前移103，新原位1200步无。compare_approach_progress.py及approach-progress-comparison.json保留配置/trace SHA、逐边界保留投影及范围，命令见两桌README新节、Ruff通过。旧/新噪声未配对，旧180步诊断False非完整失败，个例不外推旧包整体顺畅程度。无新模型/评测/生产修改，完整根因仍未定。
+
 - 新增纯CPU原生PD完整RAW目标重放及两种初态对照，三个进程均退出0/DDS230释放，无新π0.5模型调用。RAW初态+RAW完整目标腰RMSE0.000189/0.000637/0.000227rad、第90步躯干0.518度；但不能和换初态后失稳的WBC保存目标53.05度比较来称修复。恢复trace自身初态后基线腰相对现场max0.003228rad，腿腰15维换RAW目标使第120步躯干误差8.770→16.206度、base x RMSE9.97→61.02mm，反证直接移植原始下身目标不是修法。两份*-paired-replay/trace-initial-replay.json及日志保留，脚本/完整命令在两桌README新节，Ruff通过。当前下身目标对初态/反馈敏感，视角差仍不能单独判控制bug；新旧包差异与完整根因未定，goal仍active。
 
 - 真实训练forward/eval动作分支6组对照已退出0（GPU7/PID2465327/session24084结束）：VGQ40k、训练episode0帧30/60/90、seed17/29、原生历史图/增强/Beta时间；捕获实际训练动作embedding及当前图，train重复、eval同cache、eval重新编码三路全部逐位相同、最大差0。仅no_grad离线前向、ARDY目标无效占位，无训练/服务/仿真。action-train-eval.json/log保留，脚本audit_action_train_eval.py Ruff通过，完整命令及范围见两桌README顶部。不支持模式切换制造回跳，未证明全训练正确或找到根因，goal仍active。

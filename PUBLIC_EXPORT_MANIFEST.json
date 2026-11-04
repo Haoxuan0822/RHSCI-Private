@@ -314,16 +314,16 @@
       "bytes": 2344
     },
     "docs/WORK_LOG.md": {
-      "export_sha256": "431b726b37c039d6a3253b9c605cee9c79a6b40bc1284323236cb25cd9ce03b6",
-      "bytes": 55896
+      "export_sha256": "aef6f211d7c92c971d5a5820d315eed4e7e788109b5a2019a5f2f08bc12dc8dd",
+      "bytes": 56661
     },
     "experiments/README.md": {
       "export_sha256": "6e05ced4c0246ca846e159c663eac629d2ef1b3d1b235dd7361352c2dc426e56",
       "bytes": 1212
     },
     "experiments/pi05_between/README.md": {
-      "export_sha256": "b5c6dc421622081048e63cedc0cfcdd1a784441a5b1de6d5bbb9989d0abd2239",
-      "bytes": 148416
+      "export_sha256": "92f9f6f147957061be29e3b703d27fa082435ce98e8fcedb95ea0c58e61d4ef5",
+      "bytes": 151160
     },
     "experiments/pi05_between/audit_material_inventory.py": {
       "export_sha256": "7b84d9b17db115e42a1e1c0b3a46d120af25268b4ed2afe7b0847fc8d25f36b9",
