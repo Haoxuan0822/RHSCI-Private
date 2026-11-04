@@ -1,5 +1,49 @@
 # π0.5 两桌评测：STATE 与 VGQ-AE
 
+## 历史手指兼容的实际组合核对（2026-11-04）
+
+已认证只读取得原bfffc460c0d857ae447f18be2529447ea612a11c的eval_wbc_hand_order.py，SHA f30f8dbe2f9e1aa22e946072865e2520019fb360e991861348e893ee8be5495d。历史协议不仅按名称修正PD，还先对旧模型动作执行legacy_upper_targets；不能遗漏后者、只凭移除具名PD就断言物理目标变了。
+
+复用spawn-full/plus006-episode0的1200个原始策略动作与真实物理位置，加载当前真实MJCF和WBC RobotModel，直接调用原生from_psi0_upper_joints、手部getter及G1Sonic.apply_action方法，与认证历史两层兼容组合比较。给两路同一物理位置、零速度（trace未记录速度，不冒称现场力矩重放），全部43关节PD力矩最大差0Nm。没有推进物理、插值或调用模型，不是闭环反事实。原生手指反馈的确按thumb/middle/index，而WBC契约为thumb/index/middle；本轨迹槽位差最大0.80006rad。但将同一反馈分别经过真实_build_wbc_observation与原生下身compute_observation，1200组86维网络输入最大差0：下身只取body29，插值上身不读反馈。历史旧动作兼容保留原有物理目标，故这个已知手指接口缺陷不能直接当作本次与历史成绩差异的已证根因，也不能因此宣称其他手指控制入口都没有问题。
+
+收据hand-feedback-contract-episode0-verified.json保存实际源路径/摘要、原始trace SHA、名称序列及误差；脚本核验实际导入的下身源路径，Ruff通过。复算命令（输出存在时拒绝覆盖）：
+
+```bash
+cd /root/workspace/RHSCI-Private
+/root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python \
+  experiments/pi05_between/audit_hand_contract.py \
+  --simple-source /opt/rsci-data/external/SIMPLE-official \
+  --trace /opt/rsci-data/evals/stutter-root-cause-20261104/spawn-full/plus006-episode0/control_trace.jsonl \
+  --output /opt/rsci-data/evals/stutter-root-cause-20261104/hand-feedback-contract-episode0-verified.json
+```
+
+## 相机参考帧与策略输入时间诊断（2026-11-04）
+
+此前关节状态核对不等于证明RGB零延迟。继续沿官方b75源码核对：SonicLocoManipEnv.step先推进MJ、同步Isaac、执行world.step和rep.orchestrator.step，随后_get_obs/_render_frame；IsaacCamera.get_rgba直接读rgb annotator，不走get_current_frame的频率缓存。此源码顺序仍不能代替真实帧时间证据。实验--trace-camera-timing仅配合单episode trace读取本机Isaac4.5已存在的ReferenceTime、对应SWH仿真时间、callback帧、world时间、左右目图像SHA；模型请求另记左目SHA，用来匹配上一观测。不开启额外渲染、不新建材质、不改控制。ReferenceTime与RGB来自同一render product，但元数据不能单独证明每个像素/骨骼绝对同步，需根据实际结果限定结论。
+
+准备并在对话给出：官方旧level0/episode4、VGQ40k/30-30/noRTC/10步BF16/wall、120步，同8147；GPU0、DDS222（未复用220/221/230/231）。论文/README及保存配置同本说明已核对设置，新增项仅测量；不计正式成功率，双目视频保留。实际命令：
+
+```bash
+source /root/workspace/Haoxuan/RHSCI-runtime/activate.sh simple
+probe_root="$PSI_RUNTIME_ROOT/evals/stutter-root-cause-20261104/camera-timing-vgq"
+mkdir "$probe_root"
+cd "$probe_root"
+CUDA_VISIBLE_DEVICES=0 python -u \
+  /root/workspace/RHSCI-Private/experiments/pi05_between/eval_decoupled_wbc.py \
+  simple/G1WholebodyLocomotionPickBetweenTablesTeleop-v0 \
+  psi0_decoupled_wbc train \
+  --data-format lerobot \
+  --data-dir "$PSI_RUNTIME_ROOT/eval-official-pre1102/G1WholebodyLocomotionPickBetweenTablesTeleop-v0/dr-level-0" \
+  --sim-mode mujoco_isaac \
+  --host 127.0.0.1 --port 8147 --headless \
+  --num-episodes 1 --episode-start 4 \
+  --max-episode-steps 120 --success-criteria 0.4 \
+  --eval-dir "$PWD/stats" --save-video \
+  --renderer-gpu 0 --dds-domain-id 222 --cpu-threads 8 \
+  --trace-control "$PWD/control_trace.jsonl" \
+  --trace-camera-timing > "$PWD/console.log" 2>&1
+```
+
 ## 认证历史训练记录与学习率核对（2026-11-04）
 
 只补读同一已选VGQ-AE权重的小型元数据，共1298264字节，不下载其他权重或optimizer。HF固定ds1x/RHSCI@59a1ea14d4346496d4e55c9fa58ea2f3330fd298，目录checkpoint/pi05/VGQ-AE/betweentables/frozen/simple-default-v4-speed-both-v1：checkpoint-40000/trainer_state.json的SHA69a3230c…、speed_resume_origin.json的SHA477e32b6…均与已验证checkpoint-manifest一致，并核对HF Git blob身份。原文存于运行根evals/stutter-root-cause-20261104/training-history，不写进推理检查点，不把恢复元数据增加为普通推理前提。
