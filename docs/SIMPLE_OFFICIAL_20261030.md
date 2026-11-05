@@ -6,6 +6,38 @@
 
 ## 版本与来源
 
+<a id="zero-arm-evaluation-20261105"></a>
+
+### 当前零臂评测（2026-11-05）
+
+当前实验不是未经修改的官方版本：基于下文固定的 `b75c6786`，另有本地
+SIMPLE 提交 `0b2d3ecedaac789a15b664d7169b5f7318b82cf5`。它在12个任务
+构造函数中复制控制器配置并设置双臂零初值，两桌任务官方已设置，共13个任务。
+运行时直接使用修改后的任务源码；该本地提交不在上游官方仓库，不能要求别人从上游 checkout 此 SHA。
+
+本仓库提供完整的 [源码差异](../configs/simple/zero_arm_tasks.patch)，包含原文件上下文，
+仅用于在新机器重建相同任务源码。完成官方安装、在干净的固定版本上运行
+`tools/check_simple.py` 后，再执行以下一次性步骤；已经使用本地零臂提交的机器无需重复应用：
+
+```bash
+git -C "$SIMPLE_HOME" apply --check "$PSI_HOME/configs/simple/zero_arm_tasks.patch"
+git -C "$SIMPLE_HOME" apply "$PSI_HOME/configs/simple/zero_arm_tasks.patch"
+```
+
+`tools/check_simple.py` 与 `configs/simple/official.json` 校验的是未经修改的官方基线，
+应用差异后不能把它的失败解释为安装损坏，也不能声称此时仍是完全原版。
+差异遵循 SIMPLE 原始 MIT 许可；作者及许可见外部仓库 `license.md`。
+
+当前零臂实验的初态包为 `USC-PSI-Lab/psi-data` 固定
+`e78fb93cc28912a3031a10b8656d32d7f0a2b867` 的 `simple-eval/*.zip`，
+不是新版 `SIMPLE-eval/fb67cd9a`。三级各10初态、每级5轮、只录第一轮双目视频。
+客户端是官方 `Psi0DecoupledWbcAgent`/`HttpActionClient`，RHSCI wrapper 调用
+原生 `run_eval`；服务端是本仓库 `rhsci.inference.http_server`，HTTP `/act`/`/health`。
+π0.5为30预测/30执行，GR00T为16/16，无RTC；各任务独立步限与成功阈值。
+测量噪声默认关闭，开启时仅在客户端对发送前31维加噪。
+具体命令及逐项配置见 [首页当前评测表](../README.md#current-evaluation-configuration-2026-11-05)
+和 [推理说明](INFERENCE.md)。下文保留2026-10-30官方基线迁移记录。
+
 - 官方：[physical-superintelligence-lab/SIMPLE](https://github.com/physical-superintelligence-lab/SIMPLE)。2026-10-30 只读核对 GitHub API 与远端 main，固定 `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`。
 - 此提交是 2026-10-29 合并的 [PR #29](https://github.com/physical-superintelligence-lab/SIMPLE/pull/29)：两桌递物任务复制控制器配置后，将双臂初始关节角设为零，避免原抬臂初值在稳定阶段碰桌；官方通用 `g1_sonic.py` 未改。PR 作者报告的 MuJoCo 结果不是本轮实测。
 - 旧 README 固定 `803db7e4c1f0fef11008c9480ee75b2f9cc0ca36`，官方比较 API 显示新版领先 28 个提交。本次采用整份新版原生源码，未将更新缩减成单个姿态补丁。

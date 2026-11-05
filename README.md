@@ -154,9 +154,37 @@ The reference π0.5 recipe follows the [official Psi0 SIMPLE training guide](htt
 | Final learning rate | `1e-8` |
 | Action dimension | 36 |
 
-The current RHSCI π0.5 adapter freezes PaliGemma, predicts 30 actions per chunk, and returns the first 24 actions per inference request. These horizons are fixed in the current implementation. See [π0.5](baselines/pi05/README.md) for RHSCI-specific variants and launch options.
+The current RHSCI π0.5 adapter freezes PaliGemma and returns all 30 predicted actions per request. The non-RTC client executes all 30 in the current evaluation configuration. See [π0.5](baselines/pi05/README.md) for RHSCI-specific variants and launch options.
 
 ## Evaluation
+
+### Current evaluation configuration (2026-11-05)
+
+The current zero-arm experiments use **official SIMPLE `b75c6786` plus our
+task-level zero-arm source changes**, and the **pre-November-2 evaluation ZIPs**
+from `USC-PSI-Lab/psi-data@e78fb93cc28912a3031a10b8656d32d7f0a2b867`.
+The newer `SIMPLE-eval/fb67cd9a` installation example below is a separate release;
+do not use it as the identity of these experiments.
+
+| Component | Current experiment |
+| --- | --- |
+| Simulator code | SIMPLE `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`; apply the [zero-arm source diff](configs/simple/zero_arm_tasks.patch) as described in the [version record](docs/SIMPLE_OFFICIAL_20261030.md#zero-arm-evaluation-20261105) |
+| Physics / rendering | MuJoCo 3.3.6 / Isaac Sim 4.5.0.0; decoupled WBC, native wall-clock control and navigation |
+| Client | SIMPLE `Psi0DecoupledWbcAgent` / `HttpActionClient`, launched through [eval_decoupled_wbc.py](experiments/pi05_between/eval_decoupled_wbc.py); 32D state = 31 measured joints + height command |
+| Server | RHSCI [`rhsci.inference.http_server`](src/rhsci/inference/http_server.py), `--backbone pi05` or `gr00t`; SIMPLE HTTP `/act` and `/health`, separate model environment |
+| Action execution | No RTC; π0.5 30 predicted / 30 executed, 10 sampling steps; GR00T 16 / 16, 4 sampling steps; BF16 |
+| Evaluation data | Old ZIP revision above; levels 0/1/2, 10 initial states × 5 rounds per level; only the first round records complete stereo video |
+| Measurement noise | Off by default; optional four kinds × four levels on the client, before normalization; [arguments and magnitudes](docs/INFERENCE.md#state-measurement-noise) |
+
+Task limits and thresholds remain task-specific. The [experiment worker](experiments/pi05_between/run_evaluation.py)
+records `worker.json`, per-round `command.sh` and `effective_eval_config.json`;
+keep those with the RHSCI Git commit, SIMPLE source diff, asset receipts and
+checkpoint identity when reporting results. Current launch commands and task
+settings are in the [two-table](experiments/pi05_between/README.md) and
+[three-task](experiments/simple_queue/README.md) records. These orchestration
+scripts contain this machine's paths; adjust them on another machine. Weights,
+scene assets, environments, videos and result files are external to this Git
+repository. Source availability alone does not establish reproduced success rates.
 
 ### Install SIMPLE
 

@@ -1,5 +1,11 @@
 # Inference
 
+Current zero-arm evaluation versions, client/server roles and action horizons
+are summarized in the [README evaluation table](../README.md#current-evaluation-configuration-2026-11-05).
+Those experiments use the old `psi-data@e78fb93c` ZIPs and official SIMPLE
+`b75c6786` with the [documented task source changes](SIMPLE_OFFICIAL_20261030.md#zero-arm-evaluation-20261105).
+The newer asset release described below is a separate evaluation condition.
+
 Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.md). Preserve the saved run configuration and consult the historical-checkpoint compatibility notes below.
 
 See the [PSI0-RAW compatibility audit](RAW_COMPATIBILITY_AUDIT_20261103.md) for actual checkpoint evidence and limits. Ψ0 restores the original four-frame state-reconstruction method from metadata/weights and retains embedded training bounds. GR00T restores saved `rsci_memory_mode=full-vlm` without a Reader. Historical removed architectures require their matching runtime. π0.5 still needs the matching training dataset/tokenizer; EgoVLA trainable-only weights need their matching base assets.

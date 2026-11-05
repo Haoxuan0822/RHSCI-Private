@@ -1,0 +1,298 @@
+diff --git a/src/simple/tasks/g1_wholebody_bend_handover_teleop.py b/src/simple/tasks/g1_wholebody_bend_handover_teleop.py
+index c9d3e03..22ba16f 100644
+--- a/src/simple/tasks/g1_wholebody_bend_handover_teleop.py
++++ b/src/simple/tasks/g1_wholebody_bend_handover_teleop.py
+@@ -174,6 +174,13 @@ class G1WholebodyBendHandoverTeleop(Task):
+ 
+         self._robot=RobotRegistry.make(**self.robot_cfg,**kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+          # domain randomization confs
+         #HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_bend_pick_and_place_teleop.py b/src/simple/tasks/g1_wholebody_bend_pick_and_place_teleop.py
+index dd9ff3e..4e74850 100644
+--- a/src/simple/tasks/g1_wholebody_bend_pick_and_place_teleop.py
++++ b/src/simple/tasks/g1_wholebody_bend_pick_and_place_teleop.py
+@@ -177,6 +177,13 @@ class G1WholebodyBendPickAndPlaceTeleop(Task):
+ 
+         self._robot=RobotRegistry.make(**self.robot_cfg,**kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+          # domain randomization confs
+         #HACK THIS task is only in scene0
+         # if scene_uid is not None:
+@@ -399,4 +406,3 @@ class G1WholebodyBendPickAndPlaceTeleop(Task):
+ 
+             
+         ]
+-
+diff --git a/src/simple/tasks/g1_wholebody_bend_pick_teleop.py b/src/simple/tasks/g1_wholebody_bend_pick_teleop.py
+index 8451d80..925d4a8 100644
+--- a/src/simple/tasks/g1_wholebody_bend_pick_teleop.py
++++ b/src/simple/tasks/g1_wholebody_bend_pick_teleop.py
+@@ -173,6 +173,13 @@ class G1WholebodyBendPickTeleop(Task):
+ 
+         self._robot=RobotRegistry.make(**self.robot_cfg,**kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+          # domain randomization confs
+         #HACK THIS task is only in scene0
+         # if scene_uid is not None:
+@@ -342,4 +349,3 @@ class G1WholebodyBendPickTeleop(Task):
+ 
+             
+         ]
+-
+diff --git a/src/simple/tasks/g1_wholebody_close_door_teleop.py b/src/simple/tasks/g1_wholebody_close_door_teleop.py
+index 648baf4..f99253d 100644
+--- a/src/simple/tasks/g1_wholebody_close_door_teleop.py
++++ b/src/simple/tasks/g1_wholebody_close_door_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -173,6 +174,13 @@ class G1WholebodyCloseDoorTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_handover_teleop.py b/src/simple/tasks/g1_wholebody_handover_teleop.py
+index 224a3a4..dcf6f46 100644
+--- a/src/simple/tasks/g1_wholebody_handover_teleop.py
++++ b/src/simple/tasks/g1_wholebody_handover_teleop.py
+@@ -27,6 +27,7 @@ from simple.sensors import StereoCameraCfg, SensorCfg, CameraCfg
+ from simple.assets import AssetManager
+ 
+ from gymnasium import spaces
++from copy import deepcopy
+ from typing import Any
+ import numpy as np
+ 
+@@ -177,6 +178,13 @@ class G1WholebodyHandoverTeleop(Task):
+ 
+         self._robot=RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         #HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_open_faucet_teleop.py b/src/simple/tasks/g1_wholebody_open_faucet_teleop.py
+index 6794a0b..99dd5bb 100644
+--- a/src/simple/tasks/g1_wholebody_open_faucet_teleop.py
++++ b/src/simple/tasks/g1_wholebody_open_faucet_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -171,6 +172,13 @@ class G1WholebodyOpenFaucetTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_open_oven_teleop.py b/src/simple/tasks/g1_wholebody_open_oven_teleop.py
+index ef2adc1..dc14275 100644
+--- a/src/simple/tasks/g1_wholebody_open_oven_teleop.py
++++ b/src/simple/tasks/g1_wholebody_open_oven_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -169,6 +170,13 @@ class G1WholebodyOpenOvenTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_open_trash_can_teleop.py b/src/simple/tasks/g1_wholebody_open_trash_can_teleop.py
+index e977101..8bc91f9 100644
+--- a/src/simple/tasks/g1_wholebody_open_trash_can_teleop.py
++++ b/src/simple/tasks/g1_wholebody_open_trash_can_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -170,6 +171,13 @@ class G1WholebodyOpenTrashCanTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_pick_and_place_and_hug_container_teleop.py b/src/simple/tasks/g1_wholebody_pick_and_place_and_hug_container_teleop.py
+index 0090ba6..ed086e3 100644
+--- a/src/simple/tasks/g1_wholebody_pick_and_place_and_hug_container_teleop.py
++++ b/src/simple/tasks/g1_wholebody_pick_and_place_and_hug_container_teleop.py
+@@ -27,6 +27,7 @@ from simple.sensors import StereoCameraCfg, SensorCfg, CameraCfg
+ from simple.assets import AssetManager
+ 
+ from gymnasium import spaces
++from copy import deepcopy
+ from typing import Any
+ import numpy as np
+ 
+@@ -193,6 +194,13 @@ class G1WholebodyPickAndPlaceAndHugContainerTaskTeleop(Task):
+ 
+         self._robot=RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         #HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_push_office_chair_teleop.py b/src/simple/tasks/g1_wholebody_push_office_chair_teleop.py
+index 2a59deb..eda43a1 100644
+--- a/src/simple/tasks/g1_wholebody_push_office_chair_teleop.py
++++ b/src/simple/tasks/g1_wholebody_push_office_chair_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -171,6 +172,13 @@ class G1WholebodyPushOfficeChairTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_xmove_bend_carry_box_sonic.py b/src/simple/tasks/g1_wholebody_xmove_bend_carry_box_sonic.py
+index 59cee73..165dcda 100644
+--- a/src/simple/tasks/g1_wholebody_xmove_bend_carry_box_sonic.py
++++ b/src/simple/tasks/g1_wholebody_xmove_bend_carry_box_sonic.py
+@@ -10,6 +10,7 @@ if TYPE_CHECKING:
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
+ import os
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -178,6 +179,13 @@ class G1WholebodyXMoveBendCarryBoxTaskSonic(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:
+diff --git a/src/simple/tasks/g1_wholebody_xmove_pick_teleop.py b/src/simple/tasks/g1_wholebody_xmove_pick_teleop.py
+index 7d69d9c..36464ae 100644
+--- a/src/simple/tasks/g1_wholebody_xmove_pick_teleop.py
++++ b/src/simple/tasks/g1_wholebody_xmove_pick_teleop.py
+@@ -9,6 +9,7 @@ if TYPE_CHECKING:
+     from simple.core.randomizer import RandomizerCfg
+     from simple.datagen.subtask_spec import SubtaskSpec
+ 
++from copy import deepcopy
+ from typing import Any
+ 
+ import numpy as np
+@@ -168,6 +169,13 @@ class G1WholebodyXMovePickTaskTeleop(Task):
+ 
+         self._robot = RobotRegistry.make(**self.robot_cfg, **kwargs)
+ 
++        # 按任务独立设置零臂初值，reset 时同步初始化关节位置与 PD 目标。
++        controller_cfg = deepcopy(self._robot.controller_cfg)
++        controller_cfg.left_arm_cfg.init_qpos = [0.0] * 7
++        controller_cfg.right_arm_cfg.init_qpos = [0.0] * 7
++        self._robot.controller_cfg = controller_cfg
++        self._robot._controller = None
++
+         # domain randomization confs
+         # HACK THIS task is only in scene0
+         # if scene_uid is not None:

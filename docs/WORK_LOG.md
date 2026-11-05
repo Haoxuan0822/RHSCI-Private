@@ -1,5 +1,7 @@
 # 必要工作记录
 
+- 2026-11-05 GitHub上传准备：README补当前零臂评测版本表，区分SIMPLE b75官方基线＋本地0b2d3ec任务源码、旧包psi-data e78与新版fb67；列明原生HTTP客户端/RHSCI服务端、π30/30与GR16/16无RTC、录像/噪声及外部资产。configs/simple/zero_arm_tasks.patch携带外部12任务完整源码差异，反向git apply --check对当前实际SIMPLE通过；说明官方check_simple须在应用前运行，应用后不再是原版。未改活动进程/未提交原有工作区探针；推送结果以实际Git命令为准。
+
 - 2026-11-05 state测量噪声开关已实现：公共measurement_noise负责四类×四档参数、episode独立随机流和仿真时间缓存，state_noise_client复用原生agent/实例HTTP请求；eval_decoupled_wbc与run_evaluation支持--state-noise/type/level/seed，默认关闭。前31维在归一化前扰动，height/WBC/真实关节不改；高斯σ/偏移均匀界5/15/30/60度，延迟100/300/600/1200ms，丢包每4秒持续200/600/1200/2400ms。10项新CPU测试、2项原历史客户端测试、实际官方get_action原文＋真实HTTP编解码对照通过；未运行新GPU物理评测或更改活动队列。规则、种子和代表性启动模板见docs/INFERENCE.md。复现测试：PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /root/workspace/Haoxuan/RHSCI-runtime/.venv-simple/bin/python -m unittest discover -s tests -p test_measurement_noise.py -v；历史客户端测试改用.venv-pi05-rsci解释器及test_rsci_history_client.py。
 
 - STATE官方差异审计：固定Psi0@cda3fdf的11个关键文件已保存官方/当前源码及diff，logs/gr00t-state-official-diffs-20261104.zip SHA f2f10d4545c6677700599633daf38c8047a9a9e0d52eaf3058cce1b7b5a89803。确认Eagle features_only为实际推理路径修改，另有STATE编码拼接抽函数、训练检查点/Beta初始化及变体/HTTP适配；图像增强、状态动作处理器、flowmatching_modules逐字同官方。已有features_only微型测试实跑1 passed，不代表真实3B/BF16全链等价；尚缺同权重/同输入/同噪声纯官方对照，不能排除集成回归，也未发现漏必需模块的直接证据。具体范围已补作者报告；未改生产代码/评测进程。
