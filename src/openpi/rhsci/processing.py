@@ -8,8 +8,6 @@ import sentencepiece
 import torch
 from PIL import Image
 
-from rhsci.data.state_noise import InferenceStateNoise, add_measurement_noise, validate_scale
-
 
 class Processor:
     def __init__(
@@ -18,17 +16,12 @@ class Processor:
         tokenizer,
         variant,
         *,
-        state_measurement_noise_std_rad=0.0,
         normalization="simple-quantile-zero-span-clipped-v2",
     ):
         self.variant = variant
         if normalization not in ("simple-quantile-v1", "simple-quantile-zero-span-clipped-v2"):
             raise ValueError(f"Unsupported π0.5 normalization: {normalization}")
         self.normalization = normalization
-        self.state_measurement_noise_std_rad = validate_scale(
-            state_measurement_noise_std_rad, variant
-        )
-        self.inference_state_noise = InferenceStateNoise()
         self.tokenizer = sentencepiece.SentencePieceProcessor(model_file=str(tokenizer))
         self.stats = json.loads((Path(root) / "meta/stats.json").read_text())
 
@@ -52,24 +45,12 @@ class Processor:
         result = np.where(ill, 0.0, (value - lo) / (span + 1e-6) * 2 - 1)
         return np.clip(result, -1, 1).astype(np.float32)
 
-    def __call__(
-        self, sample, *, state_inference_measurement_noise_std_rad=0.0, state_noise_seed=None
-    ):
-        inference_scale = validate_scale(state_inference_measurement_noise_std_rad, self.variant)
+    def __call__(self, sample):
         text = sample["text"].strip().replace("_", " ").replace("\n", " ")
         if self.variant == "STATE":
             state = np.array(sample["state"], dtype=np.float32, copy=True)
             if state.shape != (32,):
                 raise ValueError("SIMPLE state requires exactly 32 values")
-            scale = inference_scale or self.state_measurement_noise_std_rad
-            if scale > 0:
-                values = torch.from_numpy(state)
-                noise = (
-                    self.inference_state_noise.sample(values[:31], state_noise_seed)
-                    if inference_scale > 0
-                    else torch.randn_like(values[:31])
-                )
-                state = add_measurement_noise(values, noise, scale).numpy()
             state = self.normalize(state, "states")
             discrete = np.digitize(state, np.linspace(-1, 1, 257)[:-1]) - 1
             prompt = f"Task: {text}, State: {' '.join(map(str, discrete))};\nAction: "
@@ -99,8 +80,6 @@ class Processor:
             token_mask=mask,
             actions=torch.from_numpy(self.normalize(sample["actions"], "action")),
         )
-        if self.state_measurement_noise_std_rad > 0:
-            result["state_noise_std_rad"] = torch.tensor(self.state_measurement_noise_std_rad)
         if self.variant == "VGQ-AE":
             result.update(
                 history_valid=torch.as_tensor(sample["rsci_history_valid"]),

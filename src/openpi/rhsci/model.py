@@ -59,14 +59,8 @@ class Pi05RHSCI(nn.Module):
         ae_width=1024,
         compile_inference=True,
         execution="reference",
-        state_measurement_noise_std_rad=0.0,
     ):
         super().__init__()
-        from rhsci.data.state_noise import validate_scale
-
-        self.state_measurement_noise_std_rad = validate_scale(
-            state_measurement_noise_std_rad, variant
-        )
         if execution not in ("reference", "history", "query", "both"):
             raise ValueError(f"Unknown execution profile: {execution}")
         self.execution = execution
@@ -104,7 +98,6 @@ class Pi05RHSCI(nn.Module):
             training_augmentation=AUGMENTATION_VERSION,
             inference_compile="max-autotune" if compile_inference else "disabled",
             execution=execution,
-            state_measurement_noise_std_rad=self.state_measurement_noise_std_rad,
         )
         if variant != "VGQ-AE":
             self.rsci_config.update(history=[0], ardy_weight=0.0, reader=None)
@@ -233,7 +226,6 @@ class Pi05RHSCI(nn.Module):
         history_valid=None,
         ardy_target=None,
         ardy_valid=None,
-        state_noise_std_rad=None,
     ):
         if actions.shape[1:] != (30, 36) or images.shape[1] != (
             4 if self.variant == "VGQ-AE" else 1
@@ -242,11 +234,6 @@ class Pi05RHSCI(nn.Module):
         if self.training:
             # 当前动作分支和历史辅助分支必须使用同一次增强后的当前图像。
             images = augment_training_images(images)
-        if self.training and self.state_measurement_noise_std_rad > 0:
-            if state_noise_std_rad is None or not torch.all(
-                state_noise_std_rad == self.state_measurement_noise_std_rad
-            ):
-                raise ValueError("STATE training requires matching raw-state noise from Processor")
         current = self.encode(images[:, -1], tokens, token_mask)
         time = (
             torch.distributions.Beta(1.5, 1.0).sample((actions.shape[0],)).to(actions.device)

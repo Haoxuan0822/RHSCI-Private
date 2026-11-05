@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
-from rhsci.data.state_noise import validate_scale
 from rhsci.paths import CODE_ROOT
 from rhsci.runtime.environment import get_env
 
@@ -53,14 +52,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
     argument_parser.add_argument(
         "--ardy-offset", type=int, default=0, help="Future ARDY target offset in 50 Hz frames"
     )
-    argument_parser.add_argument(
-        "--state-measurement-noise-std-rad",
-        type=float,
-        nargs="?",
-        const=0.02,
-        default=0.0,
-        help="Training noise before normalization; flag alone selects 0.02 rad; STATE only",
-    )
     argument_parser.add_argument("--num-workers", type=int, default=8)
     argument_parser.add_argument("--max-steps", type=int, default=40000)
     argument_parser.add_argument("--output-dir", type=Path)
@@ -89,7 +80,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     """校验 CLI 参数并应用 Ψ0 配方；返回配置、启动命令、输出目录和进程数。"""
-    noise = validate_scale(args.state_measurement_noise_std_rad, args.model)
     if args.model in CONTROL_VARIANTS and (args.no_reader or args.ardy_offset):
         raise ValueError("Controls use their fixed Reader/target-time protocol")
     if args.execution != "reference" and args.model != "VGQ-VLM":
@@ -121,8 +111,6 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
         model_slug += "-no-reader"
     if args.ardy_offset:
         model_slug += f"-F{args.ardy_offset}"
-    if noise:
-        model_slug += f"-noise-{noise:g}rad"
     group = f"{args.task}/{model_slug}/{args.vlm}/seed-{args.seed}/{args.run_tag}"
     output = args.output_dir or runtime / "runs/psi0" / group
     local = runtime / "cache/checkpoints/psi0"
@@ -145,8 +133,6 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
         or local / "postpre.1by1.pad36.2601131206.ckpt.he30k",
         "model.rsci-variant": args.model,
         "model.rsci-vlm-mode": args.vlm,
-        "model.state-measurement-noise-std-rad": noise,
-        "data.transform.field.state-measurement-noise-std-rad": noise,
         "data.rsci-ardy-offset-frames": args.ardy_offset,
     }
     if args.model in CONTROL_VARIANTS:

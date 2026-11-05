@@ -1,4 +1,4 @@
-"""Raw-radian noise reaches π0.5 state tokens without changing action inputs."""
+"""π0.5 state preprocessing and independent native action sampling."""
 
 import json
 import tempfile
@@ -8,12 +8,10 @@ from unittest.mock import patch
 
 import numpy as np
 import torch
-from test_pi05_rsci import TinyBackbone, fixture
+from test_pi05_rsci import fixture
 
-from openpi.rhsci.config import build_argument_parser, resolve_training_paths
-from openpi.rhsci.model import Pi05RHSCI
+from openpi.rhsci.config import build_argument_parser
 from openpi.rhsci.processing import Processor
-from rhsci.inference.state_noise import RequestStateNoise
 
 
 class Tokenizer:
@@ -22,7 +20,13 @@ class Tokenizer:
         return list(range(len(text)))
 
 
-class StateNoiseTests(unittest.TestCase):
+class StatePreprocessingTests(unittest.TestCase):
+    def test_training_measurement_noise_option_is_removed(self):
+        with self.assertRaises(SystemExit):
+            build_argument_parser().parse_args(
+                ["--task", "example", "--model", "STATE", "--state-measurement-noise-std-rad", "0.02"]
+            )
+
     @classmethod
     def setUpClass(cls):
         torch.set_num_threads(1)
@@ -41,9 +45,9 @@ class StateNoiseTests(unittest.TestCase):
             )
         )
 
-    def processor(self, scale=0.0):
+    def processor(self):
         with patch("sentencepiece.SentencePieceProcessor", return_value=Tokenizer()):
-            return Processor(self.root, "unused", "STATE", state_measurement_noise_std_rad=scale)
+            return Processor(self.root, "unused", "STATE")
 
     def sample(self):
         return dict(
@@ -52,45 +56,6 @@ class StateNoiseTests(unittest.TestCase):
             actions=np.zeros((30, 36), np.float32),
             images=np.zeros((1, 4, 6, 3), np.uint8),
         )
-
-    def test_training_noise_changes_only_measured_values_before_state_tokenization(self):
-        processor = self.processor(0.2)
-        value = self.sample()
-        raw = value["state"].copy()
-        clean = self.processor()(value)
-        with patch("torch.randn_like", side_effect=lambda ref: torch.ones_like(ref)) as draw:
-            actual = processor(value)
-        self.assertEqual(tuple(draw.call_args.args[0].shape), (31,))
-        noisy = raw.copy()
-        noisy[:31] += 0.2
-        bins = np.digitize(processor.normalize(noisy, "states"), np.linspace(-1, 1, 257)[:-1]) - 1
-        self.assertEqual(
-            processor.tokenizer.prompt, f"Task: move, State: {' '.join(map(str, bins))};\nAction: "
-        )
-        clean_bins = (
-            np.digitize(processor.normalize(raw, "states"), np.linspace(-1, 1, 257)[:-1]) - 1
-        )
-        self.assertTrue(np.all(bins[:31] != clean_bins[:31]))
-        self.assertEqual(bins[31], clean_bins[31])
-        np.testing.assert_array_equal(value["state"], raw)
-        for key in ("actions", "images"):
-            torch.testing.assert_close(actual[key], clean[key], rtol=0, atol=0)
-        self.assertAlmostEqual(actual["state_noise_std_rad"].item(), 0.2)
-
-    def test_default_off_and_seeded_inference_preserve_action_rng(self):
-        processor = self.processor()
-        value = self.sample()
-        rng = torch.get_rng_state().clone()
-        clean = processor(value)
-        self.assertNotIn("state_noise_std_rad", clean)
-        first = processor(value, state_inference_measurement_noise_std_rad=0.2, state_noise_seed=9)
-        second = processor(value, state_inference_measurement_noise_std_rad=0.2, state_noise_seed=9)
-        torch.testing.assert_close(first["tokens"], second["tokens"], rtol=0, atol=0)
-        # Token IDs here encode prompt length; compare the actual prompt for the noise effect.
-        prompt = processor.tokenizer.prompt
-        processor(value)
-        self.assertNotEqual(processor.tokenizer.prompt, prompt)
-        torch.testing.assert_close(torch.get_rng_state(), rng, rtol=0, atol=0)
 
     def test_historical_quantile_preprocessing_is_preserved(self):
         with patch("sentencepiece.SentencePieceProcessor", return_value=Tokenizer()):
@@ -159,65 +124,6 @@ class StateNoiseTests(unittest.TestCase):
         noise = RequestActionNoise(True, 73).sample(request.serialize(), torch.device("cpu"))
         torch.testing.assert_close(noise, expected, rtol=0, atol=0)
 
-    def test_model_rejects_training_without_matching_preprocessing_noise(self):
-        _, data = fixture("STATE")
-        data["images"] = data["images"][:, -1:]
-        model = Pi05RHSCI(
-            "STATE",
-            TinyBackbone(),
-            vlm_width=64,
-            ae_width=32,
-            compile_inference=False,
-            state_measurement_noise_std_rad=0.02,
-        )
-        with self.assertRaisesRegex(ValueError, "matching raw-state noise"):
-            model(**data)
-        data["state_noise_std_rad"] = torch.full((2,), 0.02)
-        loss = model(**data)["loss"]
-        self.assertTrue(torch.isfinite(loss))
-        loss.backward()
-        self.assertGreater(model.action_out_proj.weight.grad.abs().sum().item(), 0)
-        self.assertEqual(model.rsci_config["state_measurement_noise_std_rad"], 0.02)
-
-    def test_cli_rejects_invalid_noise_and_separates_output_paths(self):
-        base = ["--task", "example", "--model", "STATE", "--dataset", "/datasets/example"]
-        clean = resolve_training_paths(build_argument_parser().parse_args(base))
-        noisy = resolve_training_paths(
-            build_argument_parser().parse_args(base + ["--state-measurement-noise-std-rad"])
-        )
-        self.assertNotEqual(clean["output"], noisy["output"])
-        for value in ("-0.1", "nan", "inf"):
-            with self.assertRaises(ValueError):
-                resolve_training_paths(
-                    build_argument_parser().parse_args(
-                        base + ["--state-measurement-noise-std-rad", value]
-                    )
-                )
-        with self.assertRaises(ValueError):
-            resolve_training_paths(
-                build_argument_parser().parse_args(
-                    [
-                        "--task",
-                        "example",
-                        "--model",
-                        "VGQ-AE",
-                        "--state-measurement-noise-std-rad",
-                    ]
-                )
-            )
-
-    def test_request_seed_is_episode_indexed_and_rejects_non_state(self):
-        source = RequestStateNoise(0.02, 13, "STATE")
-        payload = dict(history=dict(psi_eval_deterministic=dict(episode=2, inference_index=7)))
-        seed = source.request_seed(payload)
-        self.assertEqual(seed, RequestStateNoise(0.02, 13, "STATE").request_seed(payload))
-        payload["history"]["psi_eval_deterministic"]["episode"] = 3
-        self.assertNotEqual(seed, source.request_seed(payload))
-        with self.assertRaises(ValueError):
-            RequestStateNoise(0.02, 13, "VGQ-AE")
-        for seed in (-1, True, 2**63):
-            with self.assertRaises(ValueError):
-                RequestStateNoise(0.02, seed, "STATE")
 
 
 if __name__ == "__main__":

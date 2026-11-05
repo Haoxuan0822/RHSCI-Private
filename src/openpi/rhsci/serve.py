@@ -15,8 +15,6 @@ class Server:
         tokenizer,
         device="cuda:0",
         *,
-        state_inference_measurement_noise_std_rad=0.0,
-        state_noise_seed=0,
         deterministic_eval=False,
         eval_seed=0,
     ):
@@ -27,13 +25,8 @@ class Server:
         from openpi.rhsci.processing import Processor
         from rhsci.data.ardy_sidecar import dataset_content_fingerprint
         from rhsci.inference.action_noise import RequestActionNoise
-        from rhsci.inference.state_noise import RequestStateNoise
 
         self.action_noise = RequestActionNoise(deterministic_eval, eval_seed)
-
-        self.state_noise = RequestStateNoise(
-            state_inference_measurement_noise_std_rad, state_noise_seed, contract["model"]
-        )
 
         dataset = Path(dataset)
         saved_metadata = checkpoint.parent / "dataset-meta"
@@ -64,7 +57,6 @@ class Server:
         self.model = Pi05RHSCI(
             contract["model"],
             execution=contract.get("execution", "reference"),
-            state_measurement_noise_std_rad=contract.get("state_measurement_noise_std_rad", 0.0),
         )
         index = checkpoint / "model.safetensors.index.json"
         files = (
@@ -110,15 +102,7 @@ class Server:
                 rsci_ardy_target=np.zeros(128),
                 rsci_ardy_valid=False,
             )
-        noise = getattr(self, "state_noise", None)
-        if noise is not None and noise.scale > 0:
-            batch = self.processor(
-                sample,
-                state_inference_measurement_noise_std_rad=noise.scale,
-                state_noise_seed=noise.request_seed(payload),
-            )
-        else:
-            batch = self.processor(sample)
+        batch = self.processor(sample)
         action_noise = getattr(self, "action_noise", None)
         initial_noise = action_noise.sample(payload, self.device) if action_noise else None
         noise_kwargs = {"noise": initial_noise} if initial_noise is not None else {}

@@ -141,28 +141,10 @@ python experiments/pi05_between/run_evaluation.py \
 
 The worker records resolved parameters in `worker.json`; each client records
 them in `effective_eval_config.json` before Kit initializes and prints
-`STATE_NOISE` to its log. Keep the existing server-side inference noise below
-off when using this client experiment, to avoid applying noise twice. CPU
+`STATE_NOISE` to its log. Measurement perturbations are applied only by the client;
+training and server-side measurement noise have been removed. CPU
 unit/integration tests validate measurement and request behavior; GPU physical
 rollouts under these noise levels have not yet been run.
-
-### Existing server-side Gaussian option
-
-PSI0 and π0.5 STATE serving accept `--state-inference-measurement-noise-std-rad S` and `--state-noise-seed SEED`. Noise is off by default, including for a checkpoint trained with noise. The standard deviation is in raw radians; the flag without a value selects `0.02`.
-
-For PSI0, add those options to `scripts/deploy/serve_psi0_simple.sh`. For π0.5:
-
-```bash
-PYTHONPATH=src /path/to/pi05-env/bin/python -m rhsci.inference.http_server \
-  --backbone pi05 --run-dir /runs/pi05/my_state_task \
-  --dataset /datasets/my_state_task --tokenizer /models/paligemma_tokenizer.model \
-  --device cuda:0 --port 5555 \
-  --state-inference-measurement-noise-std-rad 0.02 --state-noise-seed 73
-```
-
-Use a STATE checkpoint and SIMPLE's measured-joint state schema. Only indices `[0:31]` are perturbed before normalization; the height command and padding remain unchanged. Non-STATE variants reject enabled state noise. GR00T does not accept this option.
-
-The noise generator is independent of action-sampling RNG. When `history.psi_eval_deterministic` contains nonnegative integer `episode` and `inference_index` values, the base seed and those indices determine the request seed, matching the local evaluation protocol. Otherwise a server-local request counter is used; restart the server to reset it. Keep the indices and base seed fixed to compare noise conditions reproducibly.
 
 ## EgoVLA
 

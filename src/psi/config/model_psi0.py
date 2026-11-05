@@ -29,7 +29,6 @@ class Psi0ModelConfig(ModelConfig):
     rsci_lora_alpha: float = Field(default=16, gt=0)
     rsci_use_reader: bool = True
     rsci_execution: Literal["reference", "logits", "both"] = "reference"
-    state_measurement_noise_std_rad: float = Field(default=0.0, ge=0, allow_inf_nan=False)
 
     rsci_ardy_weight: float = Field(default=0.1, gt=0, allow_inf_nan=False)
     rsci_rgb_encoder_path: str | None = None
@@ -45,8 +44,6 @@ class Psi0ModelConfig(ModelConfig):
             raise ValueError("STATE-RECONSTRUCTION uses the VGQ-AE Reader")
         if not self.rsci_use_reader and self.rsci_variant in (None, "STATE", "NO-STATE"):
             raise ValueError("Disabling the Reader requires an RHSCI Query variant")
-        if self.state_measurement_noise_std_rad > 0 and (self.rsci_variant != "STATE" or self.use_obs != "add_token"):
-            raise ValueError("Raw measured-joint noise requires STATE")
         if self.rsci_variant is not None:
             if any((self.use_dit, self.use_film, self.combined_temb,
                     self.n_conditions != 0, self.observation_horizon != 1)):

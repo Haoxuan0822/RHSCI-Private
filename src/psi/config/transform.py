@@ -14,8 +14,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from pydantic import BaseModel, Field, PrivateAttr, model_validator
-from rhsci.data.state_noise import TrainingStateNoise, add_measurement_noise
+from pydantic import BaseModel, Field, model_validator
 from torchvision.transforms import v2
 from psi.config.augmentation import *
 from psi.utils import get_asset_dir, pt_to_pil, resolve_path, pad_to_len
@@ -471,8 +470,6 @@ class ActionStateTransform(FieldTransform):
     state_min: Optional[List[float]] = None
     state_max: Optional[List[float]] = None
     normalize_state: bool = False  # whether to normalize states
-    state_measurement_noise_std_rad: float = Field(default=0.0, ge=0, allow_inf_nan=False)
-    _state_noise: TrainingStateNoise = PrivateAttr(default_factory=TrainingStateNoise)
 
     pad_action_dim: int | None = None
     pad_state_dim: int | None = None
@@ -522,12 +519,6 @@ class ActionStateTransform(FieldTransform):
         action_max = np.array(self.action_max, dtype=np.float32)
         if self.normalize_state:
             states = data["states"]
-            if (self.state_measurement_noise_std_rad > 0 and not kwargs.get("no_aug", False)
-                    and kwargs.get("state_measurement_noise", True)):
-                values = torch.as_tensor(states)
-                states = add_measurement_noise(
-                    values, self._state_noise.sample(values[..., :31], kwargs.get("state_noise_rank", 0)),
-                    self.state_measurement_noise_std_rad).numpy()
             data["states"] = self.normalize_state_func(states)
 
         # tolerate near-zero, not just exact zero

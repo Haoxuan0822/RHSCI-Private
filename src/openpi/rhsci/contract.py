@@ -1,6 +1,5 @@
 """pi05: 启动身份与源码契约。"""
 
-from rhsci.data.state_noise import STATE_NOISE_LOCATION
 from rhsci.paths import CODE_ROOT as CODE_ROOT
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
@@ -35,8 +34,6 @@ def build_training_contract(args, paths):
         horizon=30,
         ardy_weight=0.1,
         preprocessing="RGB-bilinear-pad224-quantile-zero-span-clipped-v2",
-        state_measurement_noise_std_rad=args.state_measurement_noise_std_rad,
-        state_noise_location=STATE_NOISE_LOCATION,
         training_augmentation=AUGMENTATION_VERSION,
         dataset=dataset_content_fingerprint(paths["dataset"]),
         input_cache=cache_identity(paths["dataset"], config=paths["input_cache"]),

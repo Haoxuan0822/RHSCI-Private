@@ -25,7 +25,6 @@ def run_training_worker(args, paths, processor, dataset, digest):
     model = Pi05RHSCI(
         args.model,
         execution=args.execution,
-        state_measurement_noise_std_rad=args.state_measurement_noise_std_rad,
     )
     model.load_initial(paths["checkpoint"])
     world = len(args.gpus.split(","))

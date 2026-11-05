@@ -16,6 +16,15 @@ from rhsci.inference.checkpoints import discover, inspect_run
 
 
 class CheckpointTests(unittest.TestCase):
+    def test_server_measurement_noise_options_are_removed(self):
+        from rhsci.inference.http_server import build_argument_parser
+
+        for option in ("--state-inference-measurement-noise-std-rad", "--state-noise-seed"):
+            with self.subTest(option=option), self.assertRaises(SystemExit):
+                build_argument_parser().parse_args(
+                    ["--backbone", "pi05", "--run-dir", "/runs/example", option, "0"]
+                )
+
     def make_run(self, root):
         run = Path(root) / "run"
         run.mkdir()
@@ -196,10 +205,9 @@ class NativeActionNoiseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "consecutive"):
             server.predict_action(payload)
 
-    def test_native_action_stream_is_independent_of_explicit_state_noise_generator(self):
+    def test_native_action_stream_is_independent_of_other_explicit_generators(self):
         import torch
 
-        from rhsci.data.state_noise import InferenceStateNoise
         from rhsci.inference.action_noise import noise_context
 
         values = []
@@ -208,7 +216,7 @@ class NativeActionNoiseTests(unittest.TestCase):
             traces = []
             with noise_context(7346786445294623666, traces):
                 if state_enabled:
-                    InferenceStateNoise().sample(torch.zeros(31), seed=73)
+                    torch.randn(31, generator=torch.Generator().manual_seed(73))
                 values.append(torch.randn(size=(1, 16, 128), dtype=torch.bfloat16))
             self.assertEqual(len(traces), 1)
         torch.testing.assert_close(*values, rtol=0, atol=0)
@@ -287,12 +295,12 @@ class Pi05HTTPTests(unittest.TestCase):
                     Server(root, contract, root, tokenizer, "cpu")
 
     def test_current_frame_protocol_and_all_action_dimensions_across_requests(self):
-        self.check_current_frame_protocol("VGQ-AE", 0.0)
+        self.check_current_frame_protocol("VGQ-AE")
 
-    def test_state_noise_reaches_processor_through_http(self):
-        self.check_current_frame_protocol("STATE", 0.02)
+    def test_state_values_reach_processor_through_http(self):
+        self.check_current_frame_protocol("STATE")
 
-    def check_current_frame_protocol(self, variant, scale):
+    def check_current_frame_protocol(self, variant):
         import numpy as np
         import torch
         from fastapi.testclient import TestClient
@@ -300,9 +308,7 @@ class Pi05HTTPTests(unittest.TestCase):
         from openpi.rhsci.processing import Processor
         from openpi.rhsci.serve import Server
         from psi.deploy.helpers import RequestMessage, ResponseMessage
-        from rhsci.data.state_noise import InferenceStateNoise
         from rhsci.inference.http_server import create_app
-        from rhsci.inference.state_noise import RequestStateNoise
 
         model = SimpleNamespace(calls=0)
 
@@ -315,8 +321,6 @@ class Pi05HTTPTests(unittest.TestCase):
         model.sample_actions = sample_actions
         processor = Processor.__new__(Processor)
         processor.variant = variant
-        processor.state_measurement_noise_std_rad = 0.0
-        processor.inference_state_noise = InferenceStateNoise()
         processor.stats = {
             "action": dict(q01=[-1.0] * 36, q99=[1.0] * 36),
             "states": dict(q01=[-2.0] * 32, q99=[2.0] * 32),
@@ -331,7 +335,6 @@ class Pi05HTTPTests(unittest.TestCase):
         server = Server.__new__(Server)
         server.model, server.processor = model, processor
         server.device, server.variant = torch.device("cpu"), variant
-        server.state_noise = RequestStateNoise(scale, 73, variant)
         state = np.zeros((1, 32), np.float32)
         state[0, 31] = 0.74
         request = RequestMessage(
@@ -352,12 +355,12 @@ class Pi05HTTPTests(unittest.TestCase):
                 response = client.post("/act", json=request.serialize())
                 self.assertEqual(response.status_code, 200, response.text)
                 action = ResponseMessage.deserialize(response.json()).action
-                self.assertEqual(action.shape, (24, 36))
+                self.assertEqual(action.shape, (30, 36))
                 np.testing.assert_allclose(action, model.calls / 10, atol=1e-6)
                 if previous is not None:
                     self.assertTrue(np.all(action[:, -4:] != previous[:, -4:]))
                 previous = action
-            if scale > 0:
+            if variant == "STATE":
                 self.assertEqual(prompts[0], prompts[1])
                 bins = np.asarray(prompts[0].split("State: ")[1].split(";")[0].split(), int)
                 clean = (
@@ -366,7 +369,7 @@ class Pi05HTTPTests(unittest.TestCase):
                     )
                     - 1
                 )
-                self.assertTrue(np.any(bins[:31] != clean[:31]))
+                np.testing.assert_array_equal(bins, clean)
                 self.assertEqual(bins[31], clean[31])
                 np.testing.assert_array_equal(request.state["states"], state)
                 self.assertTrue(torch.equal(torch.get_rng_state(), rng_before))

@@ -7,7 +7,6 @@ from pathlib import Path
 
 from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run
 from rhsci.inference.http_app import ActionPolicy, create_policy_app
-from rhsci.inference.state_noise import RequestStateNoise, add_arguments
 
 
 def create_app(server: ActionPolicy):
@@ -35,7 +34,6 @@ def build_argument_parser():
     argument_parser.add_argument("--device", default="cuda:0")
     argument_parser.add_argument("--host", default="127.0.0.1")
     argument_parser.add_argument("--port", type=int, default=5555)
-    add_arguments(argument_parser)
     argument_parser.add_argument(
         "--deterministic-eval", action=argparse.BooleanOptionalAction, default=False
     )
@@ -52,9 +50,6 @@ def main():
 
         RequestActionNoise(True, args.eval_seed)
         configure_torch()
-    noise = RequestStateNoise(args.state_inference_measurement_noise_std_rad, args.state_noise_seed)
-    if noise.scale > 0 and args.backbone != "pi05":
-        cli.error("Raw measured-joint inference noise is supported for PSI0 and π0.5 STATE only")
     if args.discover:
         print(
             json.dumps(
@@ -83,8 +78,6 @@ def main():
             args.dataset,
             args.tokenizer,
             args.device,
-            state_inference_measurement_noise_std_rad=noise.scale,
-            state_noise_seed=noise.seed,
             deterministic_eval=args.deterministic_eval,
             eval_seed=args.eval_seed,
         )

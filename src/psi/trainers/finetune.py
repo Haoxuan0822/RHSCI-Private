@@ -303,10 +303,6 @@ class FinetuneTrainer(Trainer):
 
 
     def create_datasets(self):  # TODO use parent impl.
-        model_noise = getattr(self.model_cfg, "state_measurement_noise_std_rad", 0.0)
-        field_noise = getattr(self.data_cfg.transform.field, "state_measurement_noise_std_rad", 0.0)
-        if model_noise != field_noise or (model_noise > 0 and not self.data_cfg.transform.field.normalize_state):
-            raise ValueError("Model and preprocessing measured-joint noise settings must match")
         if self.model_cfg.rsci_variant:
             if not hasattr(self.data_cfg.transform.repack, "rsci_variant"):
                 raise ValueError("RHSCI requires SimpleRepackTransform")
@@ -316,11 +312,9 @@ class FinetuneTrainer(Trainer):
 
         transform_kwargs=dict(
             vlm_processor=self.vlm_processor,
-            state_noise_rank=self.accelerator.process_index,
         )
         self.train_dataset = self.data_cfg(split="train", transform_kwargs=transform_kwargs)
-        self.val_dataset = self.data_cfg(split="val", transform_kwargs=dict(
-            transform_kwargs, state_measurement_noise=False))
+        self.val_dataset = self.data_cfg(split="val", transform_kwargs=transform_kwargs)
         return self.train_dataset, self.val_dataset
 
     def create_dataloaders(self, train_dataset, val_dataset):

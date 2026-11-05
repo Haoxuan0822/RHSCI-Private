@@ -1,12 +1,11 @@
 from __future__ import annotations
 import os
-from typing_extensions import Self, Annotated
+from typing_extensions import Self
 from pydantic import BaseModel, Field, model_validator
 import os
 import tyro
 from typing import Union, Any, TYPE_CHECKING
 from tyro.conf import subcommand as cmd
-from tyro.constructors import PrimitiveConstructorSpec
 from pathlib import Path
 import datetime
 from psi.config.transform import DataTransform
@@ -137,17 +136,6 @@ class ServerConfig(BaseModel):
     rtc: bool = False
     deterministic_eval: bool = False
     eval_seed: int = Field(default=0, ge=0, lt=2**63, strict=True)
-    state_inference_measurement_noise_std_rad: Annotated[
-        float,
-        PrimitiveConstructorSpec(
-            nargs=(0, 1),
-            metavar="[RAD]",
-            instance_from_str=lambda args: float(args[0]) if args else 0.02,
-            is_instance=lambda value: isinstance(value, float),
-            str_from_instance=lambda value: [str(value)],
-        ),
-    ] = Field(default=0.0, ge=0, allow_inf_nan=False)
-    state_noise_seed: int = Field(default=0, ge=0, lt=2**63, strict=True)
     run_dir: str
     ckpt_step: int
 

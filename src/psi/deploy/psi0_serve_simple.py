@@ -33,8 +33,6 @@ class Server:
         device: str = "cuda:0",
         enable_rtc: bool = False,
         action_exec_horizon: int | None = None,
-        state_inference_measurement_noise_std_rad: float = 0.0,
-        state_noise_seed: int = 0,
         deterministic_eval: bool = False,
         eval_seed: int = 0,
     ):
@@ -60,14 +58,6 @@ class Server:
         self.model = Psi0Model.from_pretrained(run_dir, ckpt_step, launch_config, device=device)
         self.model.to(device)
         self.model.eval()
-        from rhsci.data.state_noise import InferenceStateNoise
-        from rhsci.inference.state_noise import RequestStateNoise
-        variant = self.model.rsci_spec.name if self.model.rsci_spec is not None else "STATE"
-        self.state_noise = RequestStateNoise(
-            state_inference_measurement_noise_std_rad, state_noise_seed, variant)
-        if self.state_noise.scale > 0 and launch_config.model.use_obs != "add_token":
-            raise ValueError("Measured-joint inference noise requires the native state-token path")
-        self.inference_state_noise = InferenceStateNoise()
 
         self.maxmin:ActionStateTransform = launch_config.data.transform.field # type:ignore
         self.repack_transform:SimpleRepackTransform = launch_config.data.transform.repack # type:ignore
@@ -127,14 +117,6 @@ class Server:
             #     torch.from_numpy(state_dict["amo_policy_command"].copy()),
             # )
 
-            if self.state_noise.scale > 0:
-                from rhsci.data.state_noise import add_measurement_noise
-                if not self.maxmin.normalize_state:
-                    raise ValueError("Measured-joint noise requires the SIMPLE state normalization contract")
-                states = add_measurement_noise(
-                    states, self.inference_state_noise.sample(
-                        states[..., :31], self.state_noise.request_seed(payload)),
-                    self.state_noise.scale)
             if self.maxmin.normalize_state: # type:ignore
                 states = torch.from_numpy(
                     self.maxmin.normalize_state_func(
@@ -240,8 +222,6 @@ def serve(cfg: ServerConfig) -> None:
         cfg.device,
         cfg.rtc,
         cfg.action_exec_horizon,
-        cfg.state_inference_measurement_noise_std_rad,
-        cfg.state_noise_seed,
         cfg.deterministic_eval,
         cfg.eval_seed,
     )

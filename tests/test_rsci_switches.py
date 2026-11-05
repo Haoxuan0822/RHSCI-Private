@@ -1,22 +1,18 @@
-"""Experimental switches: full-token memory, future supervision and raw state noise."""
+"""Experimental switches: full-token memory, future supervision."""
 
 import copy
 import unittest
-from types import SimpleNamespace
 
 import numpy as np
 import torch
 from test_rsci import inputs, policy, sample
 
-from psi.config.transform import ActionStateTransform
 from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
 from psi.rhsci.contract import build_training_contract
 from psi.rhsci.model import RHSCIQuery, RHSCISpec, masked_auxiliary_loss
 from psi.rhsci.training_config import build_argument_parser, resolve_training_plan
-from psi.trainers.finetune import FinetuneTrainer
 from rhsci.data.ardy_future import ardy_target_at_offset, supervision_counts
 from rhsci.data.ardy_sidecar import ArdySidecarReader
-from rhsci.data.state_noise import InferenceStateNoise, TrainingStateNoise, add_measurement_noise
 
 
 def reader():
@@ -139,78 +135,12 @@ class FutureArdyTests(unittest.TestCase):
         self.assertEqual(len(wrapper), 2)
 
 
-class RawStateNoiseTests(unittest.TestCase):
-    def test_training_rank_is_forwarded_and_validation_noise_is_disabled(self):
-        field = ActionStateTransform(
-            stat_path="/nonexistent", normalize_state=True, state_measurement_noise_std_rad=0.02
-        )
-
-        class Data:
-            transform = SimpleNamespace(field=field, repack=SimpleNamespace(rsci_variant="STATE"))
-
-            def __call__(self, split, transform_kwargs):
-                return SimpleNamespace(split=split, transform_kwargs=transform_kwargs)
-
-        trainer = FinetuneTrainer.__new__(FinetuneTrainer)
-        trainer.cfg = SimpleNamespace(
-            model=SimpleNamespace(rsci_variant="STATE", state_measurement_noise_std_rad=0.02),
-            data=Data(),
-        )
-        trainer.accelerator = SimpleNamespace(process_index=3)
-        trainer.vlm_processor = None
-        train, validation = trainer.create_datasets()
-        self.assertEqual(train.transform_kwargs["state_noise_rank"], 3)
-        self.assertFalse(validation.transform_kwargs["state_measurement_noise"])
-        self.assertNotIn("state_measurement_noise", train.transform_kwargs)
-        trainer.cfg.model.state_measurement_noise_std_rad = 0.1
-        with self.assertRaisesRegex(ValueError, "must match"):
-            trainer.create_datasets()
-
-    def test_raw_noise_precedes_normalization_and_preserves_height_and_padding(self):
-        field = ActionStateTransform(
-            stat_path="/nonexistent",
-            normalize_state=True,
-            state_min=[-2.0] * 36,
-            state_max=[2.0] * 36,
-            action_min=[-1.0] * 36,
-            action_max=[1.0] * 36,
-            state_measurement_noise_std_rad=0.02,
-        )
-
-        class Ones:
-            def sample(self, reference, rank):
-                return torch.ones_like(reference)
-
-        field._state_noise = Ones()
-        raw = np.zeros((1, 36), np.float32)
-        raw[0, 31:] = [0.74, 0.0, 0.0, 0.0, 0.0]
-        value = dict(states=raw.copy(), actions=np.zeros((1, 36), np.float32))
-        actual = field(copy.deepcopy(value))["states"]
-        np.testing.assert_allclose(actual[0, :31], 0.01, atol=1e-7)
-        np.testing.assert_array_equal(actual[0, 31:], field.normalize_state_func(raw)[0, 31:])
-        for kwargs in (dict(no_aug=True), dict(state_measurement_noise=False)):
-            np.testing.assert_array_equal(
-                field(copy.deepcopy(value), **kwargs)["states"], field.normalize_state_func(raw)
+class LaunchSwitchTests(unittest.TestCase):
+    def test_training_measurement_noise_option_is_removed(self):
+        with self.assertRaises(SystemExit):
+            build_argument_parser().parse_args(
+                ["--task", "example", "--model", "STATE", "--state-measurement-noise-std-rad", "0.02"]
             )
-        np.testing.assert_array_equal(value["states"], raw)
-
-    def test_private_streams_preserve_action_rng_and_separate_ranks(self):
-        reference = torch.zeros(2, 31)
-        rng = torch.get_rng_state().clone()
-        stream = TrainingStateNoise()
-        left = stream.sample(reference, 0)
-        right = stream.sample(reference, 1)
-        self.assertFalse(torch.equal(left, right))
-        torch.testing.assert_close(left, TrainingStateNoise().sample(reference, 0), rtol=0, atol=0)
-        inference = InferenceStateNoise()
-        torch.testing.assert_close(
-            inference.sample(reference, 73), inference.sample(reference, 73), rtol=0, atol=0
-        )
-        torch.testing.assert_close(torch.get_rng_state(), rng, rtol=0, atol=0)
-        values = torch.zeros(2, 36)
-        values[:, 31] = 0.74
-        noisy = add_measurement_noise(values, inference.sample(reference, 73), 0.02)
-        torch.testing.assert_close(noisy[:, 31:], values[:, 31:], rtol=0, atol=0)
 
     def test_launch_switches_are_persisted_and_separate_run_contracts(self):
         base = ["--task", "example", "--model", "VGQ-AE"]
@@ -232,23 +162,9 @@ class RawStateNoiseTests(unittest.TestCase):
             outputs.append(output)
         self.assertEqual(len(set(outputs)), 4)
         self.assertEqual(len({str(value) for value in identities}), 4)
-        cfg, _, _, _ = resolve_training_plan(
-            build_argument_parser().parse_args(
-                [
-                    "--task",
-                    "example",
-                    "--model",
-                    "STATE",
-                    "--state-measurement-noise-std-rad",
-                ]
-            )
-        )
-        self.assertEqual(cfg.model.state_measurement_noise_std_rad, 0.02)
-        self.assertEqual(cfg.data.transform.field.state_measurement_noise_std_rad, 0.02)
         for extra in (
             ["--no-reader"],
             ["--ardy-offset", "10"],
-            ["--state-measurement-noise-std-rad", "nan"],
         ):
             with self.assertRaises(ValueError):
                 resolve_training_plan(

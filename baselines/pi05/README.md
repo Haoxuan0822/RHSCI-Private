@@ -40,7 +40,7 @@ This validates the checkpoint format and tokenizer, then writes `RSCI_ASSETS.jso
 
 `--dry-run` prints the configuration. `--check-data` checks the RGB/ARDY datasets; `--check` also checks initialization/processing and audits `RSCI_ASSETS.json` if supplied. The manifest is optional; native local weights and tokenizer can be loaded directly. Changed model/data/training configurations require a separate run; source edits and compatible dependency updates do not.
 
-STATE accepts `--state-measurement-noise-std-rad S` for raw measured-joint training noise before normalization and tokenization. The flag alone selects `0.02` rad; omission disables it. Inference noise is controlled separately through the [HTTP server](../../docs/INFERENCE.md#state-measurement-noise), and stays off regardless of the training setting. Reader/future-target ablations are currently PSI0-only.
+State robustness evaluation uses shared [client measurement perturbations](../../docs/INFERENCE.md#state-measurement-noise). Training and server-side measurement noise have been removed. Reader/future-target ablations are currently PSI0-only.
 
 
 ## 2026-10-30 PSI0-RAW integration

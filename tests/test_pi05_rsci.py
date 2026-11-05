@@ -349,7 +349,6 @@ class ProcessingTests(unittest.TestCase):
         for variant in ("STATE", "NO-STATE", "VGQ-AE"):
             processor = object.__new__(Processor)
             processor.variant = variant
-            processor.state_measurement_noise_std_rad = 0.0
             seen = []
             processor.tokenizer = SimpleNamespace(
                 encode=lambda prompt, **kw: seen.append(prompt) or [1, 2]

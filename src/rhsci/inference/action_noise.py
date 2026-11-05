@@ -102,7 +102,7 @@ def noise_context(seed, traces):
 
         def __torch_function__(self, func, types, args=(), kwargs=None):
             kwargs = dict(kwargs or {})
-            # Explicit generators belong to independent streams, including state noise.
+            # Explicit generators belong to independent streams.
             if func not in (torch.randn, torch.randn_like) or kwargs.get("generator") is not None:
                 return func(*args, **kwargs)
             if func is torch.randn_like:

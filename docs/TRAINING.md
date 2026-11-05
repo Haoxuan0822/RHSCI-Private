@@ -93,7 +93,6 @@ python3 scripts/train/baseline.py --backbone lambda0 --mode rhsci \
 | --- | --- | --- | --- |
 | `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
 | `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
-| `--state-measurement-noise-std-rad S` | PSI0 and π0.5 STATE | `0` | Add Gaussian measurement noise with standard deviation `S` radians before normalization. The flag without a value selects `0.02`. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
 
@@ -113,11 +112,7 @@ Both specialized Ψ0 methods use the original entry's `1e-4` VLM learning rates 
 
 STATE and NO-STATE reject Reader and ARDY switches. Reader selection is saved in the PSI0 model configuration; strict loading rejects mismatched Reader weights. Future offset is saved in the data configuration. Both alter the run contract and default output path.
 
-Raw-radian noise affects only the first 31 measured SIMPLE joint values, including the measured waist angles. The height command at index 31 and any padding remain unchanged. Noise is added before the existing normalization/clipping and, for π0.5, before state discretization and tokenization. Images, actions and embeddings are not perturbed. PSI0 validation/preflight disables training noise; its training stream is isolated by rank and worker. π0.5 retains the local recipe's per-sample worker RNG draw for training noise. Checkpoints record the configured standard deviation, and π0.5 training requires matching preprocessing metadata. Changing the noise setting requires a separate run.
-
-Training noise does not enable inference noise. Use the separate [serving option](INFERENCE.md#state-measurement-noise) for robustness evaluation. The raw-state contract is SIMPLE's measured joints plus height; it does not apply to command-valued RPY fields in another simulator state schema. These switches are not implemented for GR00T, EgoVLA or λ₀.
-
-PSI0 checkpoint recovery restores the saved sample order and consumed-batch position. It does not save worker-local `TrainingStateNoise` generator states or prefetched augmented samples. Restarting workers, including across an epoch boundary, can therefore give the same sample indices different noise. A resumed noisy run is not guaranteed to match the uninterrupted training trajectory exactly; fixed seeds and restored sample progress do not establish that guarantee. Record interruptions when comparing noisy training runs. Other worker-side random augmentations likewise need separate validation before claiming exact trajectory recovery.
+State measurement perturbations are evaluation-only and applied by the [SIMPLE client](INFERENCE.md#state-measurement-noise). Training Gaussian noise and server-side Gaussian noise have been removed. Native action sampling noise and image augmentation remain unchanged.
 
 ## ACT and Diffusion Policy
 

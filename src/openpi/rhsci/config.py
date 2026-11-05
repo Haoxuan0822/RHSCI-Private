@@ -4,7 +4,6 @@ import argparse
 from pathlib import Path
 
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
-from rhsci.data.state_noise import validate_scale
 from rhsci.paths import TrainingPaths, add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
@@ -28,14 +27,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     argument_parser.add_argument(
         "--model", choices=("STATE", "NO-STATE", "VGQ-AE"), default="VGQ-AE"
-    )
-    argument_parser.add_argument(
-        "--state-measurement-noise-std-rad",
-        type=float,
-        nargs="?",
-        const=0.02,
-        default=0.0,
-        help="Training noise before state normalization/tokenization; STATE only",
     )
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument("--vlm", choices=("frozen",), default="frozen")
@@ -71,8 +62,6 @@ def resolve_training_paths(args: argparse.Namespace) -> Pi05TrainingPaths:
     """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
     import re
 
-    validate_scale(args.state_measurement_noise_std_rad, args.model)
-
     if not re.fullmatch(r"\d+(,\d+)*", args.gpus) or len(set(args.gpus.split(","))) != len(
         args.gpus.split(",")
     ):
@@ -101,10 +90,6 @@ def resolve_training_paths(args: argparse.Namespace) -> Pi05TrainingPaths:
         / args.execution
         / args.run_tag,
     )
-    if args.output_dir is None and args.state_measurement_noise_std_rad:
-        paths["output"] = paths["output"].with_name(
-            paths["output"].name + f"-noise-{args.state_measurement_noise_std_rad:g}rad"
-        )
     return paths
 
 
