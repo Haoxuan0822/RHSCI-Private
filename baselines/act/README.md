@@ -22,7 +22,7 @@ The four-GPU example matches the local recipe's global batch 128 (32 per GPU, ac
 
 The recipe retains native masked L1 + 10 × KL and adds 0.1 × ARDY for EGQ-AE. Validation reports the training objective and separate deterministic latent-zero action metrics. Inference uses latent zero and returns 16 × 36 action chunks. The optimizer is a single AdamW group, with a 1000-step warmup and no gradient clipping.
 
-The guardian resumes complete checkpoints from the same run directory and validates model, data, initialization and training configuration identities. Source/version records are retained for audit and are not runtime compatibility gates. Full checkpoints contain model buffers, optimizer, scheduler, RNG and progress; an incompatible model or recipe still needs an explicit migration. Resume tests cover cumulative progress across epochs with zero and persistent workers; they do not establish bitwise CUDA trajectory equivalence. See the [function and reproduction audit](../../docs/ARCHITECTURE.md#function-audit-20261102).
+The guardian resumes complete checkpoints from the same run directory and validates model, data, initialization and training configuration identities. Full checkpoints contain model buffers, optimizer, scheduler, RNG and progress. Use a separate run directory for an incompatible model or training recipe.
 
 Video decoding uses a bounded per-worker cache (16 decoders, 64 MiB decoded frames) and preserves duplicate/reordered timestamps and RNG state. Guardian termination waits for and reaps the training process. The default runtime uses the environment's NCCL; optional `--nccl-library` or `RHSCI_NCCL_LIBRARY` is preloaded and checked, with expected version `2.27.3` unless `RHSCI_NCCL_VERSION` is set.
 
@@ -33,12 +33,3 @@ The local multi-GPU experiment explicitly used NCCL 2.27.3; to reproduce that ru
 Serve a complete RHSCI checkpoint with `python -m act.rhsci.serve --checkpoint /runs/act/my_task/checkpoint-40000`. See [Inference](../../docs/INFERENCE.md). STATE requires measured 32D state; there is no fallback to previously predicted state.
 
 For upstream ACT training, use `bash scripts/train/act.sh --help` and [the native training example](../../docs/TRAINING.md#act-and-diffusion-policy), with `configs/train/act.json`. Native training has not been validated in this standalone release.
-
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
-
-2026-11-03: [Recovery and code review](../../docs/CODE_REVIEW_20261103.md). ACT now shares the epoch-tail resume fix and worker RNG isolation with the other HF adapters. Tests cover a partial accumulation group with 0/2 persistent workers and exact CPU parameter/Adam/scheduler/main-RNG recovery.

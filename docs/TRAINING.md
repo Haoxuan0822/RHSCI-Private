@@ -4,7 +4,7 @@ Run commands from the repository root, using the selected backbone's environment
 
 ## From a fresh clone
 
-Use a source revision that contains the `rhsci` namespace. The local naming/layout commits are not automatically pushed; a public clone only receives commits already published. Work from the checkout root on Linux with an NVIDIA driver compatible with the chosen PyTorch/CUDA build. Install Git, uv, shared FFmpeg libraries and zstd/tar as needed. Pure training does not require the SIMPLE simulator.
+Work from the checkout root on Linux with an NVIDIA driver compatible with the chosen PyTorch/CUDA build. Install Git, uv, shared FFmpeg libraries and zstd/tar as needed. Pure training does not require the SIMPLE simulator.
 
 1. Choose one backbone and a supported variant. Install only its environment from the corresponding `baselines/<model>/README.md`; do not combine the different Transformers versions. Ψ0 and ACT use the root Python 3.10 uv environment; π0.5 has its own Python 3.10 environment and Transformers overlay; GR00T, EgoVLA and λ₀ have dedicated environments.
 2. Set `PSI_HOME` to the checkout, `PSI_RUNTIME_ROOT` to external runtime storage, and the model's Python override. Keep data, initialization weights and training outputs outside the checkout; pass explicit paths. Ψ0 also needs the local `.env` described in its guide.
@@ -13,15 +13,15 @@ Use a source revision that contains the `rhsci` namespace. The local naming/layo
 5. Run the actual entry's `--help`, then its configuration/data checks. Most adapters use `--dry-run`, `--check-data` and `--check`; Ψ0 supports `--dry-run`/`--check`, while λ₀ additionally uses bundle/model checks. A dry run only prints configuration. A CPU check does not validate GPU memory or distributed training.
 6. Launch with explicit GPUs, per-GPU batch, accumulation, task, variant, seed, budget and an independent output directory. Global batch equals GPU count × per-GPU batch × accumulation. Keep data/model/recipe fixed when resuming; rerun the same command against the same output to recover a complete checkpoint where supported. Retain model, optimizer, scheduler, RNG, processing/configuration and progress files together.
 
-The root [Ψ0 VGQ-AE example](../README.md#training) shows preflight followed by training. The model guides supply each environment's exact dependencies and required flags. This documentation audit did not install environments, download large assets or start formal training. On this machine, the checkout is `/root/workspace/RHSCI-Private`; default data and checkpoint roots follow its `AGENTS.md`. On another machine, substitute your own absolute paths.
+The root [Ψ0 VGQ-AE example](../README.md#training) shows preflight followed by training. Model guides list environment dependencies and required flags. Substitute your own absolute asset and output paths.
 
 ## Data preparation
 
 RHSCI adapters currently consume the SIMPLE G1 schema with 36-dimensional actions and 50 Hz timing. Prepare LeRobot data and the normalization metadata required by the selected backbone. Query variants also require matching ARDY labels; state baselines do not use those labels.
 
-Read the [research/data audit](RESEARCH_AUDIT_20261104.md) before interpreting results. Current Ψ0 validation defaults to the training repo; ACT evaluates a prefix of its training data with native training augmentation. These are training diagnostics, not independent held-out estimates. Other RHSCI workers do not automatically create a validation split. Keep historical reproduction recipes intact; for a new held-out study, split by original demonstration source (including duplicate groups), compute statistics on training data only, and use a new run directory. The current handover pack contains 100 episodes but 93 unique motion sources; structural/ARDY checks do not certify every demonstration as successful.
+Current Ψ0 validation defaults to the training repo; ACT evaluates a prefix of training data with native augmentation. These are training diagnostics, not independent held-out estimates. Other RHSCI workers do not automatically create a validation split. For a held-out study, split by original demonstration source, keep duplicate groups together and compute statistics on training data only. The handover pack contains 100 episodes but 93 unique motion sources.
 
-Set `HF_HOME`, `HF_DATASETS_CACHE` and `TORCH_HOME` to external storage with sufficient space before invoking native data preflight. LeRobot can materialize large Arrow caches, including unused depth columns, even for an RGB experiment. Compressed archive size is not a cache-space estimate. Keep caches separate from source data and the checkout; preserve active runs' caches. The explicit audit tools and their verified scope are listed in the research audit.
+Set `HF_HOME`, `HF_DATASETS_CACHE` and `TORCH_HOME` to external storage with sufficient space before invoking native data preflight. LeRobot can materialize large Arrow caches, including unused depth columns, even for an RGB experiment. Compressed archive size is not a cache-space estimate. Keep caches separate from source data and the checkout; preserve active runs' caches.
 
 Follow [SIMPLE data preparation](DATA_PREPARATION.md) for the processed 50 Hz schema, `scripts/data/prepare_simple_stats.py` for both normalization files, and the pinned ARDY teacher/sidecar commands. `scripts/data/raw_to_lerobot_v2.py` is an upstream real-robot converter, not a SIMPLE replay converter. The retained sidecar builder verifies the original XMovePick task and its reference latent; it does not certify arbitrary tasks. λ₀ additionally requires a prepared bundle, shown below. Existing datasets and sidecars are listed in [Hugging Face assets](ASSETS.md).
 
@@ -106,9 +106,9 @@ bash scripts/train/psi0.sh --model VGQ-AE --task my_task \
 
 Remove `--dry-run` after asset preparation to train. Both switches can also be used independently. Visual history remains `[-6, -4, -2, 0]`: future images, states and actions are never added to the policy input. A target beyond the episode end is zero-filled and masked out of the auxiliary loss; the action sample remains in training. The future teacher validity mask and the current history validity mask must both pass. Asset preflight rejects a future offset with no valid supervision in the dataset.
 
-`VGQ-VLM` now selects the four-original-image direct Query, requires `--vlm lora`, and has no Reader. `STATE-RECONSTRUCTION` uses its fixed Reader/AE and state31 labels. Neither takes the Reader/future-target switches; see [current methods and preprocessing](PSI0_METHODS_AND_PROCESSING_20261103.md).
+`VGQ-VLM` now selects the four-original-image direct Query, requires `--vlm lora`, and has no Reader. `STATE-RECONSTRUCTION` uses its fixed Reader/AE and state31 labels. Neither takes the Reader/future-target switches.
 
-Both specialized Ψ0 methods use the original entry's `1e-4` VLM learning rates (only relevant when the VLM is trainable). To compare against an existing PSI0-RAW run, match its actual initialization, data/statistics, world size, per-device batch, accumulation, schedule, precision and execution profile; generic CLI defaults are not a reconstruction of every historical run. The [paired model and checkpoint audit](RAW_COMPATIBILITY_AUDIT_20261103.md) separates weight compatibility from full-training equivalence.
+Both specialized Ψ0 methods use the original entry's `1e-4` VLM learning rates (only relevant when the VLM is trainable). To compare against an existing PSI0-RAW run, match its actual initialization, data/statistics, world size, per-device batch, accumulation, schedule, precision and execution profile; generic CLI defaults are not a reconstruction of every historical run.
 
 STATE and NO-STATE reject Reader and ARDY switches. Reader selection is saved in the PSI0 model configuration; strict loading rejects mismatched Reader weights. Future offset is saved in the data configuration. Both alter the run contract and default output path.
 
@@ -182,14 +182,8 @@ This invokes the native Hydra entry. Supply the dataset mixture, action/state di
 
 Use `baseline.py --mode native` with the selected backbone. PSI0 takes a `psi.config.train` module through `--config`; π0.5 takes an `openpi.training.config` name. GR00T forwards finetuning options to `gr00t.experiment.launch_finetune`. λ₀ takes an experiment JSON through `--config`. EgoVLA forwards HF-style options to its native trainer; this source snapshot does not include the complete native `llava/data` pipeline, so the native path needs that upstream dependency before it can run. The RHSCI EgoVLA reader is provided separately.
 
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-
 ## Explicit raw input caches
 
-ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables. See [training structure and compatibility](TRAINING_STRUCTURE_20261030.md).
+ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables.
 
-Runtime checks were simplified on 2026-10-31; see the [scope and reference comparison](RUNTIME_CHECKS_20261031.md). Complete optimizer/scheduler/RNG and numerical checks still apply to automatic training recovery.
+Automatic training recovery requires complete optimizer, scheduler, RNG and progress state. Inference only requires the model and its saved preprocessing configuration.

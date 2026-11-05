@@ -138,7 +138,7 @@ The current RHSCI π0.5 adapter freezes PaliGemma and returns all 30 predicted a
 
 ## Evaluation
 
-### Current evaluation configuration (2026-11-05)
+### Evaluation configuration
 
 The current zero-arm experiments use **official SIMPLE `b75c6786` plus our
 task-level zero-arm source changes**, and the **pre-November-2 evaluation ZIPs**
@@ -148,7 +148,7 @@ do not use it as the identity of these experiments.
 
 | Component | Current experiment |
 | --- | --- |
-| Simulator code | SIMPLE `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`; apply the [zero-arm source diff](configs/simple/zero_arm_tasks.patch) as described in the [version record](docs/SIMPLE_OFFICIAL_20261030.md#zero-arm-evaluation-20261105) |
+| Simulator code | SIMPLE `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`; apply the [zero-arm source diff](configs/simple/zero_arm_tasks.patch) as described in the [version record](docs/EVALUATION.md#simulator-source) |
 | Physics / rendering | MuJoCo 3.3.6 / Isaac Sim 4.5.0.0; decoupled WBC, native wall-clock control and navigation |
 | Client | SIMPLE `Psi0DecoupledWbcAgent` / `HttpActionClient`, launched through [eval_decoupled_wbc.py](experiments/pi05_between/eval_decoupled_wbc.py); 32D state = 31 measured joints + height command |
 | Server | RHSCI [`rhsci.inference.http_server`](src/rhsci/inference/http_server.py), `--backbone pi05` or `gr00t`; SIMPLE HTTP `/act` and `/health`, separate model environment |
@@ -189,7 +189,7 @@ cd "$PSI_HOME"
 
 The clone commands above are for a fresh external directory. The sync tool keeps each evaluation release in its own directory. Run it without `--task` to fetch all 17 tasks in this snapshot, or add `--verify-only` to check existing files. This snapshot includes instruction fixes absent from the older ZIPs used in the configuration above.
 
-Some tasks in the newer snapshot require success-checker updates absent from SIMPLE `b75c6786`. Use matching task code and evaluation data. The examples below use between-tables / box-hugging; see the [version notes](docs/SIMPLE_UPDATES_20261103.md) for task compatibility and controller limitations.
+Some tasks in the newer snapshot require success-checker updates absent from SIMPLE `b75c6786`. Use matching task code and evaluation data. The examples below use between-tables / box-hugging; see the [version notes](docs/EVALUATION.md) for task compatibility and controller limitations.
 
 ### Ψ0
 
@@ -253,7 +253,7 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 ## Documentation
 
-[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Official SIMPLE version](docs/SIMPLE_OFFICIAL_20261030.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Native package layout](docs/NATIVE_PACKAGE_LAYOUT_20261031.md) · [Development](docs/ARCHITECTURE.md)
+[Data preparation](docs/DATA_PREPARATION.md) · [Training](docs/TRAINING.md) · [Inference](docs/INFERENCE.md) · [Official SIMPLE version](docs/EVALUATION.md) · [Repository structure](docs/DIRECTORY_STRUCTURE.md) · [Development](docs/ARCHITECTURE.md)
 
 ## Acknowledgements and license
 

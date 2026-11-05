@@ -59,12 +59,3 @@ The 115-epoch preset also defaults `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:
 Setting `RHSCI_NCCL_LIBRARY=/absolute/path/to/libnccl.so` preloads that library before torchrun and its workers start. The launcher checks the mapped library and its actual runtime version. EgoVLA expects `2.27.3` by default for this override; set `RHSCI_NCCL_VERSION` explicitly for another verified version. With no override, it uses the environment's NCCL. This option does not change batch size, gradient reduction or model settings.
 
 Serving uses `python -m human_plan.rhsci.serve` in the same environment, with a complete checkpoint and the original base assets. See [Inference](../../docs/INFERENCE.md#egovla) for the command and state/action protocol.
-
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
-
-2026-11-03: [Official comparison and recovery correction](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md): the user meant official SIMPLE, not PSI0-RAW. The adapter now uses the shared worker RNG isolation and explicitly closes created loaders after training. Its existing accumulation-tail fix is shared with π0.5. With 0 or 2 persistent workers, the CPU recovery comparison matches sample order, final parameters, Adam, scheduler and Torch main RNG exactly; worker-local stochastic transforms and full-model GPU equivalence remain unverified.

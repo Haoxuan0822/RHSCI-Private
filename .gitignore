@@ -10,6 +10,13 @@ wheels/
 .ruff_cache/
 
 # Local configuration and credentials
+# Local collaboration instructions and development records
+/AGENTS.md
+/docs/*_202[0-9][0-9][0-9][0-9][0-9].md
+/docs/*_202[0-9][0-9][0-9][0-9][0-9].json
+/docs/WORK_LOG.md
+/docs/ERROR_LOG.md
+/configs/simple/*audit_202[0-9][0-9][0-9][0-9][0-9].json
 .rsci-local-paths.json
 .env
 .env.*

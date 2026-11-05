@@ -7,7 +7,7 @@ This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00
 
 The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE and VGQ-AE.
 
-Saved PSI0-RAW no-Reader checkpoints with `rsci_memory_mode=full-vlm` also restore their full-token Query within the native model; the normal training CLI continues to select Reader memory. This compatibility path retains the old parameter keys and initialization order. See [paired updates, checkpoint evidence and remaining limits](../../docs/RAW_COMPATIBILITY_AUDIT_20261103.md).
+Saved PSI0-RAW no-Reader checkpoints with `rsci_memory_mode=full-vlm` also restore their full-token Query within the native model; the normal training CLI continues to select Reader memory. This compatibility path retains the old parameter keys and initialization order.
 
 The separate environment requires [requirements.txt](requirements.txt) and the native GR00T dependencies. `GROOT_RHSCI_PYTHON` overrides the interpreter; the default is `$PSI_RUNTIME_ROOT/.venv-gr00t-rsci/bin/python`.
 
@@ -28,15 +28,6 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 
 RHSCI uses NVIDIA's official `nvidia/GR00T-N1.6-3B` initialization, as in its local experiments. Alignment here covers the optimization recipe; the initialization, RHSCI query objective and checkpoint strategy differ from the reference preset.
 
-The reference initialization above is the literal path in the pinned SIMPLE preset, not an assertion that its weights are NVIDIA's public checkpoint. See the [function and reproduction audit](../../docs/ARCHITECTURE.md#function-audit-20261102) for sampling and execution differences and the limits of current validation.
+The reference initialization above is the literal path in the pinned SIMPLE preset, not an assertion that its weights are NVIDIA's public checkpoint.
 
 Use matching Eagle initialization assets and the task's RGB/ARDY dataset. `--dry-run` resolves the configuration; `--check-data` checks data without loading the complete backbone. GPU memory and distributed behavior require their own validation.
-
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
-
-2026-11-03: [Recovery and code review](../../docs/CODE_REVIEW_20261103.md). GR00T now shares the epoch-tail resume fix with the other HF adapters and corrects Transformers 4.51.3's floor-based update budget to include the partial group. Tests cover step/epoch budgets with 0/2 persistent workers and exact CPU parameter/Adam/scheduler/main-RNG recovery.

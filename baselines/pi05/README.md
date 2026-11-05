@@ -41,16 +41,3 @@ This validates the checkpoint format and tokenizer, then writes `RSCI_ASSETS.jso
 `--dry-run` prints the configuration. `--check-data` checks the RGB/ARDY datasets; `--check` also checks initialization/processing and audits `RSCI_ASSETS.json` if supplied. The manifest is optional; native local weights and tokenizer can be loaded directly. Changed model/data/training configurations require a separate run; source edits and compatible dependency updates do not.
 
 State robustness evaluation uses shared [client measurement perturbations](../../docs/INFERENCE.md#state-measurement-noise). Training and server-side measurement noise have been removed. Reader/future-target ablations are currently PSI0-only.
-
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](../../docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-2026-10-30: [训练职责与显式缓存配置](../../docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
-
-## 2026-11-02 resume fixes
-
-The Trainer now preserves the sampler epoch when skipping resumed batches and isolates worker seed generation from the model RNG. Per the user's final scope, normalization, the training recipe, checkpoint configuration and inference formulas retain their previous behavior; the proposed v3 normalization and CLI option were withdrawn. Existing runs do not need a new run-tag or preprocessing migration for this recovery fix. See the [resume comparison and CPU validation limits](../../docs/PI05_CORRECTNESS_20261102.md).
-
-2026-11-03: [Official comparison and recovery correction](../../docs/GUARDIAN_RECOVERY_AUDIT_20261102.md): the user meant official SIMPLE, not PSI0-RAW. The Trainer now shares EgoVLA's epoch-tail recovery fix through `rhsci.runtime.hf_resume.tail_safe_training_loop`. The 19-sample, batch-2, accumulation-4 CPU comparison completes all 9 updates after checkpoint-4 with 0 or 2 workers and exactly matches uninterrupted parameters, Adam, scheduler and main RNG. Worker-local stochastic transforms and full-model GPU equivalence remain unverified.

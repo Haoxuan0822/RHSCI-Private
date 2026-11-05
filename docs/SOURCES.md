@@ -1,6 +1,6 @@
 # Sources
 
-RHSCI builds on [PSI0](https://github.com/physical-superintelligence-lab/Psi0). Native packages retain their original names, copyright notices and component licenses. RHSCI integrations live inside their native packages (`psi.rhsci`, `openpi.rhsci`, `gr00t.rhsci`, `human_plan.rhsci`, `lambda0.rhsci`, `act.rhsci`); shared tools live in `src/rhsci`. The [2026-10-31 layout record](NATIVE_PACKAGE_LAYOUT_20261031.md) records the original relocation; the [current flat package layout](DIRECTORY_STRUCTURE.md#package-depth-2026-11-01) and component manifests track later filesystem moves without changing upstream provenance.
+RHSCI builds on [PSI0](https://github.com/physical-superintelligence-lab/Psi0). Native packages retain their original names, copyright notices and component licenses. Model integrations live inside their native packages; shared tools live in `src/rhsci`. See [Repository structure](DIRECTORY_STRUCTURE.md).
 
 ACT, Diffusion Policy, InternVLA-M1, H-RDT, DreamZero and the EgoDex/EgoMimic data helpers were imported from PSI0 commit [`cda3fdfafe47cb6fa75400d013de1bd36e3cea05`](https://github.com/physical-superintelligence-lab/Psi0/tree/cda3fdfafe47cb6fa75400d013de1bd36e3cea05). Their native source is included. ACT additionally has an RHSCI adapter under `src/act/rhsci`.
 
@@ -12,17 +12,11 @@ GR00T N1.6, EgoVLA/VILA and DreamZero were also imported through the same PSI0 r
 
 The root [LICENSE](../LICENSE) is retained from PSI0; the [full Apache 2.0 text](../licenses/Apache-2.0.txt) and [third-party notices](../THIRD_PARTY_NOTICES.md) describe component scope. Component license and notice files apply to their respective source trees. Upstream documentation describes the native implementations; use [Training](TRAINING.md) and the per-backbone guides for the RHSCI entries.
 
+## SIMPLE
 
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-The subsequent local [training structure refactor](TRAINING_STRUCTURE_20261030.md) uses integration commit `7c39b9ac9b0285f64596b0ea00e96210dd2009ba` as its base. The integration JSON retains historical target hashes for that commit; the export manifest describes current files.
-
-## Official SIMPLE (2026-10-30)
-
-External SIMPLE now uses official commit `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`, including PR #29. Its MIT license and component notices remain in that checkout. The [source lock](../configs/simple/official.json) records file SHA256 and official submodules; see the [migration and validation record](SIMPLE_OFFICIAL_20261030.md). Runtime assets and environments are not bundled or certified by the source check.
-
-## SIMPLE resources (2026-11-03)
-
-The [release audit](SIMPLE_UPDATES_20261103.md) follows both `SIMPLE-org/data/{eval-fixed,data-fixed}` and the published `USC-PSI-Lab/{psi-data,SIMPLE-eval,SIMPLE-decoupled-wbc,psi-model,SIMPLE}` repositories. Code, scene assets, training data, evaluation snapshots and weights have independent revisions; an unchanged GitHub main does not establish that the resources are unchanged. [Evaluation identities](../configs/simple/eval_assets.json) and [upstream metadata](../configs/simple/upstream_audit_20261103.json) record the inspected versions.
+The external simulator is pinned to official `b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11`.
+Its MIT license and component notices remain in that checkout. The
+[source lock](../configs/simple/official.json) records upstream file identities
+and submodule revisions. The [zero-arm source diff](../configs/simple/zero_arm_tasks.patch)
+is derived from that MIT-licensed source. See [Evaluation](EVALUATION.md) for
+source setup and separately versioned evaluation assets.

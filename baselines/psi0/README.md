@@ -34,12 +34,10 @@ Use the [root quickstart](../../README.md#getting-started) for the complete VGQ-
 
 Supported variants are STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM* and STATE-RECONSTRUCTION. Nonstarred VLM query variants require `--vlm lora`. Quote starred names to prevent shell expansion. See [Training](../../docs/TRAINING.md) for launcher and runtime options.
 
-VGQ-VLM is now the four-original-image direct VLM Query method, without a Reader; the early unstarred Reader implementation and state-teacher distillation are removed. STATE-RECONSTRUCTION keeps the four-frame VGQ-AE Reader/AE path and predicts 31 measured joints only as labels. Both use current targets and their fixed architecture, without `--no-reader` / `--ardy-offset`. Existing DIRECT-named saved runs are accepted by the saved-config loader; early same-named Reader weights are incompatible. See [methods and preprocessing audit](../../docs/PSI0_METHODS_AND_PROCESSING_20261103.md).
+VGQ-VLM is now the four-original-image direct VLM Query method, without a Reader; the early unstarred Reader implementation and state-teacher distillation are removed. STATE-RECONSTRUCTION keeps the four-frame VGQ-AE Reader/AE path and predicts 31 measured joints only as labels. Both use current targets and their fixed architecture, without `--no-reader` / `--ardy-offset`. Existing DIRECT-named saved runs are accepted by the saved-config loader; early same-named Reader weights are incompatible.
 
 Other Query variants also accept `--no-reader` and `--ardy-offset N`, independently or together. See [experimental switches](../../docs/TRAINING.md#experimental-switches) for defaults and episode boundaries. State robustness evaluation uses shared [client measurement perturbations](../../docs/INFERENCE.md#state-measurement-noise); training and server-side measurement noise have been removed.
 
 ## Inference
 
 Use `scripts/deploy/serve_psi0_simple.sh` to serve a checkpoint and the official SIMPLE runtime to evaluate it. `bash scripts/deploy/serve_psi0_simple.sh --help` lists server arguments. See [Inference](../../docs/INFERENCE.md) for the four-frame client protocol required by starred variants.
-
-2026-11-03: The CLI stays at `psi.rhsci.train`; configuration/planning lives in `training_config`, checks in `preflight`, run identity in `contract`, and recovery in `guardian`. Its named `TrainingPlan` retains four-value unpacking. See the [interface map and compatibility checks](../../docs/CODE_REVIEW_20261103.md#参考-simple-的职责与接口整理2026-11-03).

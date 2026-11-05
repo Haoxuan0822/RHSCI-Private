@@ -1,10 +1,11 @@
-# 独立探索实验
+# Experiments
 
-实验性代码、尚未确定纳入正式方法的实现或脚本，以及不准备公开的辅助脚本，统一放在 `experiments/<主题>/`，例如冻结身体探针、离线机制分析和本机评测编排。正式训练、推理和功能开发继续使用现有 RHSCI 框架；具体约定见 [AGENTS.md](../AGENTS.md) 和[开发边界](../docs/DIRECTORY_STRUCTURE.md#development-boundaries-20261103)。不公开的内容在公开发布时排除。
+Evaluation orchestration and exploratory tools call the model and simulator
+interfaces maintained elsewhere in this repository.
 
-- 每个主题有自己的 README，说明目的、入口、配置和已验证/待验证范围。
-- 通过现有接口调用 `src/` 中的模型、处理器及训练/推理工具，复用公共函数，不复制整套骨干或训练器。
-- 正式包和默认入口不依赖本目录；实验确定纳入后，在对应模型 `rhsci/` 或公共 `src/rhsci/` 中接入。
-- 数据、模型、环境、缓存和运行输出放在仓库外，使用显式路径；实验代码和小配置可放在本目录。
+- [SIMPLE evaluation worker](pi05_between/README.md): model serving, simulator launch and multi-round results.
+- [Evaluation queue](simple_queue/README.md): task configuration, asset preparation and GPU scheduling.
 
-当前主题：[π0.5 两桌评测](pi05_between/README.md)，复用原生 HTTP 服务及官方 SIMPLE 评测接口，记录论文/README 对照、具体配置和启动命令。未迁入或操作 PSI0-RAW 的历史实验。
+Data, weights, environments and outputs are stored outside the checkout.
+Configure filesystem paths for your machine before running these scripts.
+See [Evaluation](../docs/EVALUATION.md) for the versioned protocol.

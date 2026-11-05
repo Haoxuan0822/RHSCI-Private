@@ -1,18 +1,14 @@
 # Inference
 
-Current zero-arm evaluation versions, client/server roles and action horizons
-are summarized in the [README evaluation table](../README.md#current-evaluation-configuration-2026-11-05).
-Those experiments use the old `psi-data@e78fb93c` ZIPs and official SIMPLE
-`b75c6786` with the [documented task source changes](SIMPLE_OFFICIAL_20261030.md#zero-arm-evaluation-20261105).
-The newer asset release described below is a separate evaluation condition.
+See [Evaluation](EVALUATION.md) for simulator and asset versions, zero-arm task configuration, client/server roles and action horizons.
 
 Existing trained-policy directories are listed in [Hugging Face assets](ASSETS.md). Preserve the saved run configuration and consult the historical-checkpoint compatibility notes below.
 
-See the [PSI0-RAW compatibility audit](RAW_COMPATIBILITY_AUDIT_20261103.md) for actual checkpoint evidence and limits. Ψ0 restores the original four-frame state-reconstruction method from metadata/weights and retains embedded training bounds. GR00T restores saved `rsci_memory_mode=full-vlm` without a Reader. Historical removed architectures require their matching runtime. π0.5 still needs the matching training dataset/tokenizer; EgoVLA trainable-only weights need their matching base assets.
+Ψ0 restores four-frame state reconstruction from checkpoint metadata and retains embedded training bounds. GR00T supports saved `rsci_memory_mode=full-vlm` checkpoints without a Reader. Removed architectures require their matching runtime. π0.5 needs matching normalization statistics and tokenizer; EgoVLA trainable-only weights need matching base assets.
 
-SIMPLE now defaults to official `b75c6786` (including PR #29). Before simulation, verify the external checkout with `python3 tools/check_simple.py "$SIMPLE_HOME"` and review [version, assets and protocol compatibility](SIMPLE_OFFICIAL_20261030.md). CPU wire-format compatibility does not validate old-checkpoint behavior in the new simulator. Use the [current pinned evaluation assets](SIMPLE_UPDATES_20261103.md), including the instruction fixes in `SIMPLE-eval/fb67cd9a`; old ZIPs and the historical RHSCI handoff are different releases. Four advertised success-checker updates are absent from official `b75c6786`. The [historical WBC/MuJoCo finger-order mismatch](SIMPLE_UPDATES_20261103.md#历史手指映射问题仍未随官方更新解决) also remains in the current official path; data updates do not repair that controller interface.
+SIMPLE is pinned to official `b75c6786`. The [evaluation guide](EVALUATION.md) describes task source changes and matching asset versions. Verify the clean official source before applying zero-arm changes.
 
-SIMPLE message encoding lives in `rhsci.inference.protocol`; the native `psi.deploy.helpers` path reexports those classes for compatibility. ACT and the π/GR HTTP entry share `create_policy_app`, while prediction, error status and optional reset remain adapter-specific. EgoVLA keeps its standard-library HTTP service and reuses the NumPy codec. See the [shared interface map](ARCHITECTURE.md#simple-shared-interfaces-20261102).
+SIMPLE message encoding lives in `rhsci.inference.protocol`; the native `psi.deploy.helpers` path reexports those classes for compatibility. ACT and the π/GR HTTP entry share `create_policy_app`, while prediction, error status and optional reset remain adapter-specific. EgoVLA keeps its standard-library HTTP service and reuses the NumPy codec. See [Architecture](ARCHITECTURE.md).
 
 ## PSI0
 
@@ -60,13 +56,13 @@ PYTHONPATH=src /path/to/gr00t-env/bin/python -m rhsci.inference.http_server \
 
 The run directory contains `launch_contract.json` and model checkpoints. The server selects the latest checkpoint with configuration and nonempty weights; `--checkpoint-step N` selects one explicitly. Optimizer, scheduler, RNG, training completion markers and an identical training checkout are not required. Model loading still checks keys, shapes and the saved preprocessing settings.
 
-The shared discovery entry now reads GR00T's native `config.json` and π0.5's `rsci_config.json`; this was checked against six actual GR00T 20k checkpoints. See the [research audit](RESEARCH_AUDIT_20261104.md) for evaluation-data verification, remaining official success-checker gaps and reporting requirements. Fix task/levels/episodes, initialization, action timing/horizon, inference settings, success criteria and random streams across methods. Replaying the same weight/episode/random stream does not create independent samples; retain technical failures and retries in the report.
+Checkpoint discovery reads GR00T's native `config.json` and π0.5's `rsci_config.json`. Keep task, initial states, action timing, inference settings and success criteria fixed when comparing methods.
 
 Historical π0.5 checkpoints use the same model-only discovery path. `--training-source-root /path/to/original/training-checkout` remains an optional explicit source audit; it is not required for historical serving. Original training modules are not imported or executed. The processor restores the saved normalization version, including the early quantile recipe; unsupported preprocessing remains an error.
 
 PSI0 serving reads `run_config.json` using the configuration module recorded in `argv.txt`, without replaying obsolete training flags. Historical RHSCI sidecar and RGB-encoder field names are translated to their current names. Reader selection is checked against the checkpoint schema, which also identifies older full-token runs without a saved Reader flag. Removed depth/v5 architectures are rejected when enabled; their inactive settings do not recreate those branches.
 
-Requests and responses use `psi.deploy.helpers.RequestMessage` and `ResponseMessage`, the same NumPy serialization as PSI0. π0.5 accepts the current `rgb_head_stereo_left` image and instruction, plus `state['states'][0]` only for STATE. Ordinary VGQ-AE does not consume history or state at inference. It uses native 10-step sampling, the training quantile inverse transform and the complete 30-step prediction as its response. The non-RTC SIMPLE client executes all 30 actions before requesting a new prediction (30 predicted / 30 executed, per the 2026-11-04 evaluation configuration). All 36 action dimensions come from that request's prediction, including the last four dimensions. This HTTP entry does not invoke the upstream openpi WebSocket server or its previous-chunk tail replacement.
+Requests and responses use `psi.deploy.helpers.RequestMessage` and `ResponseMessage`, the same NumPy serialization as PSI0. π0.5 accepts the current `rgb_head_stereo_left` image and instruction, plus `state['states'][0]` only for STATE. Ordinary VGQ-AE does not consume history or state at inference. It uses native 10-step sampling, the training quantile inverse transform and the complete 30-step prediction as its response. The non-RTC SIMPLE client executes all 30 actions before requesting a new prediction (30 predicted / 30 executed). All 36 action dimensions come from that request's prediction, including the last four dimensions. This HTTP entry does not invoke the upstream openpi WebSocket server or its previous-chunk tail replacement.
 
 GR00T uses its native SIMPLE request conversion and sampling with a 16-step action response. The saved processor and policy are set to current-frame video indices `[0]` in eval mode; the training history/query branch is not executed. Use the corresponding chunk length and disable RTC in the SIMPLE client for these native non-RTC sampling paths. The simulator and task assets remain external.
 
