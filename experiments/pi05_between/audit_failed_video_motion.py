@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import sys
+from collections import defaultdict
 
 import cv2
 import numpy as np
@@ -47,8 +48,16 @@ def inspect(item):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--full-timeline", action="store_true", help="读取冻结清单，导出全程接触表供人工阶段分类")
+    parser.add_argument("--summarize-review", action="store_true", help="校验并汇总显式人工标注；不自动判定阶段")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.summarize_review:
+        summarize_review(args.output)
+        return
+    if args.full_timeline:
+        full_timeline(args.output)
+        return
     items, groups = [], []
     for key, levels in sorted(snapshot().items()):
         group = dict(backbone=key[0], variant=key[1], task=key[2], episodes=0, failures=0)
@@ -104,6 +113,71 @@ def main():
                 sheet[row*112+20:row*112+110, col*192:col*192+160] = cv2.resize(tile, (160,90))
         cv2.imwrite(str(args.output / f"candidates-{offset//12:02d}.jpg"), sheet)
     print(f"COMPLETE {len(results)} failed videos", flush=True)
+
+
+def full_timeline(output):
+    """沿用原始清单，每两秒取一帧；不从运动量推断任务阶段或失败原因。"""
+    items = json.loads((output / "motion.json").read_text())["items"]
+    cv2.setNumThreads(1)
+    groups = defaultdict(list)
+    for item in items:
+        groups[(item["backbone"], item["variant"], item["task"])].append(item)
+    for key, rows in groups.items():
+        for offset in range(0, len(rows), 8):
+            batch = rows[offset:offset+8]
+            sheet = np.full((len(batch)*124, 160*13, 3), 245, np.uint8)
+            for row, item in enumerate(batch):
+                cap = cv2.VideoCapture(item["video"])
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                y = row*124
+                label = item["id"] + f"  ({item['duration_s']:.1f}s)"
+                cv2.putText(sheet, label, (3,y+15), cv2.FONT_HERSHEY_SIMPLEX, .44, (0,0,0), 1)
+                for col, seconds in enumerate(np.linspace(0, max(0,(count-1)/fps), 13)):
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, round(seconds*fps))
+                    ok, frame = cap.read()
+                    if not ok:
+                        raise ValueError(f"Cannot seek {seconds}: {item['video']}")
+                    x = col*160
+                    sheet[y+18:y+108,x:x+160] = cv2.resize(frame,(160,90),interpolation=cv2.INTER_AREA)
+                    cv2.putText(sheet, f"{seconds:.1f}s", (x+3,y+121), cv2.FONT_HERSHEY_SIMPLEX,.35,(0,0,0),1)
+                cap.release()
+            name = "-".join(key) + f"-page{offset//8:02d}.jpg"
+            cv2.imwrite(str(output / ("timeline-"+name)),sheet)
+        print("TIMELINE", key, len(rows), flush=True)
+
+
+def summarize_review(output):
+    """严格匹配冻结失败清单与人工标注；未知/重复ID报错，不补造标签。"""
+    data = json.loads((output / "motion.json").read_text())
+    review = json.loads((output / "stage-review.json").read_text())
+    groups = {r["key"]: r for r in review["groups"]}
+    counts = defaultdict(lambda: dict(failures=0, stage_stall_candidate=0, uncertain=0, other=0))
+    labels = []
+    for item in data["items"]:
+        key = "-".join(item[k] for k in ("backbone", "variant", "task"))
+        group = groups[key]
+        if not group.get("reviewed"):
+            raise ValueError(f"Unreviewed group: {key}")
+        short = f"L{item['level']}-E{item['episode']}"
+        explicit = [name for name in ("stage_stall", "uncertain", "other") if short in group.get(name, [])]
+        if len(explicit) > 1:
+            raise ValueError(f"Conflicting labels: {key} {short}")
+        label = explicit[0] if explicit else ("stage_stall" if group.get("all_stage_stall") else "other")
+        label = "stage_stall_candidate" if label == "stage_stall" else label
+        counts[key]["failures"] += 1
+        counts[key][label] += 1
+        labels.append(dict(id=item["id"], video=item["video"], label=label))
+    for key, group in groups.items():
+        known = {f"L{r['level']}-E{r['episode']}" for r in data["items"]
+                 if "-".join(r[k] for k in ("backbone", "variant", "task")) == key}
+        specified = [s for name in ("stage_stall", "uncertain", "other") for s in group.get(name, [])]
+        if not known or not set(specified) <= known or len(specified) != len(set(specified)):
+            raise ValueError(f"Invalid/duplicate/unknown reviewed IDs: {key}")
+    result = dict(scope=review["scope"], review_method=review["review_method"],
+                  definitions=review["definitions"], counts=dict(counts), labels=labels)
+    (output / "stage-summary.json").write_text(json.dumps(result, indent=2))
+    print(json.dumps(result["counts"], indent=2))
 
 
 if __name__ == "__main__":
