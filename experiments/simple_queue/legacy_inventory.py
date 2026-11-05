@@ -8,12 +8,20 @@ from plan import ROOT
 
 STATE = ROOT / "evals/goal-latest-protocol-20261105"
 RAW = Path("/tmp/rhsci-video-upload-GHEvq5/repo")
+EXCLUDED_VARIANTS = {"VGQ-AE-D"}
 
 
 def inventory():
     target = STATE / "legacy-retest-plan.json"
     if target.exists():
-        return json.loads(target.read_text())["runs"]
+        saved = json.loads(target.read_text())
+        runs = [run for run in saved["runs"] if run["variant"] not in EXCLUDED_VARIANTS]
+        if runs != saved["runs"]:
+            saved["runs"] = runs
+            saved["excluded_variants"] = sorted(EXCLUDED_VARIANTS)
+            saved["rule"] = "Training parentheses: historical-only; exclude ACT and VGQ-AE-D; preserve original historical scores"
+            target.write_text(json.dumps(saved, indent=2, ensure_ascii=False) + "\n")
+        return runs
     records = json.loads((ROOT / "hf/RHSCI/model-59a1ea14/DOWNLOAD_MANIFEST-3fdbb4c7.json").read_text())["files"]
     groups = {}
     for record in records:
@@ -32,6 +40,8 @@ def inventory():
             continue
         cells = [c.strip() for c in line.strip("|").split("|")]
         if len(cells) != 6:
+            continue
+        if cells[0] in EXCLUDED_VARIANTS:
             continue
         for task, cell in zip(("between", "hug", "oven", "handover", "faucet"), cells[1:]):
             if not (cell.startswith("（") or cell.startswith("(")):
@@ -54,7 +64,8 @@ def inventory():
     STATE.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(dict(revision="3fdbb4c714d9ca70abf4b9e9bbe38cabe7781990",
                                       github_commit=subprocess.check_output(["git", "-C", str(RAW), "rev-parse", "HEAD"], text=True).strip(),
-                                      rule="Training parentheses: historical-only; exclude ACT; preserve original historical scores", runs=runs), indent=2, ensure_ascii=False) + "\n")
+                                      rule="Training parentheses: historical-only; exclude ACT and VGQ-AE-D; preserve original historical scores",
+                                      excluded_variants=sorted(EXCLUDED_VARIANTS), runs=runs), indent=2, ensure_ascii=False) + "\n")
     return runs
 
 

@@ -15,7 +15,6 @@ configuration in `plan.py`.
 | `legacy_inventory.py` | Freeze historical-only training cells for retesting |
 | `prepare_retests.py` | Restore selected historical checkpoints and processors |
 | `monitor_goal.py` | Check progress, continue exited workers and update result tables |
-| `serve_legacy_psi0.py` | Serve archived PSI0-D with its retained Query and four-frame inputs |
 
 Configure filesystem roots and model paths for your machine before running.
 Use each entry's `--help` to inspect its options. Preparation and evaluation are

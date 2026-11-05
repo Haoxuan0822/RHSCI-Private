@@ -93,8 +93,6 @@ def prepare_one(run, processor):
     check = [str(ROOT / ".venv-psi/bin/python"), "-c",
                     "from pathlib import Path; from psi.rhsci.config import load_run_config; import sys; p=Path(sys.argv[1]); load_run_config(p,p/'checkpoints/ckpt_40000/model.safetensors')",
                     str(canonical)]
-    if run["variant"] == "VGQ-AE-D":
-        check = [str(ROOT / ".venv-psi/bin/python"), str(Path(__file__).with_name("serve_legacy_psi0.py")), "--check-config", str(canonical)]
     subprocess.run(check, env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[2] / "src")}, check=True)
     receipt.write_text(json.dumps(dict(run_dir=str(canonical), model=str(checkpoint), revision=REVISION,
                                       horizon=horizon, processor=str(processor)), indent=2) + "\n")
