@@ -185,6 +185,16 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     for index, memory in [line.split(",")]
                     if int(memory) < 4096 and int(index) in gpus and int(index) not in occupied
                 }
+                # 模型尚未创建CUDA上下文时，显存也可能很低；在途worker已经占用该卡。
+                for pid, row in process_table().items():
+                    if row[3] == "Z":
+                        continue
+                    try:
+                        args = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+                    except (FileNotFoundError, ProcessLookupError, PermissionError):
+                        continue
+                    if any(arg.endswith(b"experiments/pi05_between/run_evaluation.py") for arg in args) and b"--gpu" in args:
+                        available.discard(int(args[args.index(b"--gpu") + 1]))
             for gpu in gpus:
                 if gpu in processes or gpu not in available or not pending:
                     continue

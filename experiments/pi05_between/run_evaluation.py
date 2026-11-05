@@ -1,6 +1,7 @@
 """Run one GPU's five cycles through the native RHSCI and official SIMPLE interfaces."""
 
 import argparse
+import fcntl
 import json
 import os
 import signal
@@ -31,6 +32,26 @@ OUT = ROOT / "evals/pi05-between-30x30-5cycles-20261104"
 OFFICIAL = ROOT / "checkpoints/official-pi05-between-40000"
 
 
+def owns_listener(pid, port):
+    """只接受本worker启动的服务端监听，避免误把另一模型的health响应当作就绪。"""
+    try:
+        sockets = set()
+        for fd in Path(f"/proc/{pid}/fd").iterdir():
+            try:
+                sockets.add(os.readlink(fd))
+            except FileNotFoundError:
+                continue
+        for protocol in ("tcp", "tcp6"):
+            for row in Path(f"/proc/{pid}/net/{protocol}").read_text().splitlines()[1:]:
+                fields = row.split()
+                if fields[3] == "0A" and int(fields[1].rsplit(":", 1)[1], 16) == port:
+                    if f"socket:[{fields[9]}]" in sockets:
+                        return True
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        pass
+    return False
+
+
 def worker(args):
     import numpy as np
     import requests
@@ -38,6 +59,15 @@ def worker(args):
 
     from rhsci.inference.protocol import RequestMessage, ResponseMessage
     from rhsci.runtime.processes import cleanup, process_table, remember_tree, run_worker_process
+
+    leases = ROOT / "evals/.gpu-worker-leases"
+    leases.mkdir(exist_ok=True)
+    gpu_lease = (leases / f"gpu{args.gpu}-slot{args.slot}.lock").open("a")
+    try:
+        fcntl.flock(gpu_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        gpu_lease.close()
+        raise
 
     variant = args.variant
     state_noise = config_from_arguments(args)
@@ -210,6 +240,11 @@ def worker(args):
             while True:
                 if server.poll() is not None:
                     raise RuntimeError(f"Server exited {server.returncode}; see {log.name}")
+                if not owns_listener(server.pid, port):
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("Own model server did not acquire its listening port")
+                    time.sleep(2)
+                    continue
                 try:
                     response = client.get(f"http://127.0.0.1:{port}/health", timeout=2)
                     response.raise_for_status()
@@ -386,10 +421,13 @@ def worker(args):
             )
             print("WORKER_COMPLETE", args.gpu, variant, level, flush=True)
     finally:
-        if server is not None:
-            remember_tree(server.pid, tracked, process_table(), own_group=server.pid)
-            cleanup(tracked)
-            server.wait(timeout=40)
+        try:
+            if server is not None:
+                remember_tree(server.pid, tracked, process_table(), own_group=server.pid)
+                cleanup(tracked)
+                server.wait(timeout=40)
+        finally:
+            gpu_lease.close()
 
 
 if __name__ == "__main__":
