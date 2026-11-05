@@ -12,13 +12,22 @@ from pathlib import Path
 from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, PREPARATION, REPO, run_key, worker_command
 
 
-def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00t"):
+def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00t", resume_incomplete=False):
     """按任务优先级派发；接管在途worker，空闲卡立即接下一等级任务。"""
     import fcntl
 
     from plan import PI05_THREE_RUNS, ROOT, RUNS
 
     from rhsci.runtime.processes import process_table
+
+    if backbone == "legacy":
+        from legacy_inventory import inventory
+        selected_runs = inventory()
+    elif backbone == "nostate":
+        from prepare_nostate import RUNS as selected_runs
+    else:
+        selected_runs = PI05_THREE_RUNS if backbone == "pi05" else RUNS
+        selected_runs = [run for run in selected_runs if run["backbone"] == backbone and run["task"] != "between"]
 
     output.mkdir(parents=True, exist_ok=resume)
     scheduler_lock = (output / "scheduler.lock").open("a")
@@ -36,9 +45,8 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
         return row is not None and row[2] == job["birth"] and row[3] != "Z"
 
     pending = []
-    for task in ("oven", "handover", "faucet"):
-        source = PI05_THREE_RUNS if backbone == "pi05" else RUNS
-        runs = [run for run in source if run["backbone"] == backbone and run["task"] == task]
+    for task in dict.fromkeys(run["task"] for run in selected_runs):
+        runs = [run for run in selected_runs if run["task"] == task]
         for level in LEVELS:
             for run in runs:
                 base = output / run_key(run) / run["variant"] / level
@@ -63,6 +71,7 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                             task=task,
                             level=level,
                             variant=run["variant"],
+                            run=run,
                         )
                         print("GR00T_WORKER_ADOPTED", gpu, run_key(run), level, pid, flush=True)
                         continue
@@ -70,7 +79,7 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                         if run["variant"] == "STATE":
                             paired_next[gpu] = (task, level)
                         continue
-                    if (base / "PAUSED.json").exists():
+                    if (base / "PAUSED.json").exists() or resume_incomplete:
                         run = dict(run, resume_worker=True)
                     else:
                         raise RuntimeError(f"Stopped incomplete worker; logs retained: {metadata}")
@@ -78,6 +87,24 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
     try:
         while pending or processes:
             maintain_gpu_reservation()
+            if backbone == "nostate":
+                previous = ROOT / "evals/gr00t-zero-arms-pre1102-5cycles-20261104"
+                table = process_table()
+                waiting = False
+                for base in previous.glob("gr00t-*/*/dr-level-*"):
+                    if (base / "COMPLETE.json").exists():
+                        continue
+                    metadata = base / "worker.json"
+                    if not metadata.exists():
+                        waiting = True
+                        break
+                    pid = json.loads(metadata.read_text())["worker_pid"]
+                    if pid not in table or table[pid][3] == "Z":
+                        waiting = True
+                        break
+                if waiting:
+                    time.sleep(10)
+                    continue
             # 先让原GR00T派发器派完18项，随后仅接用它释放的卡，避免两队列抢卡。
             if backbone == "pi05":
                 previous = ROOT / "evals/gr00t-zero-arms-pre1102-5cycles-20261104"
@@ -95,6 +122,19 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     or not marker.exists()
                     or json.loads(marker.read_text())["episodes"] != 50
                 ):
+                    if resume_incomplete:
+                        failures_path = output / "worker-failures.json"
+                        failures = json.loads(failures_path.read_text()) if failures_path.exists() else {}
+                        identity = f"{run_key(job['run'])}/{job['level']}"
+                        recent = [t for t in failures.get(identity, []) if time.time() - t < 86400]
+                        if len(recent) < 3:
+                            failures[identity] = [*recent, time.time()]
+                            failures_path.write_text(json.dumps(failures, indent=2) + "\n")
+                            retry = dict(job["run"], resume_worker=(marker.parent / "worker.json").exists())
+                            pending.insert(0, (retry, job["level"]))
+                            del processes[gpu]
+                            print("WORKER_RETRY", identity, "exit", code, "attempt", len(recent) + 1, flush=True)
+                            continue
                     raise RuntimeError(f"GR00T worker failed: GPU{gpu}, exit={code}, {marker}")
                 if job["variant"] == "STATE":
                     paired_next[gpu] = (job["task"], job["level"])
@@ -199,13 +239,14 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     task=run["task"],
                     level=level,
                     variant=run["variant"],
+                    run=run,
                 )
                 paired_next.pop(gpu, None)
                 pending.remove(ready)
                 print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
             if pending or processes:
                 time.sleep(10)
-        (output / "COMPLETE.json").write_text(json.dumps({"models": 6, "episodes": 900}) + "\n")
+        (output / "COMPLETE.json").write_text(json.dumps({"models": len(selected_runs), "episodes": 150 * len(selected_runs)}) + "\n")
     finally:
         for job in processes.values():
             if alive(job):
@@ -352,8 +393,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpus", type=int, nargs="+", choices=range(8))
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--resume-incomplete", action="store_true", help="Explicitly continue inactive incomplete workers; completed episodes remain preserved")
     parser.add_argument("--auto-gpus", action="store_true")
-    parser.add_argument("--backbone", choices=["gr00t", "pi05"], default="gr00t")
+    parser.add_argument("--backbone", choices=["gr00t", "pi05", "nostate", "legacy"], default="gr00t")
     args = parser.parse_args()
     if args.gpus:
         if len(set(args.gpus)) != len(args.gpus) or args.output_root is None:
@@ -364,6 +406,7 @@ if __name__ == "__main__":
             resume=args.resume,
             auto_gpus=args.auto_gpus,
             backbone=args.backbone,
+            resume_incomplete=args.resume_incomplete,
         )
     else:
         main()

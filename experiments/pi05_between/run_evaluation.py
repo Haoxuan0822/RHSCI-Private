@@ -135,6 +135,13 @@ def worker(args):
             "--port",
             str(port),
         ]
+    elif args.backbone == "psi0":
+        command = [
+            str(ROOT / ".venv-psi/bin/python"), "-m", "psi.deploy.psi0_serve_simple",
+            "--run-dir", str(args.run_dir), "--ckpt-step", str(args.checkpoint_step),
+            "--policy", "psi0", "--device", "cuda:0", "--host", "127.0.0.1",
+            "--port", str(port), "--action-exec-horizon", str(args.expected_horizon),
+        ]
     elif args.backbone == "pi05":
         command.extend(
             [
@@ -385,8 +392,8 @@ if __name__ == "__main__":
         help="Continue unfinished episodes without recounting completed ones",
     )
     parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
-    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE", "RGB"], required=True)
-    parser.add_argument("--backbone", choices=["pi05", "gr00t"], default="pi05")
+    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE", "RGB", "VGQ-VLM", "VGQ-AE-D", "VGQ-AE-F10"], required=True)
+    parser.add_argument("--backbone", choices=["pi05", "gr00t", "psi0"], default="pi05")
     parser.add_argument("--task", default=TASK)
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--checkpoint-step", type=int, default=40000)

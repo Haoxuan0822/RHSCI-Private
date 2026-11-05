@@ -15,6 +15,7 @@ TASKS = {
     "oven": ("G1WholebodyOpenOvenTeleop-v0", 1000, 0.5),
     "handover": ("G1WholebodyHandoverTeleop-v0", 800, 0.9),
     "faucet": ("G1WholebodyOpenFaucetTeleop-v0", 1000, 0.2),
+    "hug": ("G1WholebodyPickAndPlaceAndHugContainerTeleop-v0", 1000, 0.9),
 }
 RUNS = [
     dict(
@@ -74,7 +75,7 @@ def worker_command(run, gpu, level, run_dir, *, output_root=OUTPUT):
     """声明实际启动参数；模型、仿真与进程清理仍由已有 worker 完成。"""
     task, maximum, success = TASKS[run["task"]]
     return [
-        str(ROOT / f".venv-{run['backbone']}-rsci/bin/python"),
+        str(ROOT / (".venv-psi/bin/python" if run["backbone"] == "psi0" else f".venv-{run['backbone']}-rsci/bin/python")),
         "-u",
         str(REPO / "experiments/pi05_between/run_evaluation.py"),
         "--gpu",

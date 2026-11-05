@@ -63,6 +63,12 @@ def load_run_config(run, checkpoint=None):
     module = importlib.import_module(f"psi.config.train.{argv[1]}")
     data = json.loads((run / "run_config.json").read_text())
     model = data["model"]
+    # 迁移整包后只重定位同包保存的结构/分词器；完整模型参数仍来自 checkpoint。
+    saved_vlm = model.get("model_name_or_path")
+    bundled_vlm = run.resolve().parent / "initialization-assets"
+    if saved_vlm and Path(saved_vlm).is_absolute() and not Path(saved_vlm).exists():
+        if (bundled_vlm / "config.json").is_file():
+            model["model_name_or_path"] = str(bundled_vlm)
     # 只兼容直接四图版本的旧保存名；早期同名 Reader 结构不能迁成新模型。
     if model.get("rsci_variant") == "VGQ-VLM-DIRECT":
         model["rsci_variant"] = "VGQ-VLM"
