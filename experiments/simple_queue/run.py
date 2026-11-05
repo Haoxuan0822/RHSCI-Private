@@ -12,11 +12,11 @@ from pathlib import Path
 from plan import ACTIVE_RUNS, CURRENT, LEVELS, OUTPUT, PREPARATION, REPO, run_key, worker_command
 
 
-def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
+def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00t"):
     """按任务优先级派发；接管在途worker，空闲卡立即接下一等级任务。"""
     import fcntl
 
-    from plan import RUNS
+    from plan import PI05_THREE_RUNS, ROOT, RUNS
 
     from rhsci.runtime.processes import process_table
 
@@ -35,7 +35,8 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
 
     pending = []
     for task in ("oven", "handover", "faucet"):
-        runs = [run for run in RUNS if run["backbone"] == "gr00t" and run["task"] == task]
+        source = PI05_THREE_RUNS if backbone == "pi05" else RUNS
+        runs = [run for run in source if run["backbone"] == backbone and run["task"] == task]
         for level in LEVELS:
             for run in runs:
                 base = output / run_key(run) / run["variant"] / level
@@ -62,6 +63,13 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
     try:
         while pending or processes:
             maintain_gpu_reservation()
+            # 先让原GR00T派发器派完18项，随后仅接用它释放的卡，避免两队列抢卡。
+            if backbone == "pi05":
+                previous = ROOT / "evals/gr00t-zero-arms-pre1102-5cycles-20261104"
+                if len(list(previous.glob("gr00t-*/*/dr-level-*/worker.json"))) < 18:
+                    print("WAIT_GR00T_DISPATCH", flush=True)
+                    time.sleep(10)
+                    continue
             for gpu, job in list(processes.items()):
                 process, marker = job["process"], job["marker"]
                 code = process.poll() if process is not None else None
@@ -123,13 +131,24 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
             for gpu in gpus:
                 if gpu in processes or gpu not in available or not pending:
                     continue
-                run, level = pending[0]
+                ready = next(
+                    (
+                        (run, level)
+                        for run, level in pending
+                        if (PREPARATION / f"{run_key(run)}.json").exists()
+                    ),
+                    None,
+                )
+                if ready is None:
+                    continue
+                run, level = ready
                 key = run_key(run)
                 receipt = PREPARATION / f"{key}.json"
                 if not receipt.exists():
                     print("WAIT_CHECKPOINT", key, flush=True)
                     continue
                 info = json.loads(receipt.read_text())
+                run = dict(run, horizon=info["horizon"])
                 command = worker_command(run, gpu, level, info["run_dir"], output_root=output)
                 directory = output / key
                 directory.mkdir(parents=True, exist_ok=True)
@@ -146,7 +165,7 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
                     process=process,
                     marker=marker,
                 )
-                pending.pop(0)
+                pending.remove(ready)
                 print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
             if pending or processes:
                 time.sleep(10)
@@ -298,10 +317,17 @@ if __name__ == "__main__":
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--auto-gpus", action="store_true")
+    parser.add_argument("--backbone", choices=["gr00t", "pi05"], default="gr00t")
     args = parser.parse_args()
     if args.gpus:
         if len(set(args.gpus)) != len(args.gpus) or args.output_root is None:
             parser.error("Use distinct --gpus and a fresh --output-root")
-        rerun_on_gpus(args.gpus, args.output_root, resume=args.resume, auto_gpus=args.auto_gpus)
+        rerun_on_gpus(
+            args.gpus,
+            args.output_root,
+            resume=args.resume,
+            auto_gpus=args.auto_gpus,
+            backbone=args.backbone,
+        )
     else:
         main()

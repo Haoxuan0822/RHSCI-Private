@@ -44,6 +44,16 @@ def worker(args):
     level = args.level
     task = args.task
     dataset = ROOT / "data/processed" / task
+    if args.backbone == "pi05" and args.run_dir is not None:
+        saved_processor = args.run_dir / "processor-data"
+        if (args.run_dir / "dataset-meta/stats.json").exists():
+            saved_processor.mkdir(exist_ok=True)
+            try:
+                (saved_processor / "meta").symlink_to("../dataset-meta", target_is_directory=True)
+            except FileExistsError:
+                pass
+        if (saved_processor / "meta/stats.json").exists():
+            dataset = saved_processor
     base = args.output_root / variant / level
     base.mkdir(parents=True, exist_ok=True)
     if (base / "worker.json").exists():

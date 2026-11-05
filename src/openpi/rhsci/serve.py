@@ -1,6 +1,7 @@
 """SIMPLE HTTP inference with the RHSCI π0.5 model and training processor."""
 
 import json
+from pathlib import Path
 
 from rhsci.runtime.artifacts import sha256
 
@@ -34,7 +35,14 @@ class Server:
             state_inference_measurement_noise_std_rad, state_noise_seed, contract["model"]
         )
 
-        if dataset_content_fingerprint(dataset) != contract["dataset"]:
+        dataset = Path(dataset)
+        saved_metadata = checkpoint.parent / "dataset-meta"
+        if not any((dataset / "data").glob("**/*.parquet")) and saved_metadata.is_dir():
+            # 推理归档保留训练时metadata，无需为读取归一化统计恢复全部训练轨迹。
+            for name in ("stats.json", "info.json"):
+                if sha256(dataset / "meta" / name) != sha256(saved_metadata / name):
+                    raise ValueError(f"π0.5 saved processor metadata differs: {name}")
+        elif dataset_content_fingerprint(dataset) != contract["dataset"]:
             raise ValueError("π0.5 processor dataset differs from training")
         if sha256(tokenizer) != contract["tokenizer"]:
             raise ValueError("π0.5 tokenizer differs from training")

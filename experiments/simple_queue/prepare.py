@@ -1,5 +1,6 @@
 """Restore selected local checkpoints; the current plan enables no weight downloads."""
 
+import argparse
 import concurrent.futures
 import hashlib
 import json
@@ -33,8 +34,8 @@ def existing_transfer(path):
     for pid, args in processes():
         if (
             len(args) > 4
-            and args[1] == str(ROOT / "download_wheel.py").encode()
-            and args[3] == str(path).encode()
+            and Path(os.fsdecode(args[1])).resolve() == (ROOT / "download_wheel.py").resolve()
+            and Path(os.fsdecode(args[3])).resolve() == path.resolve()
         ):
             return pid
     return None
@@ -106,12 +107,18 @@ def prepare(run, records):
         shutil.copy2(contracts[0], run_dir / "launch_contract.json")
     contract = json.loads((run_dir / "launch_contract.json").read_text())
     horizon = contract.get("horizon" if run["backbone"] == "pi05" else "valid_action_horizon")
-    if horizon != run["horizon"]:
+    if run["horizon"] is not None and horizon != run["horizon"]:
         raise ValueError(f"Saved action horizon mismatch: {key}: {horizon}")
+    if not isinstance(horizon, int) or horizon <= 0:
+        raise ValueError(f"Invalid saved horizon: {key}: {horizon}")
     relative = run_dir.relative_to(staging)
     staging.rename(destination)
     canonical = destination / "inference"
     canonical.symlink_to(relative, target_is_directory=True)
+    if run["backbone"] == "pi05" and (canonical / "dataset-meta").is_dir():
+        processor = canonical / "processor-data"
+        processor.mkdir(exist_ok=True)
+        (processor / "meta").symlink_to("../dataset-meta", target_is_directory=True)
     info = dict(
         run_dir=str(canonical),
         archive=str(archive),
@@ -126,9 +133,68 @@ def prepare(run, records):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--pi05-three-tasks", action="store_true", help="Prepare downloaded pi05 three-task assets"
+    )
+    parser.add_argument(
+        "--hug-state", action="store_true", help="Only prepare the newly requested GR00T hug STATE"
+    )
+    parser.add_argument(
+        "--remaining-gr00t",
+        action="store_true",
+        help="Resume only the requested handover/faucet VGQ-AE checkpoints",
+    )
+    args = parser.parse_args()
     manifest = json.loads((MODEL_ROOT / "DOWNLOAD_MANIFEST.json").read_text())
     assert manifest["revision"] == REVISION
     records = {record["rfilename"]: record for record in manifest["files"]}
+    if args.pi05_three_tasks:
+        from plan import PI05_THREE_RUNS
+
+        pending = list(PI05_THREE_RUNS)
+        while pending:
+            for run in list(pending):
+                archive = MODEL_ROOT / run["archive"]
+                if not archive.exists() or existing_transfer(archive) is not None:
+                    continue
+                prepare(run, records)
+                pending.remove(run)
+            if pending:
+                print("WAIT_PI05_DOWNLOADS", [run_key(run) for run in pending], flush=True)
+                time.sleep(15)
+        print("PI05_THREE_TASKS_READY", flush=True)
+        return
+    if args.remaining_gr00t:
+        from plan import RUNS
+
+        selected = [
+            run
+            for run in RUNS
+            if run["backbone"] == "gr00t"
+            and run["variant"] == "VGQ-AE"
+            and run["task"] in ("handover", "faucet")
+        ]
+        DOWNLOAD_RUNS.extend(selected)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(prepare, run, records) for run in selected]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
+        print("REQUESTED_GR00T_CHECKPOINTS_READY", flush=True)
+        return
+    if args.hug_state:
+        # 单任务追加准备，不改活动队列、不清理其他任务进程。
+        run = dict(
+            backbone="gr00t",
+            variant="STATE",
+            task="hug",
+            step=20000,
+            horizon=16,
+            archive="checkpoint/Gr00t/STATE/hug/paper20k-fullvlm-rgb-spacecache-v1/checkpoint-20000.tar.zst",
+        )
+        DOWNLOAD_RUNS.append(run)
+        prepare(run, records)
+        return
     wanted = {str(MODEL_ROOT / run["archive"]).encode() for run in DOWNLOAD_RUNS}
     # 用户限定只下载本次评测权重：先结束全量重试器，再结束调度和无关传输。
     # 保留全部分片；本次需要且已在传的文件继续，避免重复写同一 .parts。

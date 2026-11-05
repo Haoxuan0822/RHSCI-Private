@@ -39,6 +39,24 @@ RUNS = [
     ],
 ]
 
+PI05_THREE_RUNS = [
+    dict(
+        backbone="pi05",
+        variant=variant,
+        task=task,
+        step=40000,
+        horizon=None,
+        archive=f"checkpoint/PI05/{variant}/{task}/{recipe}/checkpoint-40000.tar.zst",
+    )
+    for task in ("oven", "handover", "faucet")
+    for variant in ("STATE", "VGQ-AE")
+    for recipe in [
+        "pi05-three-tasks-20261029-v1"
+        if (task, variant) == ("oven", "STATE")
+        else "pi05-three-tasks-fast-20261029-v1"
+    ]
+]
+
 # 用户已停止补下载；仅使用本地已经完整下载的指定GR00T归档。
 DOWNLOAD_RUNS = []
 ACTIVE_RUNS = [
