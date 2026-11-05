@@ -2,27 +2,7 @@
 
 Rethinking Humanoid State Conditioning in Vision-Language-Action Models.
 
-后续训练、推理及正式功能开发使用本整理版，沿用现有框架；尚未确定的探针和机制分析放在独立的 [`experiments/`](experiments/README.md)。见[开发边界](docs/DIRECTORY_STRUCTURE.md#development-boundaries-20261103)。
-
-原版结果迁移与训练一致性见[兼容审查](docs/RAW_COMPATIBILITY_AUDIT_20261103.md)：已修复 Ψ0 学习率/旧方法恢复/保存统计及 GR00T 无 Reader 权重适配；13组原/整理版微型数值配对通过。对应旧权重无需因整理重训，完整训练及物理成功率不承诺一致。
-
-科研使用前读[数据与复现审查](docs/RESEARCH_AUDIT_20261104.md)：五套数据483轨迹/230,939帧及配套标签、统计已全量核对；递物有7对重复运动，成功性验收记录仍有缺口，训练内验证没有独立留出集。GR00T原生检查点自动发现已修复；物理闭环及λ₀完整环境仍未验收。
-
 RHSCI studies state conditioning and visual query supervision across Ψ0, π0.5, GR00T, EgoVLA and λ₀, with ACT as a visual action baseline. VGQ/EGQ variants use four-frame visual histories and ARDY supervision during training. Nonstarred variants need only current RGB and language at inference.
-
-2026-11-01：六模型 Python 包统一为 `src/<包名>/rhsci`，重复损失、采样、断点和回调已归入公共层；见[目录说明](docs/DIRECTORY_STRUCTURE.md#package-depth-2026-11-01)与[函数复用表](docs/ARCHITECTURE.md#shared-functions-2026-11-01)。
-
-2026-11-02：[函数调用链与复现审查](docs/ARCHITECTURE.md#function-audit-20261102)列出各骨干实际前向、剩余结构问题和验证边界。当前实现不能统称为严格复现官方实验或最新 PSI0-RAW 方法；其中旧 Ψ0 VGQ-VLM 差异已由[2026-11-03 方法清理](docs/PSI0_METHODS_AND_PROCESSING_20261103.md)替代：当前同名方法为四原图直接 Query，状态教师蒸馏已删除、状态重建保留，并核对原仓库颜色增强等处理；GR00T 初始化差异仍存在。
-
-2026-11-02：[参考 SIMPLE 的接口整理](docs/ARCHITECTURE.md#simple-shared-interfaces-20261102)：共用 π/GR 检查点重试、四骨干 worker 进程管理、ACT/π/GR HTTP 包装与 SIMPLE 消息编解码；公共缓存构建已解除 ACT 依赖，原生算法和协议各自保留。
-
-2026-11-02：[π0.5 完整恢复修复](docs/PI05_CORRECTNESS_20261102.md)。按用户最新要求，仅保留跨 epoch 恢复及 worker RNG 隔离；归一化、训练配方和推理公式恢复原有版本。
-
-2026-11-03：[SIMPLE 官方对照及守护/恢复修复](docs/GUARDIAN_RECOVERY_AUDIT_20261102.md)。纠正此前将PSI0-RAW当作官方的对照范围；λ₀守护清理、π累计尾更新及Ego持久worker RNG隔离均已修复并经CPU对照，不代表官方全模型/GPU等价。
-
-2026-11-03：[继续检查与可读性复查](docs/CODE_REVIEW_20261103.md)。补齐ACT/GR累计尾恢复和λ启动/清理阶段停止处理；后续参考SIMPLE拆分Ψ/λ入口、明确路径字段及公共回调接口，列明函数职责和验证边界。
-
-2026-11-03：[官方代码与资源更新](docs/SIMPLE_UPDATES_20261103.md)。已同步新版两桌等 25 ZIP、最新独立评测库 17 任务，并更正源目录漏查；列明训练数据、权重新提交和四任务成功判定的配套缺口。 [影响说明与遗漏教训](docs/SIMPLE_UPDATES_20261103.md#对当前实验的影响与遗漏教训)区分评测输入/判定代码，并说明何时重建 ARDY、缓存和统计。
 
 ## Getting started
 
@@ -176,19 +156,15 @@ do not use it as the identity of these experiments.
 | Evaluation data | Old ZIP revision above; levels 0/1/2, 10 initial states × 5 rounds per level; only the first round records complete stereo video |
 | Measurement noise | Off by default; optional four kinds × four levels on the client, before normalization; [arguments and magnitudes](docs/INFERENCE.md#state-measurement-noise) |
 
-Task limits and thresholds remain task-specific. The [experiment worker](experiments/pi05_between/run_evaluation.py)
-records `worker.json`, per-round `command.sh` and `effective_eval_config.json`;
-keep those with the RHSCI Git commit, SIMPLE source diff, asset receipts and
-checkpoint identity when reporting results. Current launch commands and task
-settings are in the [two-table](experiments/pi05_between/README.md) and
-[three-task](experiments/simple_queue/README.md) records. These orchestration
-scripts contain this machine's paths; adjust them on another machine. Weights,
-scene assets, environments, videos and result files are external to this Git
-repository. Source availability alone does not establish reproduced success rates.
+Task limits and success thresholds are task-specific. The
+[evaluation worker](experiments/pi05_between/run_evaluation.py) saves the resolved
+configuration in `worker.json` and per-round `effective_eval_config.json`, alongside
+the client command in `command.sh`. Configure paths for your machine before using
+the worker. Download weights and scene assets separately.
 
 ### Install SIMPLE
 
-SIMPLE is pinned to official `b75c6786` (2026-10-29, including [PR #29](https://github.com/physical-superintelligence-lab/SIMPLE/pull/29)). The [version record](docs/SIMPLE_OFFICIAL_20261030.md) covers migration, assets and CPU validation. Use a separate simulator environment and the pinned [SIMPLE installation guide](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/docs/source/tutorials/installation.md) for system dependencies and Isaac Sim setup:
+SIMPLE is pinned to official `b75c6786` (including [PR #29](https://github.com/physical-superintelligence-lab/SIMPLE/pull/29)). Use a separate simulator environment and the pinned [SIMPLE installation guide](https://github.com/physical-superintelligence-lab/SIMPLE/blob/b75c6786f87b4a7f43b52b0ac5b83a1d9ea62e11/docs/source/tutorials/installation.md) for system dependencies and Isaac Sim setup:
 
 ```bash
 GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/physical-superintelligence-lab/SIMPLE.git "$SIMPLE_HOME"
@@ -211,9 +187,9 @@ deactivate
 cd "$PSI_HOME"
 ```
 
-The clone commands above are for a fresh external directory. The [2026-11-03 resource audit](docs/SIMPLE_UPDATES_20261103.md) supersedes the earlier search conclusion: the corrected two-table ZIP was already in `SIMPLE-org/data/eval-fixed/` on October 30, then mirrored to `psi-data/simple-eval/` on November 2. The pinned `SIMPLE-eval` snapshot also includes November 3 language fixes absent from those ZIPs. The sync tool checks file identities and keeps each release in its own directory. Run it without `--task` to fetch all 17 current tasks, or add `--verify-only` to check existing files.
+The clone commands above are for a fresh external directory. The sync tool keeps each evaluation release in its own directory. Run it without `--task` to fetch all 17 tasks in this snapshot, or add `--verify-only` to check existing files. This snapshot includes instruction fixes absent from the older ZIPs used in the configuration above.
 
-Four other tasks advertise success-checker changes that are absent from official SIMPLE `b75c6786`; their latest evaluation rules cannot yet be reproduced with that code. The examples below use between-tables / box-hugging, which are outside those four tasks. They still use the official controller with the [known finger-order mismatch](docs/SIMPLE_UPDATES_20261103.md#历史手指映射问题仍未随官方更新解决); the earlier PSI0-RAW compatibility patch is not installed in this checkout. Asset parsing and CPU checks do not establish physical stability or success rates. Keep historical results and datasets under their original versions.
+Some tasks in the newer snapshot require success-checker updates absent from SIMPLE `b75c6786`. Use matching task code and evaluation data. The examples below use between-tables / box-hugging; see the [version notes](docs/SIMPLE_UPDATES_20261103.md) for task compatibility and controller limitations.
 
 ### Ψ0
 
@@ -257,7 +233,7 @@ CUDA_VISIBLE_DEVICES=1 "$SIMPLE_HOME/.venv/bin/python" -m simple.cli.eval_decoup
   --episode-start 0 --num-episodes 10 --num-workers 1 --save-video
 ```
 
-Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Results are written to separate evaluation directories. These commands use ordinary sampling; fixed-noise comparisons require the [request metadata protocol](docs/INFERENCE.md#reproducible-action-sampling). Full GPU training and simulator rollouts have not been validated in this standalone checkout.
+Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Results are written to separate evaluation directories. These commands use ordinary sampling; fixed-noise comparisons require the [request metadata protocol](docs/INFERENCE.md#reproducible-action-sampling).
 
 ## Backbones
 
@@ -282,16 +258,3 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 ## Acknowledgements and license
 
 Built on [Ψ0](https://github.com/physical-superintelligence-lab/Psi0) and the native backbone implementations. See [Sources](docs/SOURCES.md) and [Third-party notices](THIRD_PARTY_NOTICES.md). The root [Apache 2.0 notice](LICENSE) does not cover all components; bundled [GR00T N1.6](src/gr00t/LICENSE) and derivatives have non-commercial research restrictions.
-
-
-## 2026-10-30 PSI0-RAW integration
-
-Latest input-cache and training-recovery changes are documented in the [integration record](docs/PSI0_RAW_INTEGRATION_20261030.md). It lists source paths, compatibility limits and CPU validation. Existing inference entry points and backbone recipes remain documented above.
-
-2026-10-30: [训练职责与显式缓存配置](docs/TRAINING_STRUCTURE_20261030.md)，含模块关系、断点边界及本轮 CPU 验证。
-
-2026-10-31: 模型专属扩展已按原生包聚合，`src/rhsci` 只保留共用工具；[位置、入口和兼容性](docs/NATIVE_PACKAGE_LAYOUT_20261031.md)。
-
-2026-10-31: 训练/恢复函数统一使用明确的动作名称，较长预检归入 `preflight.py`；参见[函数命名与阅读顺序](docs/DIRECTORY_STRUCTURE.md#function-names-and-reading-order)及[验证记录](docs/NATIVE_PACKAGE_LAYOUT_20261031.md#可读性与函数命名整理2026-10-31)。
-
-2026-10-31: [运行检查精简](docs/RUNTIME_CHECKS_20261031.md)：源码/依赖精确版本不再阻断恢复或推理，推理无需训练状态，原生资产目录无需专用收据。保留模型、数据与完整恢复检查；不自动推送远端。
