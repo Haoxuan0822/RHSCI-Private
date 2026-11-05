@@ -202,6 +202,49 @@ def update_tables(results):
         git("push", "origin", "HEAD:main")
 
 
+def check_downloads():
+    """记录准备收据和实时分块进度；下载一小时无增长时留下故障证据。"""
+    from legacy_inventory import inventory
+    from plan import PREPARATION, run_key
+
+    runs = inventory()
+    records = {row["rfilename"]: row for run in runs for row in run["records"]}
+    path = STATE / "download-progress.json"
+    old = json.loads(path.read_text()) if path.exists() else {}
+    now = time.time()
+    active = []
+    preparation_pids = []
+    model_root = ROOT / "hf/RHSCI/model-59a1ea14"
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            args = (proc / "cmdline").read_bytes().decode().split("\0")
+            if any(arg.endswith("simple_queue/prepare_retests.py") for arg in args[1:]):
+                preparation_pids.append(int(proc.name))
+            if len(args) < 4 or not args[1].endswith("/download_wheel.py"):
+                continue
+            destination = Path(args[3])
+            relative = str(destination.relative_to(model_root))
+            if relative not in records:
+                continue
+            parts = destination.parent / (destination.name + ".parts")
+            downloaded = sum(part.stat().st_size for part in parts.iterdir() if part.is_file()) if parts.exists() else 0
+        except (OSError, UnicodeError, ValueError):
+            continue
+        prior = next((v for v in old.get("active", []) if v["file"] == relative), {})
+        since = prior.get("unchanged_since", now) if prior.get("bytes") == downloaded else now
+        active.append(dict(file=relative, pid=int(proc.name), bytes=downloaded,
+                           total=records[relative]["size"], unchanged_since=since,
+                           stalled=now-since > 3600))
+    ready = [run_key(run) for run in runs if (PREPARATION / f"{run_key(run)}.json").exists()]
+    payload = dict(time=now, ready=ready, total=len(runs), active=active, preparation_pids=preparation_pids)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    if any(row["stalled"] for row in active) or (len(ready) < len(runs) and not preparation_pids):
+        with (STATE / "errors.log").open("a") as log:
+            log.write(f"{datetime.now(timezone.utc).isoformat()} Download needs repair; see download-progress.json\n")
+
+
 def main():
     STATE.mkdir(parents=True, exist_ok=True)
     lock = (STATE / "monitor.lock").open("a")
@@ -212,6 +255,7 @@ def main():
         previous = json.loads(saved.read_text())
     while True:
         try:
+            check_downloads()
             repair_dispatchers()
             results = snapshot()
             check_stalls(results)
