@@ -70,7 +70,10 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                         if run["variant"] == "STATE":
                             paired_next[gpu] = (task, level)
                         continue
-                    raise RuntimeError(f"Stopped incomplete worker; logs retained: {metadata}")
+                    if (base / "PAUSED.json").exists():
+                        run = dict(run, resume_worker=True)
+                    else:
+                        raise RuntimeError(f"Stopped incomplete worker; logs retained: {metadata}")
                 pending.append((run, level))
     try:
         while pending or processes:
@@ -170,10 +173,19 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                 info = json.loads(receipt.read_text())
                 run = dict(run, horizon=info["horizon"])
                 command = worker_command(run, gpu, level, info["run_dir"], output_root=output)
+                if run.get("resume_worker"):
+                    command.append("--resume")
                 directory = output / key
                 directory.mkdir(parents=True, exist_ok=True)
-                (directory / f"command-{level}.sh").write_text(shlex.join(command) + "\n")
-                log = (directory / f"worker-{level}.log").open("x")
+                command_path = directory / f"command-{level}.sh"
+                if run.get("resume_worker") and command_path.exists():
+                    command_path.rename(
+                        directory / f"command-{level}-before-resume-{time.time_ns()}.sh"
+                    )
+                command_path.write_text(shlex.join(command) + "\n")
+                log = (directory / f"worker-{level}.log").open(
+                    "a" if run.get("resume_worker") else "x"
+                )
                 handles.append(log)
                 process = subprocess.Popen(
                     command, cwd=REPO, env=environment, stdout=log, stderr=subprocess.STDOUT

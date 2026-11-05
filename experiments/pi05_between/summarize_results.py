@@ -23,6 +23,21 @@ def read_stats(path, num_episodes=10):
     return stats
 
 
+def read_round_stats(directory, num_episodes=10):
+    """合并暂停前及续测片段；同一轮同一episode只能计一次。"""
+    paths = [directory / "stats/eval_stats.txt"]
+    paths.extend(sorted(directory.glob("resume-*/stats/eval_stats.txt")))
+    result = {}
+    for path in paths:
+        if not path.exists():
+            continue
+        values = read_stats(path, num_episodes)
+        if result.keys() & values.keys():
+            raise ValueError(f"Duplicate resumed episode: {path}")
+        result.update(values)
+    return result
+
+
 def summarize(root):
     """按模型输出成功数和已完成数向量，避免把未运行样本当作失败。"""
     for variant in ("STATE", "VGQ-AE", "NO-STATE", "RGB"):
@@ -31,8 +46,9 @@ def summarize(root):
         successes, completed = [], []
         for level in LEVELS:
             rounds = [
-                read_stats(path)
-                for path in sorted((root / variant / level).glob("repeat-*/stats/eval_stats.txt"))
+                read_round_stats(path)
+                for path in sorted((root / variant / level).glob("repeat-*"))
+                if path.is_dir()
             ]
             successes.append(sum(sum(stats.values()) for stats in rounds))
             completed.append(sum(len(stats) for stats in rounds))

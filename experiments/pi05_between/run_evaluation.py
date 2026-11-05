@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from summarize_results import read_stats
+from summarize_results import read_round_stats
 
 # 调度器也可直接从脚本启动，不要求调用者额外配置 PYTHONPATH。
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
@@ -56,8 +56,37 @@ def worker(args):
             dataset = saved_processor
     base = args.output_root / variant / level
     base.mkdir(parents=True, exist_ok=True)
-    if (base / "worker.json").exists():
-        raise RuntimeError(f"Refusing to overwrite an existing worker: {base}")
+    metadata_path = base / "worker.json"
+    if metadata_path.exists():
+        if not args.resume:
+            raise RuntimeError(f"Refusing to overwrite an existing worker: {base}")
+        previous = json.loads(metadata_path.read_text())
+        old_pid = previous["worker_pid"]
+        old_row = process_table().get(old_pid)
+        if old_row is not None and old_row[3] != "Z":
+            raise RuntimeError(f"Cannot resume a live worker: {old_pid}")
+        expected = {
+            "variant": variant,
+            "level": level,
+            "task": task,
+            "backbone": args.backbone,
+            "prediction_horizon": args.expected_horizon,
+            "execution_horizon": args.expected_horizon,
+            "cycles": args.num_repeats,
+            "episodes_per_cycle": args.num_episodes,
+            "evaluation_root": str(args.evaluation_root),
+        }
+        if any(previous.get(key) != value for key, value in expected.items()):
+            raise ValueError("Resume configuration differs from saved worker")
+        for config_path in base.glob("repeat-*/effective_eval_config.json"):
+            saved = json.loads(config_path.read_text())
+            if (
+                saved["max_episode_steps"] != args.max_episode_steps
+                or saved["success_criteria"] != args.success_criteria
+            ):
+                raise ValueError(f"Resume limits differ from previous evaluation: {config_path}")
+        archive = base / f"worker-before-resume-{time.time_ns()}.json"
+        metadata_path.rename(archive)
     port = 8120 + args.gpu + 8 * args.slot
     domain = 100 + args.gpu + 8 * args.slot
     env = dict(
@@ -124,7 +153,7 @@ def worker(args):
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, stop)
     try:
-        with (base / "server.log").open("w") as log:
+        with (base / "server.log").open("a" if args.resume else "w") as log:
             server = subprocess.Popen(
                 command,
                 env=env,
@@ -156,6 +185,8 @@ def worker(args):
                         "episodes_per_cycle": args.num_episodes,
                         "video_rounds": args.video_rounds,
                         "evaluation_root": str(args.evaluation_root),
+                        "max_episode_steps": args.max_episode_steps,
+                        "success_criteria": args.success_criteria,
                         "state_noise_config": (
                             state_noise.metadata() if state_noise else {"enabled": False}
                         ),
@@ -231,8 +262,21 @@ def worker(args):
                     raise RuntimeError("Policy server exited during evaluation")
 
             for repeat in range(1, args.num_repeats + 1):
-                destination = base / f"repeat-{repeat:02d}"
-                destination.mkdir(exist_ok=False)
+                round_root = base / f"repeat-{repeat:02d}"
+                existing = read_round_stats(round_root, args.num_episodes) if args.resume else {}
+                if set(existing) != set(range(len(existing))):
+                    raise ValueError(f"Cannot resume non-prefix episode results: {round_root}")
+                if len(existing) == args.num_episodes:
+                    continue
+                destination = round_root
+                if destination.exists():
+                    if not args.resume:
+                        raise FileExistsError(destination)
+                    attempt = 1
+                    while (round_root / f"resume-{attempt:02d}").exists():
+                        attempt += 1
+                    destination = round_root / f"resume-{attempt:02d}"
+                destination.mkdir(parents=True, exist_ok=False)
                 sim_command = [
                     str(ROOT / ".venv-simple/bin/python"),
                     "-u",
@@ -252,9 +296,9 @@ def worker(args):
                     str(port),
                     "--headless",
                     "--num-episodes",
-                    str(args.num_episodes),
+                    str(args.num_episodes - len(existing)),
                     "--episode-start",
-                    "0",
+                    str(len(existing)),
                     "--max-episode-steps",
                     str(args.max_episode_steps),
                     "--success-criteria",
@@ -300,14 +344,19 @@ def worker(args):
                     raise RuntimeError(f"Official evaluator exited {code}; see {sim_log.name}")
                 # Kit close 可能提前结束 Python，退出码 0 不能代替实际 episode 记录。
                 stats_path = destination / "stats/eval_stats.txt"
-                stats = read_stats(stats_path, args.num_episodes)
+                stats = read_round_stats(round_root, args.num_episodes)
                 if set(stats) != set(range(args.num_episodes)):
                     raise RuntimeError(
                         f"Incomplete official results: {sorted(stats)}; {stats_path}"
                     )
-                (destination / "verified_results.json").write_text(
+                (round_root / "verified_results.json").write_text(
                     json.dumps(
-                        {"episodes": args.num_episodes, "stats": stats, "source": str(stats_path)},
+                        {
+                            "episodes": args.num_episodes,
+                            "stats": stats,
+                            "source": str(stats_path),
+                            "resumed": bool(existing),
+                        },
                         indent=2,
                     )
                     + "\n"
@@ -330,6 +379,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gpu", type=int, choices=range(8), required=True)
     parser.add_argument("--slot", type=int, choices=[0, 1], default=0)
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Continue unfinished episodes without recounting completed ones",
+    )
     parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
     parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE", "RGB"], required=True)
     parser.add_argument("--backbone", choices=["pi05", "gr00t"], default="pi05")
