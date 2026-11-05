@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import TypedDict
 
+from rhsci.data.ardy_motion import add_motion_arguments, motion_config
 from rhsci.paths import add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
 
@@ -45,6 +46,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
+    add_motion_arguments(argument_parser)
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument("--bundle", type=Path, help="Prepared RHSCI lambda0 data bundle")
     argument_parser.add_argument(
@@ -52,7 +54,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     argument_parser.add_argument("--max-steps", type=int, default=40000)
     argument_parser.add_argument("--seed", type=int, default=0)
-    argument_parser.add_argument("--variant", choices=("STATE", "VGQ-AE"), default="VGQ-AE")
+    argument_parser.add_argument("--variant", choices=("STATE", "VGQ-AE", "VGQ-AE-Mo"), default="VGQ-AE")
     argument_parser.add_argument("--runtime-root", type=Path, default=RUNTIME)
     argument_parser.add_argument(
         "--checkpoint", type=Path, help="本地官方 Stage-II raw checkpoint，不自动下载"
@@ -81,6 +83,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def build_training_config(args: argparse.Namespace) -> LambdaTrainingConfig:
     """校验 CLI 参数；返回供原生 λ₀ resolver 使用的训练配置。"""
+    motion_config(args)
     if Path(args.run_tag).name != args.run_tag or args.run_tag in ("", ".", ".."):
         raise ValueError("run-tag must be a plain directory name")
     gpus = args.gpus.split(",")

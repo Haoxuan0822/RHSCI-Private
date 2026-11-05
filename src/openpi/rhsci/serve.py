@@ -57,6 +57,8 @@ class Server:
         self.model = Pi05RHSCI(
             contract["model"],
             execution=contract.get("execution", "reference"),
+            ardy_delta_frames=saved.get("ardy_delta_frames", 2),
+            motion_weight=saved.get("motion_weight", 0.1),
         )
         index = checkpoint / "model.safetensors.index.json"
         files = (
@@ -95,7 +97,7 @@ class Server:
         )
         if self.variant == "STATE":
             sample["state"] = request.state["states"][0]
-        if self.variant == "VGQ-AE":
+        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
             # Processor metadata only; sample_actions never executes the auxiliary branch.
             sample.update(
                 rsci_history_valid=np.ones(4, bool),

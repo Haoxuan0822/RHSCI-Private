@@ -128,7 +128,7 @@
       "source_path": "gr00t/configs/model/__init__.py"
     },
     "configs/model/gr00t_n1d6.py": {
-      "sha256": "3957b85a416dba862a7bf6ed3c8e2668720d3adf38eaa82f520f20b3b8a2abfb",
+      "sha256": "01af6ec43876840d5bf39c0d0aad85121152a842b062ac893badf054ce3c37aa",
       "psi0_git_blob": "a91d9f769f55748bfd82190c16ceefd4bb38baa9",
       "status": "modified-from-psi0",
       "source_path": "gr00t/configs/model/gr00t_n1d6.py"
@@ -548,7 +548,7 @@
       "source_path": "gr00t/model/gr00t_n1.py"
     },
     "model/gr00t_n1d6/gr00t_n1d6.py": {
-      "sha256": "e0170a8df5c215bb0524dc52939b64dc50674899f4277092ec6f7fc9369fd33d",
+      "sha256": "a885334ea9110f785e21b96b9eb976456a282132bcb1e015a5779b3034054ddd",
       "psi0_git_blob": "d55818d9f015efd7343afaf6e8d9c5d1a82221f7",
       "status": "rhsci-maintained",
       "source_path": "gr00t/model/gr00t_n1d6/gr00t_n1d6.py"
@@ -560,13 +560,13 @@
       "source_path": "gr00t/model/gr00t_n1d6/image_augmentations.py"
     },
     "model/gr00t_n1d6/processing_gr00t_n1d6.py": {
-      "sha256": "2a91de3467d7b8b6edb7650e7fc3f50593aa6f8f6d0dae78a15a334b01c37748",
+      "sha256": "a3861c774b7205abfcd658fc6a62c99951581f50b5b76f1db5cbdd28463a4795",
       "psi0_git_blob": "ad5526956b40c57e68cdad37a8705caa4f75ffc4",
       "status": "modified-from-psi0",
       "source_path": "gr00t/model/gr00t_n1d6/processing_gr00t_n1d6.py"
     },
     "model/gr00t_n1d6/rhsci_query.py": {
-      "sha256": "b8f271883ef464b1c7d1d0d5dfcbef55051a453ef305ac5566f9ae696444d647",
+      "sha256": "ec21730f7b76449550aadbcf52728f41d2ce56b195b6d481e6d01acc7600147f",
       "psi0_git_blob": null,
       "status": "rhsci-maintained",
       "source_path": "gr00t/model/gr00t_n1d6/rsci_query.py"
@@ -775,19 +775,19 @@
       "source_path": "gr00t/rsci/checkpoints.py"
     },
     "rhsci/config.py": {
-      "sha256": "3e3b7cdb4bc7b2de1d853c37b9857225320a13678c021c2f035c88b06107eca0",
+      "sha256": "1ed80673e1ebdf5264fac2781802a4a51b68510a054ffc999c39441ac6860e13",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/config.py",
       "source_path": "gr00t/rsci/config.py"
     },
     "rhsci/contract.py": {
-      "sha256": "1c66b3b9bfc944a27d3b906dec4e9532788ea34779a7c0563a23a539348e65f8",
+      "sha256": "0197940e333dd6079f905cacf4ff27967725ee64327ac29dfd8cf26d3c764cfa",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/contract.py",
       "source_path": "gr00t/rsci/contract.py"
     },
     "rhsci/data.py": {
-      "sha256": "1e174c8d26716ff097e5ec4da4c158b7848e34a094b5205d1e69352ec86c844f",
+      "sha256": "da5a06c92b6b32030fa7d15ab945072162a89e87313e84e257e07db378914c6d",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/data.py",
       "source_path": "gr00t/rsci/data.py"
@@ -805,7 +805,7 @@
       "source_path": "gr00t/rsci/memory.py"
     },
     "rhsci/preflight.py": {
-      "sha256": "3fb5cfb921aabdf3ae02f154364d180ba28860ff7e59377fdf22d11ab47548a5",
+      "sha256": "b5ffc6f74d7513aa7a56429bf67232ec7935f84cfc8256e6a2731f1460abbaa2",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/preflight.py",
       "source_path": "gr00t/rsci/preflight.py"
@@ -823,13 +823,13 @@
       "source_path": "gr00t/rsci/train.py"
     },
     "rhsci/trainer.py": {
-      "sha256": "99bf34310b40cbe3e7097effee0c80651ed895a5806e2012ae95c259e6dd662c",
+      "sha256": "a1ba43526beb734ab70d7306f169981d9102f636ae4184aaa0ce2434f701f970",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/trainer.py",
       "source_path": "gr00t/rsci/trainer.py"
     },
     "rhsci/worker.py": {
-      "sha256": "0ea704d8911dc189d3ccb9561307c9f7b62d01b6b200f44aed88e7fb5da854bf",
+      "sha256": "7af5d6331abe4ab9acead9389c3692f2a9f3a51b3415265f0c84714dfe6c6aaf",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/worker.py",
       "source_path": "gr00t/rsci/worker.py"

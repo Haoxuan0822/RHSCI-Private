@@ -290,6 +290,8 @@ class RHSCITests(unittest.TestCase):
                     "ardy_target": np.zeros(128, np.float32),
                     "ardy_valid": True,
                 }
+                if variant == "VGQ-AE-Mo":
+                    raw.update(motion_target=np.zeros(128, np.float32), motion_valid=True)
                 packed = repack(raw)
                 self.assertFalse(packed["ardy_valid"])
                 self.assertTrue(np.isfinite(packed["states"]).all())

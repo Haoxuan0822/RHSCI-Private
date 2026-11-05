@@ -1,5 +1,6 @@
 """egovla: 单个训练worker的装配与执行。"""
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.runtime.environment import get_env
 
 from .checkpoints import atomic_json, checkpoint_ok, latest
@@ -35,7 +36,7 @@ def run_training_worker(args, paths, value, digest):
     torch.cuda.set_device(int(get_env("LOCAL_RANK", 0)))
     set_seed(args.seed)
     model, processor = load_native(
-        paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model
+        paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model, **motion_config(args)
     )
     configure_vlm_execution(model, args)
     dataset = SimpleDataset(
@@ -44,6 +45,7 @@ def run_training_worker(args, paths, value, digest):
         processor,
         variant=args.model,
         cache=paths["input_cache"],
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
     )
     trainer = create_trainer_class()(
         model=model,

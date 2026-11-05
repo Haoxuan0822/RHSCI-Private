@@ -1,5 +1,6 @@
 """pi05: 启动身份与源码契约。"""
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.paths import CODE_ROOT as CODE_ROOT
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
@@ -43,7 +44,8 @@ def build_training_contract(args, paths):
         else None,
         tokenizer=sha256(paths["tokenizer"]),
     )
-    if args.model == "VGQ-AE":
+    if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
         identity["sidecar"] = sha256(paths["sidecar"] / "manifest.json")
+    identity.update(motion_config(args))
     identity = reuse_run_contract(identity, paths["output"])
     return identity, compute_contract_digest(identity)

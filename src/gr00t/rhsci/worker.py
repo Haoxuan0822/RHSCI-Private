@@ -2,6 +2,7 @@
 
 import json
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.runtime.environment import get_env
 
 from .config import build_training_arguments, optimization_kwargs
@@ -10,13 +11,13 @@ from .trainer import build_checkpoint_callback, create_trainer_class
 
 def run_training_worker(args, paths, processor, dataset, digest, *, validation_steps=0):
     """在当前分布式 worker 内装配模型、数据与 Trainer，恢复完整状态并执行训练。"""
+    from rhsci.runtime.numerics import reject_numerical_failure
     import torch
     import torch.distributed as dist
     from transformers import TrainerCallback, set_seed
 
     from gr00t.configs.model.gr00t_n1d6 import Gr00tN1d6Config
     from gr00t.model.gr00t_n1d6.gr00t_n1d6 import Gr00tN1d6
-    from rhsci.runtime.numerics import reject_numerical_failure
 
     from .checkpoints import checkpoint_ok, latest_checkpoint
     from .memory import enable_dit_recomputation
@@ -32,6 +33,7 @@ def run_training_worker(args, paths, processor, dataset, digest, *, validation_s
     config.update(
         rsci_variant=args.model,
         rsci_ardy_weight=0.1,
+        **{f"rsci_{key}": value for key, value in motion_config(args).items()},
         tune_llm=False,
         tune_visual=False,
         tune_top_llm_layers=4 if args.vlm == "top4" else 0,

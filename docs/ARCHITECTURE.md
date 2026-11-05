@@ -18,6 +18,7 @@ Shared infrastructure lives in `src/rhsci`.
 | Module | Responsibility |
 | --- | --- |
 | `rhsci.data` | ARDY sidecars, dataset provenance, sampling and raw input caches |
+| `rhsci.data.ardy_motion` | VGQ-AE-Mo configuration and same-episode backward ARDY differences |
 | `rhsci.runtime.losses` | Masked auxiliary and ARDY losses |
 | `rhsci.runtime.hf_full_state` | Complete checkpoint lifecycle for HF-based adapters |
 | `rhsci.runtime.hf_resume` | Sampler epoch and progress restoration |
@@ -35,6 +36,8 @@ Shell launchers in `scripts/train` select the backbone environment and call its
 package-local CLI. Configuration, preflight, worker, trainer and checkpoint
 modules separate launch setup from model execution. Each backbone retains its
 native optimizer and sampling recipe.
+
+VGQ-AE-Mo extends the existing VGQ-AE branch inside each of the five VLA backbones. The current-ARDY and difference heads consume one shared Query output; the existing masked auxiliary loss handles both targets. Dataset adapters read backward differences through `rhsci.data.ardy_motion` and pass labels separately from observations. Method-specific settings and head weights are saved with the backbone's existing checkpoint/configuration files.
 
 Training recovery restores model, optimizer, scheduler, RNG and progress state.
 Inference loads model weights, saved preprocessing and configuration without

@@ -91,10 +91,11 @@ def verify_checkpoint(path, contract):
 class RHSCITrainingBackend:
     """Adapt native training operations without replacing module globals."""
 
-    def __init__(self, native, variant, contract):
+    def __init__(self, native, variant, contract, *, ardy_delta_frames=2, motion_weight=0.1):
         self.native = native
         self.variant = variant
         self.contract = contract
+        self.motion_config = dict(ardy_delta_frames=ardy_delta_frames, motion_weight=motion_weight)
 
     def load_model_and_processor(self, args):
         # 先严格加载官方 Stage-II 原始权重，再构造研究模块，避免 missing-key 静默放宽。
@@ -103,7 +104,10 @@ class RHSCITrainingBackend:
         model, processor = self.native.load_model_and_processor(args, model_class=Lambda0RHSCI)
         model.config.rsci_variant = self.variant
         model.config.rsci_contract = self.contract
-        if self.variant == "VGQ-AE":
+        if self.variant == "VGQ-AE-Mo":
+            for key, value in self.motion_config.items():
+                setattr(model.config, f"rsci_{key}", value)
+        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
             model.use_proprio = model.config.use_proprio = False
             model.state_conditioning_mode = model.config.state_conditioning_mode = (
                 "continuous_action_expert"
@@ -118,7 +122,13 @@ class RHSCITrainingBackend:
         history = batch.pop("history", None)
         extra = {
             key: batch.pop(key)
-            for key in ("history_valid", "ardy_target", "ardy_valid")
+            for key in (
+                "history_valid",
+                "ardy_target",
+                "ardy_valid",
+                "motion_target",
+                "motion_valid",
+            )
             if key in batch
         }
         result = self.native.prepare_inputs(batch, processor, device, policy)
@@ -143,8 +153,12 @@ class RHSCITrainingBackend:
             # 验证仍复用官方数据序列，仅让 collator 保留辅助标签。
             loader.collate_fn = RHSCICollator()
             for meta in loader.dataset.metas.values():
-                if self.variant == "VGQ-AE":
+                if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
                     meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
+                    meta.update(
+                        rsci_variant=self.variant,
+                        rsci_ardy_delta_frames=self.motion_config["ardy_delta_frames"],
+                    )
                 elif meta["normalization_contract"] != "quantile_q01_q99_v1":
                     meta["handler"] = "lambda0.rhsci.data:SafePsiSimpleHandler"
             return loader
@@ -155,8 +169,12 @@ class RHSCITrainingBackend:
         }
         reader = InfiniteDataReader(**keys)
         for meta in reader.metas.values():
-            if self.variant == "VGQ-AE":
+            if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
                 meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
+                meta.update(
+                    rsci_variant=self.variant,
+                    rsci_ardy_delta_frames=self.motion_config["ardy_delta_frames"],
+                )
             elif meta["normalization_contract"] != "quantile_q01_q99_v1":
                 meta["handler"] = "lambda0.rhsci.data:SafePsiSimpleHandler"
         return ResumableLoader(reader, kwargs["batch_size"], kwargs["num_workers"])

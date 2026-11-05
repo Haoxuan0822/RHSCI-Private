@@ -40,7 +40,7 @@ def validate_training_data(args, config):
         if sha256(dataset_root / name) != expected:
             raise ValueError(f"Dataset provenance changed: {name}")
     if (
-        args.variant == "VGQ-AE"
+        args.variant in ("VGQ-AE", "VGQ-AE-Mo")
         and sha256(paths["sidecar"] / "manifest.json") != provenance["sidecar_context"]
     ):
         raise ValueError("ARDY manifest changed")
@@ -50,8 +50,9 @@ def validate_training_data(args, config):
     )
     scan_frames, maximum, roundtrip = 0, 0.0, 0.0
     for meta in reader.metas.values():
-        if args.variant == "VGQ-AE":
+        if args.variant in ("VGQ-AE", "VGQ-AE-Mo"):
             meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
+            meta.update(rsci_variant=args.variant, rsci_ardy_delta_frames=getattr(args, "ardy_delta_frames", 2))
         elif meta["normalization_contract"] != "quantile_q01_q99_v1":
             meta["handler"] = "lambda0.rhsci.data:SafePsiSimpleHandler"
         handler = get_handler_cls(meta["handler"])(meta, reader.num_views)
@@ -84,7 +85,7 @@ def validate_training_data(args, config):
                 sample = reader._finalize_sample(meta["dataset_name"], sample)
                 batch = RHSCICollator()([sample])
                 assert batch["action"].shape[1] == 50
-                if args.variant == "VGQ-AE":
+                if args.variant in ("VGQ-AE", "VGQ-AE-Mo"):
                     assert (
                         not batch["proprio"].count_nonzero()
                         and not batch["proprio_valid_mask"].any()
@@ -152,10 +153,10 @@ def run_model_preflight(args, config, backend, settings, native_args):
     )
     batch = next(iter(loader))
     prepared = backend.prepare_inputs(batch, processor, torch.device("cpu"), model)
-    if args.variant == "VGQ-AE":
+    if args.variant in ("VGQ-AE", "VGQ-AE-Mo"):
         assert len(prepared["history"]) == 3 and not prepared["proprio_valid_mask"].any()
     reload_exact = None
-    if args.variant == "VGQ-AE":
+    if args.variant in ("VGQ-AE", "VGQ-AE-Mo"):
         # 不复制5GB基础权重：用只读symlink加新增模块小分片，验真实HF构造/严格回载。
         import tempfile
 

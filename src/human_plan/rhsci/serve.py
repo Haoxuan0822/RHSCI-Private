@@ -142,7 +142,13 @@ def main():
     base = Path(value["initialization"])
     if assets(base) != value["assets"]:
         raise ValueError("Frozen pretrained assets changed")
-    model, processor = load_native(base, vlm_training=value["vlm"], variant=value["model"])
+    model, processor = load_native(
+        base,
+        vlm_training=value["vlm"],
+        variant=value["model"],
+        ardy_delta_frames=value.get("ardy_delta_frames", 2),
+        motion_weight=value.get("motion_weight", 0.1),
+    )
     load_trainables(model, checkpoint)
     model.to("cuda" if torch.cuda.is_available() else "cpu").eval()
     print(f"EgoVLA VGQ-AE SIMPLE server {args.host}:{args.port}", flush=True)

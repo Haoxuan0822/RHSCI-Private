@@ -87,12 +87,29 @@ python3 scripts/train/baseline.py --backbone lambda0 --mode rhsci \
 
 λ₀ uses its native dependency imports and model loader; the environment lock and source manifest are reproducibility references, not runtime version gates. Its inner `--dry-run` resolves local configuration and assets without a full weight hash scan; `--check-model` additionally checks asset hashes when a source receipt is available. The common launcher's outer `--dry-run` remains command-only.
 
+## VGQ-AE-Mo
+
+Select `--model VGQ-AE-Mo` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant VGQ-AE-Mo`. Start a separate output directory for this method. Existing VGQ-AE commands retain their original behavior.
+
+VGQ-AE-Mo keeps the four visual frames `[-6, -4, -2, 0]`, Reader, shared Action Expert and current ARDY supervision. Two independent LayerNorm/Linear heads read the same auxiliary Query output: one predicts `z(t)`, the other predicts `z(t) - z(t - Δ)`. The Query and Action Expert are not duplicated. Inference uses the current RGB and language through the existing action path, without either auxiliary head.
+
+`--ardy-delta-frames` sets Δ (default `2`, or 40 ms at 50 Hz); `--motion-weight` sets the difference MSE weight (default `0.1`). The loss is `L_action + 0.1 L_ARDY + motion_weight L_motion`; Ψ0 retains its configurable current-ARDY weight. Differences use the existing 128-dimensional ARDY coordinates, without division by elapsed time or additional normalization. No teacher rerun or sidecar regeneration is required.
+
+Both labels must be valid and belong to the same episode. Missing history or an invalid endpoint masks only the difference loss, keeping the existing action/current-ARDY sample. With the standard six-frame ARDY history requirement and Δ=2, difference supervision starts at frame 8 (zero-based). Reader removal and future-current-target switches are unavailable for this method.
+
+For example, adapt the π0.5 command above with:
+
+```bash
+--model VGQ-AE-Mo --ardy-delta-frames 2 --motion-weight 0.1 \
+--output-dir /runs/pi05/my_task/VGQ-AE-Mo
+```
+
 ## Experimental switches
 
 | Training option | Backbones | Default | Effect |
 | --- | --- | --- | --- |
-| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
-| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
+| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION and VGQ-AE-Mo | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
+| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION and VGQ-AE-Mo | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
 

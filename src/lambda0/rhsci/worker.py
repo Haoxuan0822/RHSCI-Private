@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 from rhsci.runtime.environment import get_env
 
@@ -68,7 +69,7 @@ def execute_training(args: argparse.Namespace, config: LambdaTrainingConfig) -> 
         effective_state_conditioning_mode="discrete_vlm"
         if args.variant == "STATE"
         else "continuous_action_expert",
-        history_offsets=[-6, -4, -2, 0] if args.variant == "VGQ-AE" else [0],
+        history_offsets=[-6, -4, -2, 0] if args.variant in ("VGQ-AE", "VGQ-AE-Mo") else [0],
         normalization="rsci_q01_q99_degenerate_minmax_v1",
         initialization_weight_source="raw",
         inference="current-frame only; native Lambda0 generation; no Reader/Query",
@@ -76,6 +77,7 @@ def execute_training(args: argparse.Namespace, config: LambdaTrainingConfig) -> 
     from .optimization import effective_arguments, native_arguments
 
     resolved["native_training"] = effective_arguments(resolved["training"], args.variant)
+    resolved["rsci"].update(motion_config(args))
     if args.dry_run:
         print(json.dumps(resolved, indent=2))
         return
@@ -97,10 +99,11 @@ def execute_training(args: argparse.Namespace, config: LambdaTrainingConfig) -> 
             for p in sorted(Path(config["data"]).rglob("*.json"))
         },
     )
+    signature.update(motion_config(args))
     signature = reuse_run_contract(signature, config["output"], "rsci_run.json")
     identity = compute_contract_digest(signature)
     contract = dict(schema=CONTRACT, identity=identity, variant=args.variant)
-    backend = RHSCITrainingBackend(engine, args.variant, contract)
+    backend = RHSCITrainingBackend(engine, args.variant, contract, **motion_config(args))
     settings = resolved["training"]
     native_args = native_arguments(settings)
     if args.check_model:

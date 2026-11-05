@@ -15,12 +15,20 @@ OFFSETS = np.array([-6, -4, -2, 0], dtype=np.int64)
 
 class SimpleDataset(Dataset):
     def __init__(
-        self, root, sidecar, processor=None, variant="VGQ-AE", *, cache=InputCacheConfig()
+        self,
+        root,
+        sidecar,
+        processor=None,
+        variant="VGQ-AE",
+        *,
+        cache=InputCacheConfig(),
+        ardy_delta_frames=2,
     ):
         from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
 
         self.root, self.processor = Path(root), processor
         self.variant = variant
+        self.ardy_delta_frames = ardy_delta_frames
         self.info = json.loads((self.root / "meta/info.json").read_text())
         self.episodes = [
             json.loads(line)
@@ -130,6 +138,13 @@ class SimpleDataset(Dataset):
             target.ardy_loss_mask and not np.isfinite(target.ardy_body_latent).all()
         ):
             raise ValueError("Invalid formal ARDY target")
+        if self.variant == "VGQ-AE-Mo":
+            from rhsci.data.ardy_motion import ardy_motion_target
+
+            motion, valid = ardy_motion_target(
+                self.reader, episode_id, frame, self.ardy_delta_frames
+            )
+            sample.update(motion_target=motion, motion_valid=valid)
         return dict(
             sample,
             history_valid=requested >= 0,

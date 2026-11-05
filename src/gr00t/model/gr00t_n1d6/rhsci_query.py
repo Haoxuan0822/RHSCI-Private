@@ -8,7 +8,7 @@ from rhsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 
 class VisualStateQuery(nn.Module):
-    def __init__(self, memory_dim, query_dim, output_dim):
+    def __init__(self, memory_dim, query_dim, output_dim, *, motion=False):
         super().__init__()
         self.query = nn.Parameter(torch.randn(1, 1, query_dim) / math.sqrt(query_dim))
         # 图像/语言各8个Reader，保留GR00T交替cross-attention语义，总数仍为每帧16。
@@ -16,6 +16,8 @@ class VisualStateQuery(nn.Module):
         self.reader = nn.MultiheadAttention(memory_dim, math.gcd(memory_dim, 8), batch_first=True)
         self.time_embedding = nn.Parameter(torch.randn(4, memory_dim) / math.sqrt(memory_dim))
         self.ardy_head = nn.Sequential(nn.LayerNorm(output_dim), nn.Linear(output_dim, 128))
+        if motion:
+            self.motion_head = nn.Sequential(nn.LayerNorm(output_dim), nn.Linear(output_dim, 128))
 
     @torch.no_grad()
     def reset_parameters(self):
@@ -27,6 +29,9 @@ class VisualStateQuery(nn.Module):
         self.reader._reset_parameters()
         for layer in self.ardy_head:
             layer.reset_parameters()
+        if hasattr(self, "motion_head"):
+            for layer in self.motion_head:
+                layer.reset_parameters()
 
     def memory(self, frames, valid):
         if len(frames) != 4 or valid.shape != (frames[0]["backbone_features"].shape[0], 4):
@@ -67,7 +72,11 @@ class VisualStateQuery(nn.Module):
                      encoder_attention_mask=mask, image_mask=image_mask,
                      backbone_attention_mask=mask,
                      timestep=torch.zeros(memory.shape[0], device=memory.device, dtype=torch.long))
-        return self.ardy_head(result[:, 0]).float()
+        latent = result[:, 0]
+        prediction = self.ardy_head(latent).float()
+        if hasattr(self, "motion_head"):
+            return prediction, self.motion_head(latent).float()
+        return prediction
 
 
 class FullMemoryQuery(VisualStateQuery):

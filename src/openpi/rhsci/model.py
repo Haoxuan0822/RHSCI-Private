@@ -9,6 +9,7 @@ from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 from transformers.models.gemma import modeling_gemma
 
+from rhsci.data.ardy_motion import validate_motion_config
 from rhsci.runtime.losses import masked_auxiliary_loss
 
 from .augmentation import AUGMENTATION_VERSION, augment_training_images
@@ -59,12 +60,14 @@ class Pi05RHSCI(nn.Module):
         ae_width=1024,
         compile_inference=True,
         execution="reference",
+        ardy_delta_frames=2,
+        motion_weight=0.1,
     ):
         super().__init__()
         if execution not in ("reference", "history", "query", "both"):
             raise ValueError(f"Unknown execution profile: {execution}")
         self.execution = execution
-        if variant not in ("STATE", "NO-STATE", "VGQ-AE"):
+        if variant not in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
             raise ValueError(variant)
         if backbone is None:
             from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
@@ -86,6 +89,8 @@ class Pi05RHSCI(nn.Module):
         self.time_mlp_in = nn.Linear(ae_width, ae_width)
         self.time_mlp_out = nn.Linear(ae_width, ae_width)
         self.variant = variant
+        validate_motion_config(ardy_delta_frames, motion_weight)
+        self.motion_weight = motion_weight
         self.rsci_config = dict(
             variant=variant,
             horizon=30,
@@ -99,12 +104,17 @@ class Pi05RHSCI(nn.Module):
             inference_compile="max-autotune" if compile_inference else "disabled",
             execution=execution,
         )
-        if variant != "VGQ-AE":
+        if variant not in ("VGQ-AE", "VGQ-AE-Mo"):
             self.rsci_config.update(history=[0], ardy_weight=0.0, reader=None)
-        if variant == "VGQ-AE":
+        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
             self.reader = Reader(vlm_width, ae_width)
             self.query = nn.Parameter(torch.randn(1, 1, ae_width) / ae_width**0.5)
             self.ardy_head = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
+        if variant == "VGQ-AE-Mo":
+            self.motion_head = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
+            self.rsci_config.update(
+                ardy_delta_frames=ardy_delta_frames, motion_weight=motion_weight
+            )
         backbone.paligemma.requires_grad_(False).eval()
         # 两个 lm_head 都不参与动作，移除可避免无用词表权重及共享张量保存问题。
         backbone.paligemma.lm_head = nn.Identity()
@@ -226,9 +236,11 @@ class Pi05RHSCI(nn.Module):
         history_valid=None,
         ardy_target=None,
         ardy_valid=None,
+        motion_target=None,
+        motion_valid=None,
     ):
         if actions.shape[1:] != (30, 36) or images.shape[1] != (
-            4 if self.variant == "VGQ-AE" else 1
+            4 if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else 1
         ):
             raise ValueError("Expected 30×36 actions and recipe-specific image count")
         if self.training:
@@ -248,7 +260,7 @@ class Pi05RHSCI(nn.Module):
         action_loss = (predicted - (noise - actions)).square().mean()
         loss = action_loss
         output = dict(action_loss=action_loss.detach())
-        if self.variant == "VGQ-AE":
+        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
             if images.shape[1] != 4 or history_valid is None or not history_valid[:, -1].all():
                 raise ValueError("VGQ-AE requires chronological four-frame input")
             frames = self.encode_history(images[:, :3], tokens, token_mask)
@@ -265,6 +277,12 @@ class Pi05RHSCI(nn.Module):
             auxiliary = masked_auxiliary_loss(prediction, ardy_target, ardy_valid)
             loss = loss + 0.1 * auxiliary
             output["ardy_loss"] = auxiliary.detach()
+            if self.variant == "VGQ-AE-Mo":
+                motion_loss = masked_auxiliary_loss(
+                    self.motion_head(latent.float()), motion_target, motion_valid
+                )
+                loss = loss + self.motion_weight * motion_loss
+                output["motion_loss"] = motion_loss.detach()
         return dict(loss=loss, **output)
 
     @torch.no_grad()
@@ -325,7 +343,8 @@ class Pi05RHSCI(nn.Module):
                 state[name] = new
         missing, unexpected = self.load_state_dict(state, strict=False)
         if unexpected or any(
-            not name.startswith(("reader.", "query", "ardy_head.")) for name in missing
+            not name.startswith(("reader.", "query", "ardy_head.", "motion_head."))
+            for name in missing
         ):
             raise ValueError(
                 f"Unexpected initialization keys: missing={missing}, unexpected={unexpected}"

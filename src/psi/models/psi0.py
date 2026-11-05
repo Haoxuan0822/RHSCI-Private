@@ -50,6 +50,7 @@ QWEN3VL_VARIANT = "Qwen/Qwen3-VL-2B-Instruct"
 class HumanFoundationModelOutput(BaseOutput):
     action: "torch.Tensor"  # noqa: F821
     ardy_prediction: Optional[torch.Tensor] = None
+    motion_prediction: Optional[torch.Tensor] = None
 
     def to_tuple(self):
         return (None, self.action)

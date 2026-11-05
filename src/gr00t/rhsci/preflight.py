@@ -46,6 +46,7 @@ def run_training_preflight(args, paths):
         paths["sidecar"],
         seed=args.seed,
         cache=paths["input_cache"],
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
     )
 
     # 起始无效历史及完整历史各一个真实样本，包含官方Eagle分词/图像处理。
@@ -56,7 +57,7 @@ def run_training_preflight(args, paths):
         processor.max_action_dim,
     ):
         raise ValueError("Invalid padded action shape")
-    if args.model == "VGQ-AE":
+    if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
         if (
             len(batch["rsci_history"]) != 3
             or batch["rsci_history_valid"][0].all()
@@ -84,13 +85,14 @@ def validate_training_data(args, paths):
         sidecar=paths["sidecar"],
         seed=args.seed,
         cache=paths["input_cache"],
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
     )
 
     # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
     indices = [6, 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1, 6]
     for index in indices:
         sample = dataset.raw_sample(index)
-        if args.model == "VGQ-AE":
+        if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
             frame = sample.metadata["frame_index"]
             if not np.array_equal(
                 sample.metadata["rsci_history_valid"], np.array([-6, -4, -2, 0]) + frame >= 0

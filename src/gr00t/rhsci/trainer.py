@@ -3,13 +3,12 @@
 
 def create_resume_trainer_class():
     """返回保留 epoch、采样顺序与数据消费位置的 Trainer 子类，不实例化模型。"""
-    from transformers import Trainer
-
     from rhsci.runtime.hf_resume import (
         isolate_worker_rng,
         tail_safe_training_loop,
         tail_safe_training_values,
     )
+    from transformers import Trainer
 
     class ResumeTrainer(Trainer):
         _inner_training_loop = tail_safe_training_loop(Trainer)
@@ -32,10 +31,9 @@ def create_trainer_class():
     """延迟导入骨干依赖并返回 Trainer 子类；此处不实例化 Trainer 或加载模型权重。
 
     装配原生分片优化器、采样恢复和数值门禁，不加载模型资产。"""
+    from rhsci.runtime.numerics import require_finite
     import torch
     import torch.distributed as dist
-
-    from rhsci.runtime.numerics import require_finite
 
     from .memory import ShardedOptimizerTrainerMixin
 
@@ -66,7 +64,7 @@ def create_trainer_class():
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
             output = model(**inputs)
             require_finite(
-                [output[key] for key in ("loss", "action_loss", "ardy_loss") if key in output],
+                [output[key] for key in ("loss", "action_loss", "ardy_loss", "motion_loss") if key in output],
                 self.args.output_dir,
                 self.state.global_step,
                 "loss",
@@ -81,6 +79,8 @@ def create_trainer_class():
                 }
                 if "ardy_loss" in output:
                     logs["ardy_loss"] = output["ardy_loss"].detach().float()
+                if "motion_loss" in output:
+                    logs["motion_loss"] = output["motion_loss"].detach().float()
                 values = torch.stack(list(logs.values()))
                 if dist.is_initialized():
                     dist.all_reduce(values)

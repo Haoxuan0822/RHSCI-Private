@@ -1,11 +1,13 @@
 """将现有SIMPLE新数据只读接入官方GR00T处理器，保留episode/frame身份。"""
 
+from collections import OrderedDict
 import json
 import os
-from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
+from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.sampling import EpochSampler as EpochSampler
 import torch
 from torch.utils.data import Dataset
 
@@ -18,8 +20,7 @@ from gr00t.data.types import (
     ModalityConfig,
     VLAStepData,
 )
-from rhsci.data.cache_config import InputCacheConfig
-from rhsci.data.sampling import EpochSampler as EpochSampler
+
 
 TAG = EmbodimentTag.G1_LOCO_DOWNSTREAM
 
@@ -43,7 +44,9 @@ def modality(variant, *, training=True):
     return {
         TAG.value: {
             "video": ModalityConfig(
-                delta_indices=OFFSETS.tolist() if training and variant == "VGQ-AE" else [0],
+                delta_indices=OFFSETS.tolist()
+                if training and variant in ("VGQ-AE", "VGQ-AE-Mo")
+                else [0],
                 modality_keys=["rs_view"],
             ),
             "state": ModalityConfig(
@@ -87,10 +90,19 @@ class SimpleRHSCIDataset(Dataset):
     """map-style避免原生随机shard丢失身份，并允许Trainer按同一seed恢复采样进度。"""
 
     def __init__(
-        self, root, variant, processor=None, sidecar=None, seed=292285, *, cache=InputCacheConfig()
+        self,
+        root,
+        variant,
+        processor=None,
+        sidecar=None,
+        seed=292285,
+        *,
+        cache=InputCacheConfig(),
+        ardy_delta_frames=2,
     ):
         self.root, self.variant, self.processor = Path(root), variant, processor
         self.seed = seed
+        self.ardy_delta_frames = ardy_delta_frames
         self.info = json.loads((self.root / "meta/info.json").read_text())
         if self.info["fps"] != 50:
             raise ValueError("RSCI history offsets require 50Hz data")
@@ -115,7 +127,7 @@ class SimpleRHSCIDataset(Dataset):
         # 沿用GR00T SIMPLE有效action horizon16；所有组使用完全相同的采样集合。
         self.ends = np.cumsum([max(0, e["length"] - 15) for e in self.episodes])
         self.reader = None
-        if variant == "VGQ-AE":
+        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -205,7 +217,7 @@ class SimpleRHSCIDataset(Dataset):
         episode = self.episodes[slot]
         episode_id = episode["episode_index"]
         table = self._table(episode)
-        offsets = OFFSETS if self.variant == "VGQ-AE" else np.array([0])
+        offsets = OFFSETS if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else np.array([0])
         requested = frame + offsets
         clipped = np.maximum(requested, 0)
         from torchcodec.decoders import VideoDecoder
@@ -258,6 +270,13 @@ class SimpleRHSCIDataset(Dataset):
                 rsci_ardy_target=target.ardy_body_latent,
                 rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
             )
+        if self.variant == "VGQ-AE-Mo":
+            from rhsci.data.ardy_motion import ardy_motion_target
+
+            motion, valid = ardy_motion_target(
+                self.reader, episode_id, frame, self.ardy_delta_frames
+            )
+            metadata.update(rsci_motion_target=motion, rsci_motion_valid=np.bool_(valid))
         return VLAStepData(
             images={"rs_view": list(images)},
             states=states,

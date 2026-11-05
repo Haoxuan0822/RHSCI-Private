@@ -6,6 +6,7 @@ import os
 import re
 from pathlib import Path
 
+from rhsci.data.ardy_motion import add_motion_arguments, motion_config
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
 from rhsci.paths import CheckpointTrainingPaths, add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
@@ -15,9 +16,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
+    add_motion_arguments(argument_parser)
     add_input_cache_arguments(argument_parser, env_var="RHSCI_INPUT_CACHE")
     argument_parser.add_argument("--task", required=True)
-    argument_parser.add_argument("--model", choices=("VGQ-AE", "STATE"), default="VGQ-AE")
+    argument_parser.add_argument("--model", choices=("VGQ-AE", "VGQ-AE-Mo", "STATE"), default="VGQ-AE")
     argument_parser.add_argument(
         "--vlm-training",
         choices=("full", "frozen"),
@@ -58,6 +60,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def resolve_training_paths(args: argparse.Namespace) -> CheckpointTrainingPaths:
     """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
+    motion_config(args)
     if args.preset == "simple-115epoch":
         if args.max_steps is not None or args.num_train_epochs not in (None, 115):
             raise ValueError("simple-115epoch requires 115 epochs, without --max-steps")

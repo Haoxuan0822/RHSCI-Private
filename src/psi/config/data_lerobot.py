@@ -11,6 +11,7 @@ class LerobotDataConfig(DataConfig):
     root_dir: str
     rsci_ardy_sidecar_root: str | None = None
     rsci_ardy_offset_frames: int = Field(default=0, ge=0, strict=True)
+    rsci_ardy_delta_frames: int = Field(default=2, gt=0, strict=True)
     rgb_frame_cache_root: str | None = None
     train_repo_ids: List[str] = Field(default_factory=list)
     val_repo_ids: List[str] = Field(default_factory=list)

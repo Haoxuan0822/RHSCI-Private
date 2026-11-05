@@ -239,11 +239,11 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 | Backbone | RHSCI variants implemented | Guide |
 | --- | --- | --- |
-| PSI0 | STATE, NO-STATE, VGQ-AE, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM*, STATE-RECONSTRUCTION | [PSI0](baselines/psi0/README.md) |
-| π0.5 | STATE, NO-STATE, VGQ-AE | [π0.5](baselines/pi05/README.md) |
-| GR00T | STATE, NO-STATE, VGQ-AE | [GR00T](baselines/gr00t/README.md) |
-| EgoVLA | STATE, VGQ-AE | [EgoVLA](baselines/egovla/README.md) |
-| λ₀ | STATE, VGQ-AE | [λ₀](baselines/lambda0/README.md) |
+| PSI0 | STATE, NO-STATE, VGQ-AE, VGQ-AE-Mo, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM*, STATE-RECONSTRUCTION | [PSI0](baselines/psi0/README.md) |
+| π0.5 | STATE, NO-STATE, VGQ-AE, VGQ-AE-Mo | [π0.5](baselines/pi05/README.md) |
+| GR00T | STATE, NO-STATE, VGQ-AE, VGQ-AE-Mo | [GR00T](baselines/gr00t/README.md) |
+| EgoVLA | STATE, VGQ-AE, VGQ-AE-Mo | [EgoVLA](baselines/egovla/README.md) |
+| λ₀ | STATE, VGQ-AE, VGQ-AE-Mo | [λ₀](baselines/lambda0/README.md) |
 | ACT | STATE, NO-STATE, EGQ-AE; native training also available | [ACT](baselines/act/README.md) |
 | Diffusion Policy | Native training entry; no RHSCI adapter | [DP](baselines/dp/README.md) |
 | InternVLA-M1 | Native training entry; no RHSCI adapter | [InternVLA-M1](baselines/internvla-m1/README.md) |

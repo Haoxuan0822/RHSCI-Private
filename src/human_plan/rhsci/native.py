@@ -3,7 +3,9 @@
 from pathlib import Path
 
 
-def load_native(root, vlm_training="full", variant="VGQ-AE"):
+def load_native(
+    root, vlm_training="full", variant="VGQ-AE", *, ardy_delta_frames=2, motion_weight=0.1
+):
     import torch
     from llava.model import LlavaLlamaConfig, LlavaLlamaModel
     from llava.train.utils import prepare_config_for_training, vision_resolution_elevation
@@ -92,4 +94,10 @@ def load_native(root, vlm_training="full", variant="VGQ-AE"):
     backbone.llm.config.tokenizer_model_max_length = 4096
     processor = Processor(tokenizer, backbone.get_vision_tower().image_processor)
     processor.configure(config)
-    return EgoVLARHSCI(backbone, vlm_training=vlm_training, variant=variant), processor
+    return EgoVLARHSCI(
+        backbone,
+        vlm_training=vlm_training,
+        variant=variant,
+        ardy_delta_frames=ardy_delta_frames,
+        motion_weight=motion_weight,
+    ), processor

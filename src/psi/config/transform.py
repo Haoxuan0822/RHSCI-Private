@@ -407,6 +407,9 @@ class SimpleRepackTransform(LerobotRepackTransform):
             auxiliary["history_valid"] = ~np.asarray(data[image_key + "_is_pad"], dtype=bool)
             auxiliary["ardy_target"] = np.asarray(data["ardy_target"], dtype=np.float32)
             auxiliary["ardy_valid"] = bool(data["ardy_valid"]) and bool(auxiliary["history_valid"].all())
+            if self.rsci_variant == "VGQ-AE-Mo":
+                auxiliary["motion_target"] = np.asarray(data["motion_target"], dtype=np.float32)
+                auxiliary["motion_valid"] = bool(data["motion_valid"]) and auxiliary["ardy_valid"]
             data[image_key] = images[-1]
 
 
@@ -928,7 +931,7 @@ class Psi0ModelTransform(ModelTransform):
 
 
         for key in ("history_rgb_images", "history_valid", "ardy_target",
-                    "ardy_valid"):
+                    "ardy_valid", "motion_target", "motion_valid"):
             if key in data:
 
                 inputs[key] = history_rgb if key == "history_rgb_images" else data[key]

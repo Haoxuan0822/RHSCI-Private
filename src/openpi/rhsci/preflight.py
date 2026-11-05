@@ -41,11 +41,12 @@ def run_training_preflight(args, paths):
         processor,
         paths["sidecar"],
         cache=paths["input_cache"],
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
     )
 
     for index in (0, 6, int(dataset.ends[0]) - 1, int(dataset.ends[0]), 6):
         sample = dataset.raw_sample(index)
-        if args.model == "VGQ-AE":
+        if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
             np.testing.assert_array_equal(
                 sample["rsci_history_valid"], np.array([-6, -4, -2, 0]) + sample["frame_index"] >= 0
             )

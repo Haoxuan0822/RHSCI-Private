@@ -3,6 +3,7 @@
 import torch
 from torch import nn
 
+from rhsci.data.ardy_motion import validate_motion_config
 from rhsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 
@@ -58,12 +59,21 @@ def decode_latents(decoder, latents, memory, mask):
 
 
 class EgoVLARHSCI(nn.Module):
-    def __init__(self, backbone, vlm_training="full", variant="VGQ-AE"):
+    def __init__(
+        self,
+        backbone,
+        vlm_training="full",
+        variant="VGQ-AE",
+        ardy_delta_frames=2,
+        motion_weight=0.1,
+    ):
         super().__init__()
+        validate_motion_config(ardy_delta_frames, motion_weight)
+        self.motion_weight = motion_weight
         if vlm_training not in ("full", "frozen"):
             raise ValueError("VLM training must be full or frozen")
         self.vlm_training = vlm_training
-        if variant not in ("VGQ-AE", "STATE"):
+        if variant not in ("VGQ-AE", "VGQ-AE-Mo", "STATE"):
             raise ValueError("Unknown model variant")
         self.variant = variant
         self.backbone = backbone
@@ -91,13 +101,15 @@ class EgoVLARHSCI(nn.Module):
         for key in ("tune_language_model", "tune_vision_tower", "tune_mm_projector"):
             setattr(config, key, vlm_training == "full")
         width = config.hidden_size
-        if variant == "VGQ-AE":
+        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
             self.reader = Reader(width)
             self.query = nn.Parameter(torch.randn(1, 1, width) / width**0.5)
             self.ardy_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
+        if variant == "VGQ-AE-Mo":
+            self.motion_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
         self.rsci_config = dict(
             schema="egovla-vgq-ae-v1",
-            variant="VGQ-AE",
+            variant=variant,
             vlm=vlm_training,
             history=[-6, -4, -2, 0],
             horizon=30,
@@ -114,6 +126,10 @@ class EgoVLARHSCI(nn.Module):
         if variant == "STATE":
             self.rsci_config.update(
                 variant="STATE", history=[0], ardy_weight=0.0, reader=None, state_dim=32
+            )
+        if variant == "VGQ-AE-Mo":
+            self.rsci_config.update(
+                ardy_delta_frames=ardy_delta_frames, motion_weight=motion_weight
             )
         # VLM保留官方加载的BF16（全量训练也不强制扩成FP32）；AE/辅助参数沿用FP32。
         for parameter in self.decoder.parameters():
@@ -216,6 +232,8 @@ class EgoVLARHSCI(nn.Module):
         ardy_target=None,
         ardy_valid=None,
         states=None,
+        motion_target=None,
+        motion_valid=None,
     ):
         if (
             images.shape[1] != (1 if self.variant == "STATE" else 4)
@@ -223,11 +241,11 @@ class EgoVLARHSCI(nn.Module):
             or action_mask.shape != actions.shape
         ):
             raise ValueError("Expected chronological four frames and 30×36 actions/mask")
-        if self.variant == "VGQ-AE" and (
+        if self.variant in ("VGQ-AE", "VGQ-AE-Mo") and (
             history_valid.shape != images.shape[:2] or not history_valid[:, -1].all()
         ):
             raise ValueError("Current image must be valid")
-        if self.variant == "VGQ-AE" and states is not None:
+        if self.variant in ("VGQ-AE", "VGQ-AE-Mo") and states is not None:
             raise ValueError("VGQ-AE must not receive state")
         current = self.encode(images[:, -1], input_ids, labels, attention_mask)
         prediction = self.action_prediction(current, states)
@@ -246,11 +264,18 @@ class EgoVLARHSCI(nn.Module):
             self.decoder, self.query.expand(images.shape[0], -1, -1), memory, mask
         )[:, 0]
         ardy_loss = masked_ardy_loss(self.ardy_head(latent.float()), ardy_target, ardy_valid)
-        return dict(
+        output = dict(
             loss=action_loss + 0.1 * ardy_loss,
             action_loss=action_loss.detach(),
             ardy_loss=ardy_loss.detach(),
         )
+        if self.variant == "VGQ-AE-Mo":
+            motion_loss = masked_ardy_loss(
+                self.motion_head(latent.float()), motion_target, motion_valid
+            )
+            output["loss"] = output["loss"] + self.motion_weight * motion_loss
+            output["motion_loss"] = motion_loss.detach()
+        return output
 
     @torch.no_grad()
     def sample_actions(self, images, input_ids, labels, attention_mask, states=None):

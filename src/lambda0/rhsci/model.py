@@ -42,7 +42,7 @@ class Lambda0RHSCI(Lambda0):
 
     def __init__(self, config, vlm=None):
         super().__init__(config, vlm=vlm)
-        if getattr(config, "rsci_variant", "STATE") == "VGQ-AE":
+        if getattr(config, "rsci_variant", "STATE") in ("VGQ-AE", "VGQ-AE-Mo"):
             self.install_auxiliary()
 
     def install_auxiliary(self):
@@ -52,10 +52,19 @@ class Lambda0RHSCI(Lambda0):
         self.rsci_reader = HistoryReader(width)
         self.rsci_query = nn.Parameter(torch.randn(1, 1, ae_width) * 0.02)
         self.rsci_ardy = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
+        if self.config.rsci_variant == "VGQ-AE-Mo":
+            from rhsci.data.ardy_motion import validate_motion_config
+
+            validate_motion_config(
+                self.config.rsci_ardy_delta_frames, self.config.rsci_motion_weight
+            )
+            self.rsci_motion = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
         # 新模块继承官方权重的设备/精度，不改变已有 VLM/AE 参数。
         reference = next(self.action_expert.parameters())
         self.rsci_reader.to(device=reference.device, dtype=reference.dtype)
         self.rsci_ardy.to(device=reference.device, dtype=reference.dtype)
+        if hasattr(self, "rsci_motion"):
+            self.rsci_motion.to(device=reference.device, dtype=reference.dtype)
         self.rsci_query.data = self.rsci_query.data.to(
             device=reference.device, dtype=reference.dtype
         )
@@ -92,27 +101,50 @@ class Lambda0RHSCI(Lambda0):
             else:
                 tokens = block(tokens, allowed)
             query = tokens[:, -1:]
-        return self.rsci_ardy(expert.output_norm(query)[:, 0])
+        latent = expert.output_norm(query)[:, 0]
+        prediction = self.rsci_ardy(latent)
+        if self.config.rsci_variant == "VGQ-AE-Mo":
+            return prediction, self.rsci_motion(latent)
+        return prediction
 
     def forward(
-        self, *args, history=None, history_valid=None, ardy_target=None, ardy_valid=None, **kwargs
+        self,
+        *args,
+        history=None,
+        history_valid=None,
+        ardy_target=None,
+        ardy_valid=None,
+        motion_target=None,
+        motion_valid=None,
+        **kwargs,
     ):
         variant = getattr(self.config, "rsci_variant", "STATE")
-        self._rsci_capture = variant == "VGQ-AE"
+        self._rsci_capture = variant in ("VGQ-AE", "VGQ-AE-Mo")
         try:
             losses = super().forward(*args, **kwargs)
-            if variant == "VGQ-AE":
+            if variant in ("VGQ-AE", "VGQ-AE-Mo"):
                 if history is None or len(history) != 3:
                     raise ValueError("VGQ-AE requires three historical frames plus current")
                 prediction = self.auxiliary(
                     self._rsci_current, history, history_valid, kwargs["embodiment_id"]
                 )
+                if variant == "VGQ-AE-Mo":
+                    prediction, motion_prediction = prediction
                 auxiliary_loss = masked_ardy_loss(
                     prediction, ardy_target, ardy_valid, global_reduction=self.training
                 )
                 # 官方训练器只接受其原生 metric key；总 loss 包含辅助项，独立值留给验收/调试。
                 self.last_ardy_loss = auxiliary_loss.detach()
                 losses["loss"] = losses["loss"] + 0.1 * auxiliary_loss
+                if variant == "VGQ-AE-Mo":
+                    motion_loss = masked_ardy_loss(
+                        motion_prediction,
+                        motion_target,
+                        motion_valid,
+                        global_reduction=self.training,
+                    )
+                    self.last_motion_loss = motion_loss.detach()
+                    losses["loss"] = losses["loss"] + self.config.rsci_motion_weight * motion_loss
             if self.training:
                 from .runtime import check_finite
 

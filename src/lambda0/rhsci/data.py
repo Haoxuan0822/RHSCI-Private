@@ -42,6 +42,11 @@ class SafePsiSimpleHandler(PsiSimpleHandler):
 class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
     def __init__(self, meta, num_views):
         super().__init__(meta, num_views)
+        self.motion_delta = (
+            meta.get("rsci_ardy_delta_frames", 2)
+            if meta.get("rsci_variant") == "VGQ-AE-Mo"
+            else None
+        )
         if self.fps != 50:
             raise ValueError("RHSCI history requires exactly 50Hz")
         from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
@@ -89,6 +94,13 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
             ardy_valid=torch.tensor(bool(target.ardy_loss_mask)),
         )
         # 不让真实 state 经 processor 文本或连续 AE 路径进入 VGQ-AE。
+        if self.motion_delta is not None:
+            from rhsci.data.ardy_motion import ardy_motion_target
+
+            motion, valid = ardy_motion_target(
+                self.reader, int(item["episode_index"]), index, self.motion_delta
+            )
+            sample.update(motion_target=torch.from_numpy(motion), motion_valid=torch.tensor(valid))
         sample["proprio"].zero_()
         sample["proprio_valid_mask"].zero_()
         return sample
@@ -97,7 +109,14 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
 class RHSCICollator(HeterogeneousActionCollator):
     def __call__(self, samples):
         batch = super().__call__(samples)
-        for key in ("history", "history_valid", "ardy_target", "ardy_valid"):
+        for key in (
+            "history",
+            "history_valid",
+            "ardy_target",
+            "ardy_valid",
+            "motion_target",
+            "motion_valid",
+        ):
             if key in samples[0]:
                 batch[key] = torch.stack([sample[key] for sample in samples])
         return batch

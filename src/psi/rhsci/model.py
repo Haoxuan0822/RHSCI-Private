@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from rhsci.runtime.losses import masked_auxiliary_loss as masked_auxiliary_loss
 
-VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
+VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
 @dataclass(frozen=True)
@@ -105,6 +105,8 @@ class RHSCIQuery(nn.Module):
         self.encoder_projection = nn.Linear(384, width) if spec.encoder_guided else None
         self.ardy_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
         self.register_buffer("schema_version", torch.tensor(1 if use_reader else 2))
+        if spec.name == "VGQ-AE-Mo":
+            self.motion_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
 
     def memory(self, frames, masks, valid):
         if len(frames) != 4 or len(masks) != 4 or valid.shape != (frames[0].shape[0], 4):
@@ -420,7 +422,7 @@ class RHSCIPolicyMixin:
                 output_hidden_states=True,
                 return_dict=True,
             ).hidden_states[-1]
-        prediction = None
+        prediction = motion_prediction = None
         if self.rsci_spec.query and (compute_rsci_aux or self.rsci_spec.forward_latent):
             latent = self._rhsci_query_latent(
                 current,
@@ -431,6 +433,8 @@ class RHSCIPolicyMixin:
             )
             if compute_rsci_aux:
                 prediction = self.action_header.rsci.ardy_head(latent[:, 0])
+                if self.rsci_method == "VGQ-AE-Mo":
+                    motion_prediction = self.action_header.rsci.motion_head(latent[:, 0])
             if self.rsci_spec.forward_latent:
                 current = torch.cat((current, latent), 1)
                 attention_mask = torch.cat(
@@ -448,4 +452,6 @@ class RHSCIPolicyMixin:
             vlm_attn_mask=attention_mask,
             return_dict=return_dict,
         )
-        return HumanFoundationModelOutput(action=output.action, ardy_prediction=prediction)
+        return HumanFoundationModelOutput(
+            action=output.action, ardy_prediction=prediction, motion_prediction=motion_prediction
+        )

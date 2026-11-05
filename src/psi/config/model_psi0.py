@@ -23,7 +23,7 @@ class Psi0ModelConfig(ModelConfig):
     n_cams: int = 1
     use_obs: str = "add_token"
     # RHSCI 用方案名选择结构；LoRA 是独立的实验消融轴。
-    rsci_variant: Optional[Literal["STATE", "NO-STATE", "VGQ-AE", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*", "STATE-RECONSTRUCTION"]] = None
+    rsci_variant: Optional[Literal["STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo", "EGQ-AE", "VGQ-VLM", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*", "STATE-RECONSTRUCTION"]] = None
     rsci_vlm_mode: Literal["frozen", "lora"] = "frozen"
     rsci_lora_rank: int = Field(default=8, gt=0)
     rsci_lora_alpha: float = Field(default=16, gt=0)
@@ -31,11 +31,14 @@ class Psi0ModelConfig(ModelConfig):
     rsci_execution: Literal["reference", "logits", "both"] = "reference"
 
     rsci_ardy_weight: float = Field(default=0.1, gt=0, allow_inf_nan=False)
+    rsci_motion_weight: float = Field(default=0.1, ge=0, allow_inf_nan=False)
     rsci_rgb_encoder_path: str | None = None
     rsci_encoder_input_size: int | tuple[int, int] = (196, 350)
 
     @model_validator(mode="after")
     def validate_rhsci(self):
+        if self.rsci_variant == "VGQ-AE-Mo" and not self.rsci_use_reader:
+            raise ValueError("VGQ-AE-Mo retains the VGQ-AE Reader")
         if self.rsci_execution != "reference" and self.rsci_variant != "VGQ-VLM":
             raise ValueError("Execution profiles require VGQ-VLM")
         if self.rsci_variant in ("VGQ-VLM", "STATE-RECONSTRUCTION") and self.noise_scheduler != "flow":

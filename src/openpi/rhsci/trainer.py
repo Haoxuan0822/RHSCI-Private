@@ -82,13 +82,13 @@ def create_trainer_class():
         def compute_loss(self, model, inputs, return_outputs=False, **kw):
             output = model(**inputs)
             require_finite(
-                [output[key] for key in ("loss", "action_loss", "ardy_loss") if key in output],
+                [output[key] for key in ("loss", "action_loss", "ardy_loss", "motion_loss") if key in output],
                 self.args.output_dir,
                 self.state.global_step,
                 "loss",
             )
             if self.state.global_step % 10 == 0:
-                keys = [key for key in ("action_loss", "ardy_loss") if key in output]
+                keys = [key for key in ("action_loss", "ardy_loss", "motion_loss") if key in output]
                 values = torch.stack([output[key].float() for key in keys])
                 if dist.is_initialized():
                     dist.all_reduce(values)

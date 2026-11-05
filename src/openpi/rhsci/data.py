@@ -31,8 +31,18 @@ STATE_KEYS = list(GROUPS)[:6]
 class SimpleRHSCIDataset(Dataset):
     """map-style避免原生随机shard丢失身份，并允许Trainer按同一seed恢复采样进度。"""
 
-    def __init__(self, root, variant, processor=None, sidecar=None, *, cache=InputCacheConfig()):
+    def __init__(
+        self,
+        root,
+        variant,
+        processor=None,
+        sidecar=None,
+        *,
+        cache=InputCacheConfig(),
+        ardy_delta_frames=2,
+    ):
         self.root, self.variant, self.processor = Path(root), variant, processor
+        self.ardy_delta_frames = ardy_delta_frames
         self.info = json.loads((self.root / "meta/info.json").read_text())
         if self.info["fps"] != 50:
             raise ValueError("RHSCI history offsets require 50Hz data")
@@ -57,7 +67,7 @@ class SimpleRHSCIDataset(Dataset):
         # 所有对照组使用同一有效30步动作窗口，不跨episode补动作。
         self.ends = np.cumsum([max(0, e["length"] - HORIZON + 1) for e in self.episodes])
         self.reader = None
-        if variant == "VGQ-AE":
+        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -134,7 +144,7 @@ class SimpleRHSCIDataset(Dataset):
         episode = self.episodes[slot]
         episode_id = episode["episode_index"]
         table = self._table(episode)
-        offsets = OFFSETS if self.variant == "VGQ-AE" else np.array([0])
+        offsets = OFFSETS if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else np.array([0])
         requested = frame + offsets
         clipped = np.maximum(requested, 0)
         video_path = self.path(episode, "video")
@@ -165,6 +175,13 @@ class SimpleRHSCIDataset(Dataset):
                 rsci_ardy_target=target.ardy_body_latent,
                 rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
             )
+        if self.variant == "VGQ-AE-Mo":
+            from rhsci.data.ardy_motion import ardy_motion_target
+
+            motion, valid = ardy_motion_target(
+                self.reader, episode_id, frame, self.ardy_delta_frames
+            )
+            metadata.update(rsci_motion_target=motion, rsci_motion_valid=np.bool_(valid))
         return dict(
             images=images,
             state=state[0] if self.variant == "STATE" else None,

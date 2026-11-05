@@ -20,6 +20,8 @@ def build_training_contract(cfg, ranks):
     data = cfg.model_dump(mode="json")
     # 新增默认字段不改变旧实验身份；显式新方法/执行仍完整绑定。
     data["model"] = canonical_model_config(data["model"])
+    if cfg.model.rsci_variant != "VGQ-AE-Mo":
+        data["data"].pop("rsci_ardy_delta_frames", None)
     train = dict(data["train"])
     for key in ("resume_from_checkpoint", "skip_resumed_steps"):
         train.pop(key, None)
@@ -39,6 +41,8 @@ def build_training_contract(cfg, ranks):
 def canonical_model_config(model):
     """兼容旧run缺省字段；不改写旧配置，不吞掉显式非默认选择。"""
     model = dict(model)
+    if model.get("rsci_variant") != "VGQ-AE-Mo":
+        model.pop("rsci_motion_weight", None)
     defaults = dict(rsci_execution="reference")
     for key, value in defaults.items():
         if model.get(key) == value:

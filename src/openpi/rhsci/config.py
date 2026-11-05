@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+from rhsci.data.ardy_motion import add_motion_arguments, motion_config
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
 from rhsci.paths import TrainingPaths, add_data_arguments, dataset_paths
 from rhsci.runtime.environment import get_env
@@ -19,6 +20,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
+    add_motion_arguments(argument_parser)
     add_input_cache_arguments(argument_parser, env_var="RHSCI_INPUT_CACHE")
     argument_parser.add_argument(
         "--nccl-library",
@@ -26,7 +28,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Optional alternate NCCL library; otherwise use the environment runtime",
     )
     argument_parser.add_argument(
-        "--model", choices=("STATE", "NO-STATE", "VGQ-AE"), default="VGQ-AE"
+        "--model", choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo"), default="VGQ-AE"
     )
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument("--vlm", choices=("frozen",), default="frozen")
@@ -60,6 +62,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def resolve_training_paths(args: argparse.Namespace) -> Pi05TrainingPaths:
     """校验 CLI 参数并补全默认值；返回数据、缓存及输出路径，保留各骨干的环境设置。"""
+    motion_config(args)
     import re
 
     if not re.fullmatch(r"\d+(,\d+)*", args.gpus) or len(set(args.gpus.split(","))) != len(

@@ -124,6 +124,7 @@ class FutureArdyTests(unittest.TestCase):
         wrapper = LeRobotDatasetWrapper.__new__(LeRobotDatasetWrapper)
         wrapper.base_dataset = copy.deepcopy(samples)
         wrapper.ardy_reader, wrapper.ardy_offset = reader(), 10
+        wrapper.motion_delta = None
         for index, original in enumerate(samples):
             actual = wrapper[index]
             for key, value in original.items():

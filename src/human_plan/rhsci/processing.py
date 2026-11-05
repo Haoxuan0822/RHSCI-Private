@@ -99,7 +99,7 @@ class Processor:
                 action_mask=prompt["raw_action_mask"].bool(),
                 states=torch.as_tensor(sample["states"], dtype=torch.float32),
             )
-        return dict(
+        result = dict(
             input_ids=prompt["input_ids"],
             labels=prompt["labels"],
             images=self.images(sample["images"]),
@@ -109,6 +109,12 @@ class Processor:
             ardy_target=torch.as_tensor(sample["ardy_target"], dtype=torch.float32),
             ardy_valid=torch.tensor(sample["ardy_valid"], dtype=torch.bool),
         )
+        if "motion_target" in sample:
+            result.update(
+                motion_target=torch.as_tensor(sample["motion_target"], dtype=torch.float32),
+                motion_valid=torch.tensor(sample["motion_valid"], dtype=torch.bool),
+            )
+        return result
 
     def inference(self, image, text):
         prompt = self.prompt(text)

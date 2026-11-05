@@ -1,5 +1,6 @@
 """pi05: 单个训练worker的装配与执行。"""
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.runtime.environment import get_env
 
 from .checkpoints import checkpoint_ok
@@ -25,6 +26,7 @@ def run_training_worker(args, paths, processor, dataset, digest):
     model = Pi05RHSCI(
         args.model,
         execution=args.execution,
+        **motion_config(args),
     )
     model.load_initial(paths["checkpoint"])
     world = len(args.gpus.split(","))

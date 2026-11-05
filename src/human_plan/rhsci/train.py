@@ -44,14 +44,14 @@ def main():
         )
         return
     if args.check_data:
-        check_data(paths, args.model)
+        check_data(paths, args.model, args.ardy_delta_frames)
         return
     manifest = assets(paths["checkpoint"], register=args.register_assets, verify=args.check)
     if args.register_assets:
         print("EGOVLA_ASSETS_REGISTERED; no training started")
         return
     if not args.worker:
-        check_data(paths, args.model)
+        check_data(paths, args.model, args.ardy_delta_frames)
     value = build_training_contract(args, paths, manifest)
     digest = compute_contract_digest(value)
     if args.check:

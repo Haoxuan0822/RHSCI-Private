@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from rhsci.data.ardy_motion import motion_config
+
 from .checkpoints import atomic_json, sha256
 
 
@@ -94,7 +96,7 @@ def assets(root, register=False, verify=False):
     return manifest
 
 
-def check_data(paths, variant="VGQ-AE"):
+def check_data(paths, variant="VGQ-AE", ardy_delta_frames=2):
     import numpy as np
 
     from .data import OFFSETS, SimpleDataset
@@ -104,16 +106,17 @@ def check_data(paths, variant="VGQ-AE"):
         paths["sidecar"],
         variant=variant,
         cache=paths["input_cache"],
+        ardy_delta_frames=ardy_delta_frames,
     )
 
     for index in (0, 6, int(dataset.ends[0]) - 1, int(dataset.ends[0])):
         sample = dataset.raw_sample(index)
-        if variant == "VGQ-AE":
+        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
             np.testing.assert_array_equal(
                 sample["history_valid"], OFFSETS + sample["frame_index"] >= 0
             )
         if sample["actions"].shape != (30, 36) or any(
-            "depth" in key or (variant == "VGQ-AE" and "state" in key) for key in sample
+            "depth" in key or (variant in ("VGQ-AE", "VGQ-AE-Mo") and "state" in key) for key in sample
         ):
             raise ValueError("Invalid action window or unexpected state/depth")
     print(
@@ -130,10 +133,10 @@ def validate_model_and_worker_preprocessing(args, paths):
     from .trainer import configure_vlm_execution
 
     model, processor = load_native(
-        paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model
+        paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model, **motion_config(args)
     )
     configure_vlm_execution(model, args)
-    dataset = check_data(paths, args.model)
+    dataset = check_data(paths, args.model, getattr(args, "ardy_delta_frames", 2))
     dataset.processor = processor
     batch = Collator(processor.tokenizer.pad_token_id)([dataset[0], dataset[6]])
     if batch["actions"].shape != (2, 30, 36):

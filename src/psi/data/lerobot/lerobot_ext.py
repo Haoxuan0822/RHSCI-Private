@@ -42,6 +42,11 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
         self.ardy_reader = None
         repack = data_cfg.transform.repack
         self.ardy_offset = getattr(data_cfg, "rsci_ardy_offset_frames", 0)
+        self.motion_delta = (
+            data_cfg.rsci_ardy_delta_frames if repack.rsci_variant == "VGQ-AE-Mo" else None
+        )
+        if self.motion_delta is not None and self.ardy_offset:
+            raise ValueError("VGQ-AE-Mo requires current ARDY supervision")
         if self.ardy_offset and getattr(repack, "rsci_variant", None) in (None, "STATE", "NO-STATE"):
             raise ValueError("Future ARDY requires an RHSCI Query variant")
         if getattr(repack, "rsci_variant", None) not in (None, "STATE", "NO-STATE"):
@@ -104,6 +109,13 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
             sample["ardy_target"], sample["ardy_valid"] = ardy_target_at_offset(
                 self.ardy_reader, int(sample["episode_index"]), int(sample["frame_index"]),
                 self.ardy_offset)
+            if self.motion_delta is not None:
+                from rhsci.data.ardy_motion import ardy_motion_target
+
+                sample["motion_target"], sample["motion_valid"] = ardy_motion_target(
+                    self.ardy_reader, int(sample["episode_index"]), int(sample["frame_index"]),
+                    self.motion_delta,
+                )
         return sample
 
     def __len__(self):

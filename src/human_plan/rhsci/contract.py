@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 
+from rhsci.data.ardy_motion import motion_config
 from rhsci.paths import CODE_ROOT as CODE_ROOT
 from rhsci.runtime.contracts import compute_contract_digest as compute_contract_digest
 from rhsci.runtime.contracts import reuse_run_contract
@@ -22,6 +23,7 @@ def build_training_contract(args, paths, manifest):
     return reuse_run_contract(
         dict(
             schema="egovla-vgq-ae-v1",
+            **motion_config(args),
             task=paths["task"],
             model=args.model,
             vlm=args.vlm_training,
@@ -29,7 +31,7 @@ def build_training_contract(args, paths, manifest):
             dataset_fingerprint=dataset_content_fingerprint(paths["dataset"]),
             input_cache=cache_identity(paths["dataset"], config=paths["input_cache"]),
             sidecar_manifest=sha256(paths["sidecar"] / "manifest.json")
-            if args.model == "VGQ-AE"
+            if args.model in ("VGQ-AE", "VGQ-AE-Mo")
             else None,
             initialization=str(paths["checkpoint"]),
             assets=manifest,
