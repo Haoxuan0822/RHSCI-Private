@@ -87,12 +87,38 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False):
                     check=True,
                     timeout=20,
                 )
-                # 不以利用率为准；服务加载/请求间歇可为0%，仅接用显存已释放的卡。
+                compute = subprocess.run(
+                    [
+                        "nvidia-smi",
+                        "--query-compute-apps=gpu_uuid",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=20,
+                )
+                identities = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=index,uuid", "--format=csv,noheader,nounits"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=20,
+                )
+                computing = set(compute.stdout.splitlines())
+                occupied = {
+                    int(index)
+                    for line in identities.stdout.splitlines()
+                    for index, uuid in [line.split(",")]
+                    if uuid.strip() in computing
+                }
+                # Isaac其他卡的渲染进程会在GPU0附带少量图形上下文；无计算进程且
+                # 仅有少量显存时允许接用，不能把这些上下文误判为一项活动评测。
                 available = {
                     int(index)
                     for line in result.stdout.splitlines()
                     for index, memory in [line.split(",")]
-                    if int(memory) < 1024 and int(index) in gpus
+                    if int(memory) < 4096 and int(index) in gpus and int(index) not in occupied
                 }
             for gpu in gpus:
                 if gpu in processes or gpu not in available or not pending:
