@@ -1,5 +1,6 @@
 """Durable half-hour evaluation checks; unchanged checks only write local state."""
 
+import ast
 import fcntl
 import json
 import os
@@ -238,9 +239,24 @@ def check_downloads():
                            total=records[relative]["size"], unchanged_since=since,
                            stalled=now-since > 3600))
     ready = [run_key(run) for run in runs if (PREPARATION / f"{run_key(run)}.json").exists()]
-    payload = dict(time=now, ready=ready, total=len(runs), active=active, preparation_pids=preparation_pids)
+    # 线程池会跳过失败项继续工作；父PID存活不能证明所有下载健康。
+    failures = {}
+    preparation_log = STATE / "legacy-preparation.log"
+    if preparation_log.exists():
+        for line in preparation_log.read_text().splitlines():
+            if line.startswith("PREPARATION_FAILED "):
+                failure = ast.literal_eval(line.split(" ", 1)[1])
+                failures[failure["run"]] = failure["error"]
+    active_files = {row["file"] for row in active}
+    failed = [dict(run=run_key(run), error=failures[run_key(run)],
+                   retry_downloading=any(record["rfilename"] in active_files for record in run["records"]))
+              for run in runs if run_key(run) in failures and run_key(run) not in ready]
+    payload = dict(time=now, ready=ready, total=len(runs), active=active,
+                   preparation_pids=preparation_pids, failed_unprepared=failed)
     path.write_text(json.dumps(payload, indent=2) + "\n")
-    if any(row["stalled"] for row in active) or (len(ready) < len(runs) and not preparation_pids):
+    if (any(row["stalled"] for row in active)
+            or any(not row["retry_downloading"] for row in failed)
+            or (len(ready) < len(runs) and not preparation_pids)):
         with (STATE / "errors.log").open("a") as log:
             log.write(f"{datetime.now(timezone.utc).isoformat()} Download needs repair; see download-progress.json\n")
 
