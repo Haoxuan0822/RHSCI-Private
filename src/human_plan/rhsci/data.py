@@ -22,7 +22,7 @@ class SimpleDataset(Dataset):
         variant="VGQ-AE",
         *,
         cache=InputCacheConfig(),
-        ardy_delta_frames=2,
+        ardy_delta_frames=6,
     ):
         from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
 

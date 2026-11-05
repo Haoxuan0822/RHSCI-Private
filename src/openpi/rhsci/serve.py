@@ -57,7 +57,7 @@ class Server:
         self.model = Pi05RHSCI(
             contract["model"],
             execution=contract.get("execution", "reference"),
-            ardy_delta_frames=saved.get("ardy_delta_frames", 2),
+            ardy_delta_frames=saved.get("ardy_delta_frames", 6),
             motion_weight=saved.get("motion_weight", 0.1),
         )
         index = checkpoint / "model.safetensors.index.json"

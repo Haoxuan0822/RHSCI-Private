@@ -60,7 +60,7 @@ class Pi05RHSCI(nn.Module):
         ae_width=1024,
         compile_inference=True,
         execution="reference",
-        ardy_delta_frames=2,
+        ardy_delta_frames=6,
         motion_weight=0.1,
     ):
         super().__init__()

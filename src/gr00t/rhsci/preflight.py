@@ -46,7 +46,7 @@ def run_training_preflight(args, paths):
         paths["sidecar"],
         seed=args.seed,
         cache=paths["input_cache"],
-        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
     # 起始无效历史及完整历史各一个真实样本，包含官方Eagle分词/图像处理。
@@ -85,7 +85,7 @@ def validate_training_data(args, paths):
         sidecar=paths["sidecar"],
         seed=args.seed,
         cache=paths["input_cache"],
-        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
     # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。

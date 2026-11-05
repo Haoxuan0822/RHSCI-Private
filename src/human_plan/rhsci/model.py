@@ -64,7 +64,7 @@ class EgoVLARHSCI(nn.Module):
         backbone,
         vlm_training="full",
         variant="VGQ-AE",
-        ardy_delta_frames=2,
+        ardy_delta_frames=6,
         motion_weight=0.1,
     ):
         super().__init__()

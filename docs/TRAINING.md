@@ -93,14 +93,14 @@ Select `--model VGQ-AE-Mo` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--varian
 
 VGQ-AE-Mo keeps the four visual frames `[-6, -4, -2, 0]`, Reader, shared Action Expert and current ARDY supervision. Two independent LayerNorm/Linear heads read the same auxiliary Query output: one predicts `z(t)`, the other predicts `z(t) - z(t - Δ)`. The Query and Action Expert are not duplicated. Inference uses the current RGB and language through the existing action path, without either auxiliary head.
 
-`--ardy-delta-frames` sets Δ (default `2`, or 40 ms at 50 Hz); `--motion-weight` sets the difference MSE weight (default `0.1`). The loss is `L_action + 0.1 L_ARDY + motion_weight L_motion`; Ψ0 retains its configurable current-ARDY weight. Differences use the existing 128-dimensional ARDY coordinates, without division by elapsed time or additional normalization. No teacher rerun or sidecar regeneration is required.
+`--ardy-delta-frames` sets Δ (default `6`, or 120 ms at 50 Hz); `--motion-weight` sets the difference MSE weight (default `0.1`). The loss is `L_action + 0.1 L_ARDY + motion_weight L_motion`; Ψ0 retains its configurable current-ARDY weight. Differences use the existing 128-dimensional ARDY coordinates, without division by elapsed time or additional normalization. No teacher rerun or sidecar regeneration is required.
 
-Both labels must be valid and belong to the same episode. Missing history or an invalid endpoint masks only the difference loss, keeping the existing action/current-ARDY sample. With the standard six-frame ARDY history requirement and Δ=2, difference supervision starts at frame 8 (zero-based). Reader removal and future-current-target switches are unavailable for this method.
+Both labels must be valid and belong to the same episode. Missing history or an invalid endpoint masks only the difference loss, keeping the existing action/current-ARDY sample. With the standard six-frame ARDY history requirement and Δ=6, difference supervision starts at frame 12 (zero-based). Reader removal and future-current-target switches are unavailable for this method.
 
 For example, adapt the π0.5 command above with:
 
 ```bash
---model VGQ-AE-Mo --ardy-delta-frames 2 --motion-weight 0.1 \
+--model VGQ-AE-Mo --ardy-delta-frames 6 --motion-weight 0.1 \
 --output-dir /runs/pi05/my_task/VGQ-AE-Mo
 ```
 

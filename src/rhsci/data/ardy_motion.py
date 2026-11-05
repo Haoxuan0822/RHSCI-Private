@@ -5,7 +5,7 @@ import math
 import numpy as np
 
 MOTION_VARIANT = "VGQ-AE-Mo"
-DEFAULT_DELTA_FRAMES = 2
+DEFAULT_DELTA_FRAMES = 6
 DEFAULT_MOTION_WEIGHT = 0.1
 
 
@@ -21,7 +21,7 @@ def add_motion_arguments(parser):
         "--ardy-delta-frames",
         type=int,
         default=DEFAULT_DELTA_FRAMES,
-        help="VGQ-AE-Mo: backward ARDY difference interval at 50 Hz (default 2)",
+        help="VGQ-AE-Mo: backward ARDY difference interval at 50 Hz (default 6; 120 ms)",
     )
     parser.add_argument(
         "--motion-weight",

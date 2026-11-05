@@ -45,7 +45,7 @@ def run_training_worker(args, paths, value, digest):
         processor,
         variant=args.model,
         cache=paths["input_cache"],
-        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
     trainer = create_trainer_class()(
         model=model,

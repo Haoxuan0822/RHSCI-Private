@@ -96,7 +96,7 @@ def assets(root, register=False, verify=False):
     return manifest
 
 
-def check_data(paths, variant="VGQ-AE", ardy_delta_frames=2):
+def check_data(paths, variant="VGQ-AE", ardy_delta_frames=6):
     import numpy as np
 
     from .data import OFFSETS, SimpleDataset
@@ -136,7 +136,7 @@ def validate_model_and_worker_preprocessing(args, paths):
         paths["checkpoint"], vlm_training=args.vlm_training, variant=args.model, **motion_config(args)
     )
     configure_vlm_execution(model, args)
-    dataset = check_data(paths, args.model, getattr(args, "ardy_delta_frames", 2))
+    dataset = check_data(paths, args.model, getattr(args, "ardy_delta_frames", 6))
     dataset.processor = processor
     batch = Collator(processor.tokenizer.pad_token_id)([dataset[0], dataset[6]])
     if batch["actions"].shape != (2, 30, 36):

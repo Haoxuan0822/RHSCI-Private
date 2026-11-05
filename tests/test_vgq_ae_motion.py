@@ -37,6 +37,8 @@ class LabelTests(unittest.TestCase):
             module = "training_config" if package == "psi" else "config"
             parser = importlib.import_module(f"{package}.rhsci.{module}").build_argument_parser()
             flag = "--variant" if package == "lambda0" else "--model"
+            defaults = parser.parse_args(["--task", "fixture", flag, "VGQ-AE-Mo"])
+            self.assertEqual(motion_config(defaults)["ardy_delta_frames"], 6)
             args = parser.parse_args(
                 [
                     "--task",
@@ -55,6 +57,10 @@ class LabelTests(unittest.TestCase):
 
     def test_backward_difference_and_episode_boundary(self):
         reader = sidecar()
+        self.assertFalse(ardy_motion_target(reader, 0, 11)[1])
+        target, valid = ardy_motion_target(reader, 0, 12)
+        self.assertTrue(valid)
+        np.testing.assert_array_equal(target, np.full(128, 108, np.float32))
         for episode in (0, 1):
             target, valid = ardy_motion_target(reader, episode, 8, 2)
             self.assertTrue(valid)

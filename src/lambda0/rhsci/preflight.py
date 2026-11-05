@@ -52,7 +52,7 @@ def validate_training_data(args, config):
     for meta in reader.metas.values():
         if args.variant in ("VGQ-AE", "VGQ-AE-Mo"):
             meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
-            meta.update(rsci_variant=args.variant, rsci_ardy_delta_frames=getattr(args, "ardy_delta_frames", 2))
+            meta.update(rsci_variant=args.variant, rsci_ardy_delta_frames=getattr(args, "ardy_delta_frames", 6))
         elif meta["normalization_contract"] != "quantile_q01_q99_v1":
             meta["handler"] = "lambda0.rhsci.data:SafePsiSimpleHandler"
         handler = get_handler_cls(meta["handler"])(meta, reader.num_views)

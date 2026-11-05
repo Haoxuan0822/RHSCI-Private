@@ -91,7 +91,7 @@ def verify_checkpoint(path, contract):
 class RHSCITrainingBackend:
     """Adapt native training operations without replacing module globals."""
 
-    def __init__(self, native, variant, contract, *, ardy_delta_frames=2, motion_weight=0.1):
+    def __init__(self, native, variant, contract, *, ardy_delta_frames=6, motion_weight=0.1):
         self.native = native
         self.variant = variant
         self.contract = contract

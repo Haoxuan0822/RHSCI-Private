@@ -146,7 +146,7 @@ def main():
         base,
         vlm_training=value["vlm"],
         variant=value["model"],
-        ardy_delta_frames=value.get("ardy_delta_frames", 2),
+        ardy_delta_frames=value.get("ardy_delta_frames", 6),
         motion_weight=value.get("motion_weight", 0.1),
     )
     load_trainables(model, checkpoint)

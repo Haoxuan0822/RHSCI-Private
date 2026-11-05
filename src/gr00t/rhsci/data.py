@@ -98,7 +98,7 @@ class SimpleRHSCIDataset(Dataset):
         seed=292285,
         *,
         cache=InputCacheConfig(),
-        ardy_delta_frames=2,
+        ardy_delta_frames=6,
     ):
         self.root, self.variant, self.processor = Path(root), variant, processor
         self.seed = seed

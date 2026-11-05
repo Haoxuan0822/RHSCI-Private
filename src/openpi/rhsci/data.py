@@ -39,7 +39,7 @@ class SimpleRHSCIDataset(Dataset):
         sidecar=None,
         *,
         cache=InputCacheConfig(),
-        ardy_delta_frames=2,
+        ardy_delta_frames=6,
     ):
         self.root, self.variant, self.processor = Path(root), variant, processor
         self.ardy_delta_frames = ardy_delta_frames

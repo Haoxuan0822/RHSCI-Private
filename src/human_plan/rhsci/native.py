@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def load_native(
-    root, vlm_training="full", variant="VGQ-AE", *, ardy_delta_frames=2, motion_weight=0.1
+    root, vlm_training="full", variant="VGQ-AE", *, ardy_delta_frames=6, motion_weight=0.1
 ):
     import torch
     from llava.model import LlavaLlamaConfig, LlavaLlamaModel

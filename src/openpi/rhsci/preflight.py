@@ -41,7 +41,7 @@ def run_training_preflight(args, paths):
         processor,
         paths["sidecar"],
         cache=paths["input_cache"],
-        ardy_delta_frames=getattr(args, "ardy_delta_frames", 2),
+        ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
     for index in (0, 6, int(dataset.ends[0]) - 1, int(dataset.ends[0]), 6):

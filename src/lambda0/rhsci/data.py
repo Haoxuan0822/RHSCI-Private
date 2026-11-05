@@ -43,7 +43,7 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
     def __init__(self, meta, num_views):
         super().__init__(meta, num_views)
         self.motion_delta = (
-            meta.get("rsci_ardy_delta_frames", 2)
+            meta.get("rsci_ardy_delta_frames", 6)
             if meta.get("rsci_variant") == "VGQ-AE-Mo"
             else None
         )

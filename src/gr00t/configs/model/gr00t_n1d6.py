@@ -106,7 +106,7 @@ class Gr00tN1d6Config(PretrainedConfig):
     rsci_variant: str | None = None
     rsci_ardy_weight: float = 0.1
     rsci_memory_mode: str = "reader"
-    rsci_ardy_delta_frames: int = 2
+    rsci_ardy_delta_frames: int = 6
     rsci_motion_weight: float = 0.1
 
     def __init__(self, **kwargs):
