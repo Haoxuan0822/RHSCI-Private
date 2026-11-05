@@ -91,6 +91,15 @@ The worker saves `worker.json`, per-round `command.sh`, `effective_eval_config.j
 logs and episode statistics. `--resume` continues unfinished episodes; use the
 same experiment configuration when continuing a run.
 
+Noise enablement, type, severity, seed and protocol must match the saved worker
+and all evaluation segments when resuming. Historical records without noise
+configuration are treated as noise disabled.
+
+To evaluate `VGQ-AE-Mo`, use `--variant VGQ-AE-Mo --run-dir <saved-run>`.
+The worker passes the selected method to the model server, which checks it
+against the checkpoint configuration before loading model weights. A method
+mismatch is rejected rather than recorded under the requested label.
+
 Optional noise flags and the four severity levels are documented under
 [State measurement noise](INFERENCE.md#state-measurement-noise). Noise changes
 only the outgoing measured state, before model normalization. It does not alter

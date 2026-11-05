@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run
+from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run, validate_evaluation_variant
 from rhsci.inference.http_app import ActionPolicy, create_policy_app
 
 
@@ -22,6 +22,9 @@ def build_argument_parser():
     source.add_argument("--run-dir", type=Path)
     source.add_argument("--discover", type=Path, metavar="RUNS_ROOT")
     argument_parser.add_argument("--checkpoint-step", type=int)
+    argument_parser.add_argument(
+        "--expected-variant", help="Require this checkpoint method for evaluation"
+    )
     argument_parser.add_argument(
         "--training-source-root",
         type=Path,
@@ -69,6 +72,12 @@ def main():
         verify_hash=False,
         training_source_root=args.training_source_root,
     )
+    saved = json.loads(
+        (checkpoint / ("rsci_config.json" if args.backbone == "pi05" else "config.json")).read_text()
+    )
+    actual = saved["variant"] if args.backbone == "pi05" else saved.get("rsci_variant", "STATE")
+    validate_evaluation_variant(args.expected_variant, actual)
+    validate_evaluation_variant(contract["model"], actual)
     if args.backbone == "pi05":
         from openpi.rhsci.serve import Server
 

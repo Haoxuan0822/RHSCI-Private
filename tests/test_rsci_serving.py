@@ -1,9 +1,12 @@
 """CPU request/response coverage for the production PSI0 serving entry."""
 
 import json
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -13,6 +16,31 @@ from psi.deploy.psi0_serve_simple import Server
 
 
 class ServingTests(unittest.TestCase):
+    def test_native_psi_server_rejects_wrong_method_before_loading_weights(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary)
+            (run / "checkpoints/ckpt_20").mkdir(parents=True)
+            (run / "run_config.json").write_text("{}")
+            config = SimpleNamespace(
+                model=SimpleNamespace(rsci_variant="VGQ-AE-Mo"),
+                data=SimpleNamespace(rsci_ardy_offset_frames=0),
+            )
+            with patch("psi.rhsci.config.load_run_config", return_value=config), patch(
+                "psi.models.psi0.Psi0Model.from_pretrained"
+            ) as load, self.assertRaisesRegex(ValueError, "differs from checkpoint"):
+                Server("psi0", run, 20, device="cpu", expected_variant="VGQ-AE")
+            load.assert_not_called()
+
+    def test_native_cli_accepts_mo_evaluation_identity(self):
+        import tyro
+        from psi.config.config import ServerConfig
+
+        config = tyro.cli(ServerConfig, args=[
+            "--run-dir", "/runs/mo", "--ckpt-step", "20", "--policy", "psi0",
+            "--expected-variant", "VGQ-AE-Mo",
+        ])
+        self.assertEqual(config.expected_variant, "VGQ-AE-Mo")
+
     def test_server_config_has_no_measurement_noise_options(self):
         from psi.config.config import ServerConfig
 

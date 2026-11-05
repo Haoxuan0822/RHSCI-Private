@@ -106,13 +106,14 @@ class MeasurementNoiseTests(unittest.TestCase):
         for level, length in zip(("low", "medium", "high", "extreme"), (10, 30, 60, 120)):
             noise = self.noise("dropout", level)
             for step in range(601):
-                noise.update(np.full(31, step, np.float32), 3.2 + step * 0.02)
+                state = np.full((1, 32), step, np.float32)
+                noise.update(state[0, :31], 3.2 + step * 0.02)
                 cycle, phase = divmod(step, 200)
                 expected = cycle * 200 - 1 if cycle >= 1 and phase < length else step
-                np.testing.assert_array_equal(noise.measured, expected)
+                np.testing.assert_array_equal(noise.apply_to_state(state)[0, :31], expected)
             noise.reset(1)
             noise.update(np.full(31, -1, np.float32), 0.0)
-            np.testing.assert_array_equal(noise.measured, -1)
+            np.testing.assert_array_equal(noise.apply_to_state(np.zeros((1, 32)))[0, :31], -1)
 
     def test_only_measured_state_is_replaced_without_clipping_or_input_mutation(self):
         state = np.arange(36, dtype=np.float32)[None]
@@ -190,6 +191,41 @@ def client_fixture(horizon):
 
 
 class StateNoiseClientTests(unittest.TestCase):
+    def test_dropout_hits_each_period_at_both_native_chunk_lengths(self):
+        for horizon in (16, 30):
+            for level, duration in zip(("low", "medium", "high", "extreme"), (.2, .6, 1.2, 2.4)):
+                with self.subTest(horizon=horizon, level=level):
+                    agent_class, slices = client_fixture(horizon)
+                    install(MeasurementNoiseConfig("dropout", level), agent_class=agent_class, state_slices=slices)
+                    agent = agent_class()
+                    agent.reset()
+                    last_success = None
+                    cycle = 0
+                    until = -1
+                    hits = set()
+                    for step in range(1201):
+                        elapsed = step * .02
+                        agent.robot.mjData.time = 3.2 + elapsed
+                        qpos = np.arange(43, dtype=np.float32) + step
+                        observation = {"joint_qpos": qpos, "image": "raw-image"}
+                        agent.get_action(observation)
+                        np.testing.assert_array_equal(qpos, np.arange(43) + step)
+                        if step % horizon:
+                            continue
+                        current_cycle = step // 200
+                        if current_cycle > cycle:
+                            cycle, until = current_cycle, elapsed + duration
+                        if elapsed < until - 1e-9:
+                            expected = last_success
+                            hits.add(cycle)
+                        else:
+                            last_success = expected = step
+                        state = agent.client.requests[-1][2]["states"]
+                        self.assertEqual(state[0, 0], 29 + expected)
+                        self.assertAlmostEqual(state[0, 31], .74, places=6)
+                        self.assertIs(agent.last_observation, observation)
+                    self.assertEqual(hits, set(range(1, 7)))
+
     def test_real_cli_rejects_invalid_switches_before_loading_simulation(self):
         root = Path(__file__).resolve().parents[1]
         environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")

@@ -133,6 +133,7 @@ class ServerConfig(BaseModel):
     device: str = "cuda:0"
     policy: str | None = None
     action_exec_horizon: int | None = None
+    expected_variant: str | None = None
     rtc: bool = False
     deterministic_eval: bool = False
     eval_seed: int = Field(default=0, ge=0, lt=2**63, strict=True)

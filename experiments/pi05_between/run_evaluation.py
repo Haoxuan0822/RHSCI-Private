@@ -52,6 +52,25 @@ def owns_listener(pid, port):
     return False
 
 
+def validate_resume_noise(base, previous, state_noise):
+    """续测须与原worker及所有实际运行片段使用相同噪声配置。"""
+    expected = state_noise.metadata() if state_noise else {"enabled": False}
+    records = [(base / "worker.json", previous)]
+    records.extend(
+        (path, json.loads(path.read_text()))
+        for path in sorted(base.glob("repeat-*/**/effective_eval_config.json"))
+    )
+    for path, record in records:
+        saved = record.get("state_noise_config")
+        if saved is None:
+            # 加噪功能之前的历史无噪声记录仍可续测；缺失的开启配置不能猜测。
+            if record.get("state_noise"):
+                raise ValueError(f"Missing saved state noise configuration: {path}")
+            saved = {"enabled": False}
+        if saved != expected:
+            raise ValueError(f"Resume state noise configuration differs: {path}")
+
+
 def worker(args):
     import numpy as np
     import requests
@@ -108,6 +127,7 @@ def worker(args):
         }
         if any(previous.get(key) != value for key, value in expected.items()):
             raise ValueError("Resume configuration differs from saved worker")
+        validate_resume_noise(base, previous, state_noise)
         for config_path in base.glob("repeat-*/effective_eval_config.json"):
             saved = json.loads(config_path.read_text())
             if (
@@ -139,6 +159,8 @@ def worker(args):
         str(args.run_dir or (STATE if variant == "STATE" else VGQ)),
         "--checkpoint-step",
         str(args.checkpoint_step),
+        "--expected-variant",
+        variant,
         "--device",
         "cuda:0",
         "--host",
@@ -171,6 +193,7 @@ def worker(args):
             "--run-dir", str(args.run_dir), "--ckpt-step", str(args.checkpoint_step),
             "--policy", "psi0", "--device", "cuda:0", "--host", "127.0.0.1",
             "--port", str(port), "--action-exec-horizon", str(args.expected_horizon),
+            "--expected-variant", variant,
         ]
     elif args.backbone == "pi05":
         command.extend(
@@ -420,7 +443,7 @@ def worker(args):
             gpu_lease.close()
 
 
-if __name__ == "__main__":
+def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gpu", type=int, choices=range(8), required=True)
     parser.add_argument("--slot", type=int, choices=[0, 1], default=0)
@@ -430,7 +453,11 @@ if __name__ == "__main__":
         help="Continue unfinished episodes without recounting completed ones",
     )
     parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
-    parser.add_argument("--variant", choices=["STATE", "VGQ-AE", "NO-STATE", "RGB", "VGQ-VLM", "VGQ-AE-F10"], required=True)
+    parser.add_argument(
+        "--variant",
+        choices=["STATE", "VGQ-AE", "VGQ-AE-Mo", "NO-STATE", "RGB", "VGQ-VLM", "VGQ-AE-F10"],
+        required=True,
+    )
     parser.add_argument("--backbone", choices=["pi05", "gr00t", "psi0"], default="pi05")
     parser.add_argument("--task", default=TASK)
     parser.add_argument("--run-dir", type=Path)
@@ -454,6 +481,11 @@ if __name__ == "__main__":
     parser.add_argument("--video-rounds", type=int, default=1)
     parser.add_argument("--repair-scene-references", action="store_true")
     add_arguments(parser)
+    return parser
+
+
+if __name__ == "__main__":
+    parser = build_argument_parser()
     arguments = parser.parse_args()
     try:
         config_from_arguments(arguments)
@@ -469,7 +501,7 @@ if __name__ == "__main__":
     if arguments.video_rounds < 1:
         parser.error("Retain at least one complete video round")
     if (
-        arguments.backbone != "pi05" or arguments.variant == "NO-STATE"
+        arguments.backbone != "pi05" or arguments.variant not in ("STATE", "VGQ-AE", "RGB")
     ) and arguments.run_dir is None:
         parser.error("This backbone/variant requires an explicit --run-dir")
     worker(arguments)

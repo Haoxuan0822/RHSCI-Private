@@ -35,6 +35,7 @@ class Server:
         action_exec_horizon: int | None = None,
         deterministic_eval: bool = False,
         eval_seed: int = 0,
+        expected_variant: str | None = None,
     ):
         _dt = str(device).split(":")[0]
         if _dt == "cuda" and not torch.cuda.is_available():
@@ -52,6 +53,12 @@ class Server:
         from psi.rhsci.config import load_run_config
         launch_config = load_run_config(
             run_dir, run_dir / "checkpoints" / f"ckpt_{ckpt_step}" / "model.safetensors")
+        from rhsci.inference.checkpoints import validate_evaluation_variant
+        validate_evaluation_variant(
+            expected_variant,
+            launch_config.model.rsci_variant,
+            ardy_offset_frames=launch_config.data.rsci_ardy_offset_frames,
+        )
         seed_everything(launch_config.seed or 42)
 
         from psi.models.psi0 import Psi0Model
@@ -224,6 +231,7 @@ def serve(cfg: ServerConfig) -> None:
         cfg.action_exec_horizon,
         cfg.deterministic_eval,
         cfg.eval_seed,
+        cfg.expected_variant,
     )
 
     overwatch.info("Server :: Spinning Up")

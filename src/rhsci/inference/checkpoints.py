@@ -11,6 +11,17 @@ BACKBONES = ("pi05", "gr00t")
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def validate_evaluation_variant(expected, actual, *, ardy_offset_frames=0):
+    """测评标签必须匹配检查点方法；独立服务未指定期望时保持原行为。"""
+    if expected is None:
+        return
+    actual = actual or "STATE"
+    if ardy_offset_frames:
+        actual = f"{actual}-F{ardy_offset_frames}"
+    if expected != actual:
+        raise ValueError(f"Evaluation variant {expected!r} differs from checkpoint {actual!r}")
+
+
 def inspect_run(run, backbone, *, step=None, verify_hash=False, training_source_root=None):
     if backbone not in BACKBONES:
         raise ValueError(f"Unsupported HTTP backbone: {backbone}")

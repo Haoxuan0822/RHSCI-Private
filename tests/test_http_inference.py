@@ -12,10 +12,42 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from rhsci.inference.checkpoints import discover, inspect_run
+from rhsci.inference.checkpoints import discover, inspect_run, validate_evaluation_variant
 
 
 class CheckpointTests(unittest.TestCase):
+    def test_checkpoint_method_must_match_evaluation_label(self):
+        for method in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo", "VGQ-VLM"):
+            validate_evaluation_variant(method, method)
+        validate_evaluation_variant("VGQ-AE-F10", "VGQ-AE", ardy_offset_frames=10)
+        validate_evaluation_variant(None, "VGQ-AE-Mo")
+        validate_evaluation_variant("STATE", None)
+        for expected, actual, offset in (
+            ("VGQ-AE", "VGQ-AE-Mo", 0),
+            ("VGQ-AE-Mo", "VGQ-AE", 0),
+            ("STATE", "NO-STATE", 0),
+            ("VGQ-AE", "VGQ-AE", 10),
+        ):
+            with self.subTest(expected=expected, actual=actual), self.assertRaisesRegex(ValueError, "differs from checkpoint"):
+                validate_evaluation_variant(expected, actual, ardy_offset_frames=offset)
+
+    def test_both_http_backbones_reject_mislabeled_checkpoints_before_model_load(self):
+        from rhsci.inference import http_server
+
+        for backbone in ("pi05", "gr00t"):
+            with self.subTest(backbone=backbone), tempfile.TemporaryDirectory() as temporary:
+                checkpoint = Path(temporary)
+                name = "rsci_config.json" if backbone == "pi05" else "config.json"
+                key = "variant" if backbone == "pi05" else "rsci_variant"
+                (checkpoint / name).write_text(json.dumps({key: "VGQ-AE-Mo"}))
+                argv = ["serve", "--backbone", backbone, "--run-dir", temporary,
+                        "--expected-variant", "VGQ-AE", "--dataset", temporary,
+                        "--tokenizer", temporary]
+                with patch.object(sys, "argv", argv), patch.object(
+                    http_server, "inspect_run", return_value=({"model": "VGQ-AE-Mo"}, checkpoint)
+                ), self.assertRaisesRegex(ValueError, "differs from checkpoint"):
+                    http_server.main()
+
     def test_server_measurement_noise_options_are_removed(self):
         from rhsci.inference.http_server import build_argument_parser
 

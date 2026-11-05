@@ -115,9 +115,15 @@ joint slices, and HTTP client without duplicating the evaluation/control loop.
 It records measurements on every policy control step, including steps between
 HTTP requests. Time comes from MuJoCo, relative to the first policy observation
 after stabilization. Delay selects the newest sample at or before the target
-time, padding with the first measurement when history is insufficient. Dropouts
-start at 4, 8, 12… simulation seconds, freeze the last valid measured joints,
-and resume with the latest measurement at the end of each interruption.
+time, padding with the first measurement when history is insufficient. At each
+4-second boundary, dropout begins on the next policy request and lasts for the
+selected duration in simulation time. During the interruption, requests reuse
+the measured joints from the last successful transmission. The first request
+at or after recovery receives the latest measurement. This ensures even a
+200 ms burst affects a policy whose action chunk lasts longer than 200 ms.
+Request frequency still determines how many requests are lost and the age of
+the held state. This rule is recorded as `client-measurement-noise-dropout-v2`;
+results using the earlier fixed-time dropout rule must remain separate.
 
 Each agent reset clears temporal history and derives an independent NumPy
 generator from `[state_noise_seed, episode_index]`. The index starts at the CLI's

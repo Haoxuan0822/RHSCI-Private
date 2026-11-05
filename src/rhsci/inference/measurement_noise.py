@@ -49,7 +49,11 @@ class MeasurementNoiseConfig:
             "measured_slice": [0, MEASURED_STATE_DIM],
             "clock": "simulation-time-since-first-policy-observation",
             "dropout_period_seconds": DROPOUT_PERIOD_SECONDS if self.kind == "dropout" else None,
-            "protocol": "client-measurement-noise-v1",
+            "protocol": (
+                "client-measurement-noise-dropout-v2"
+                if self.kind == "dropout"
+                else "client-measurement-noise-v1"
+            ),
         }
 
 
@@ -104,6 +108,9 @@ class MeasurementNoise:
         self.measured = None
         self.offset = None
         self.generator = None
+        self.dropout_cycle = 0
+        self.dropout_until = None
+        self.last_delivered = None
 
     def reset(self, episode: int) -> None:
         """每轮清空缓存，并用独立的 episode 随机流重新采样零位偏移。"""
@@ -111,6 +118,9 @@ class MeasurementNoise:
             raise ValueError("State noise episode must be a nonnegative integer")
         self.origin = self.last_time = self.measured = None
         self.history.clear()
+        self.dropout_cycle = 0
+        self.dropout_until = None
+        self.last_delivered = None
         self.generator = np.random.default_rng(np.random.SeedSequence([self.config.seed, episode]))
         self.offset = None
         if self.config.kind == "zero-offset":
@@ -153,12 +163,20 @@ class MeasurementNoise:
                 self.history.popleft()
             self.measured = self.history[0][1]
         else:
-            # 第 4/8/12... 秒开始中断；恢复边界当步立即接收最新测量。
-            cycle = math.floor((elapsed + TIME_TOLERANCE) / DROPOUT_PERIOD_SECONDS)
-            phase = elapsed - cycle * DROPOUT_PERIOD_SECONDS
-            dropping = cycle >= 1 and phase < magnitude - TIME_TOLERANCE
-            if not dropping:
-                self.measured = measured.copy()
+            # 丢包发生在发送边界；控制步仍记录真值，供恢复时立即读取。
+            self.measured = measured.copy()
+
+    def _dropout_measurement(self):
+        """周期到期后的首个请求开始丢包，保持上次成功发送的值。"""
+        elapsed = self.last_time - self.origin
+        cycle = math.floor((elapsed + TIME_TOLERANCE) / DROPOUT_PERIOD_SECONDS)
+        if cycle > self.dropout_cycle and self.last_delivered is not None:
+            self.dropout_cycle = cycle
+            self.dropout_until = elapsed + self.config.magnitude
+        if self.dropout_until is not None and elapsed < self.dropout_until - TIME_TOLERANCE:
+            return self.last_delivered
+        self.last_delivered = self.measured.copy()
+        return self.last_delivered
 
     def apply_to_state(self, state: np.ndarray) -> np.ndarray:
         """仅复制并替换 HTTP state 前31维，保留高度、尾部及真实观测。"""
@@ -176,5 +194,7 @@ class MeasurementNoise:
                 "Record the current control-step measurement before querying actions"
             )
         result = state.copy()
-        result[0, :MEASURED_STATE_DIM] = self.measured
+        result[0, :MEASURED_STATE_DIM] = (
+            self._dropout_measurement() if self.config.kind == "dropout" else self.measured
+        )
         return result
