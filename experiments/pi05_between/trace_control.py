@@ -139,6 +139,12 @@ def install_control_trace(
     def step(env, action):
         start = time.monotonic()
         before = float(env.mujoco.mjData.time)
+        dispatched = {
+            name: np.array(action[name], copy=True)
+            for name in ("target_q", "left_hand_q", "right_hand_q")
+            if action[name] is not None
+        }
+        before_joints = env.mujoco.mjData.qpos.copy()
         result = original_step(env, action)
         cameras = None
         if camera_timing:
@@ -162,6 +168,8 @@ def install_control_trace(
             duration=time.monotonic() - start,
             sim_before=before,
             sim_after=float(env.mujoco.mjData.time),
+            dispatched=dispatched,
+            qpos_before=before_joints,
             qpos=env.mujoco.mjData.qpos.copy(),
             observed_joints=result[0]["joint_qpos"],
             cameras=cameras,
