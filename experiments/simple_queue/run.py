@@ -27,6 +27,8 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
         os.environ, PYTHONPATH=str(REPO / "src"), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"
     )
     processes = {}
+    # 每张卡完成STATE后优先接同任务、同等级VGQ，不等其他卡或整个任务结束。
+    paired_next = {}
     handles = []
 
     def alive(job):
@@ -53,10 +55,20 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                             raise RuntimeError(f"Worker PID identity changed: {metadata}")
                         if gpu not in gpus or gpu in processes:
                             raise RuntimeError(f"Unexpected occupied GPU{gpu}: {metadata}")
-                        processes[gpu] = dict(pid=pid, birth=row[2], process=None, marker=marker)
+                        processes[gpu] = dict(
+                            pid=pid,
+                            birth=row[2],
+                            process=None,
+                            marker=marker,
+                            task=task,
+                            level=level,
+                            variant=run["variant"],
+                        )
                         print("GR00T_WORKER_ADOPTED", gpu, run_key(run), level, pid, flush=True)
                         continue
                     if marker.exists() and json.loads(marker.read_text())["episodes"] == 50:
+                        if run["variant"] == "STATE":
+                            paired_next[gpu] = (task, level)
                         continue
                     raise RuntimeError(f"Stopped incomplete worker; logs retained: {metadata}")
                 pending.append((run, level))
@@ -81,6 +93,8 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     or json.loads(marker.read_text())["episodes"] != 50
                 ):
                     raise RuntimeError(f"GR00T worker failed: GPU{gpu}, exit={code}, {marker}")
+                if job["variant"] == "STATE":
+                    paired_next[gpu] = (job["task"], job["level"])
                 del processes[gpu]
             available = set(gpus)
             if auto_gpus:
@@ -131,13 +145,19 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
             for gpu in gpus:
                 if gpu in processes or gpu not in available or not pending:
                     continue
+                candidates = [
+                    (run, level)
+                    for run, level in pending
+                    if (PREPARATION / f"{run_key(run)}.json").exists()
+                ]
                 ready = next(
                     (
                         (run, level)
-                        for run, level in pending
-                        if (PREPARATION / f"{run_key(run)}.json").exists()
+                        for run, level in candidates
+                        if run["variant"] == "VGQ-AE"
+                        and (run["task"], level) == paired_next.get(gpu)
                     ),
-                    None,
+                    candidates[0] if candidates else None,
                 )
                 if ready is None:
                     continue
@@ -164,7 +184,11 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     birth=process_table()[process.pid][2],
                     process=process,
                     marker=marker,
+                    task=run["task"],
+                    level=level,
+                    variant=run["variant"],
                 )
+                paired_next.pop(gpu, None)
                 pending.remove(ready)
                 print("GR00T_RERUN_START", gpu, key, level, process.pid, flush=True)
             if pending or processes:
