@@ -63,6 +63,7 @@ def main():
     parser.add_argument("--dds-domain-id", type=int, required=True)
     parser.add_argument("--cpu-threads", type=int, default=8)
     parser.add_argument("--repair-scene-references", action="store_true")
+    parser.add_argument("--rgb-history", action="store_true", help="Supply causal 50Hz four-frame RGB for retained-Query checkpoints")
     parser.add_argument("--trace-control", type=Path)
     parser.add_argument("--control-clock", choices=["wall", "simulation"], default="wall")
     parser.add_argument("--diagnostic-execute-horizon", type=int, choices=[24, 30])
@@ -156,6 +157,10 @@ def main():
 
         install(state_noise, episode_start=args.episode_start)
         print("STATE_NOISE", json.dumps(state_noise.metadata()), flush=True)
+
+    if args.rgb_history:
+        from rhsci.inference.history_client import install
+        install()
 
     sonic = _make_sonic_config()
     sonic["DOMAIN_ID"] = args.dds_domain_id

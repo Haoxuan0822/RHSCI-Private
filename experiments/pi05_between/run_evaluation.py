@@ -142,6 +142,8 @@ def worker(args):
             "--policy", "psi0", "--device", "cuda:0", "--host", "127.0.0.1",
             "--port", str(port), "--action-exec-horizon", str(args.expected_horizon),
         ]
+        if variant == "VGQ-AE-D":
+            command[1:3] = [str(REPO / "experiments/simple_queue/serve_legacy_psi0.py")]
     elif args.backbone == "pi05":
         command.extend(
             [
@@ -227,12 +229,18 @@ def worker(args):
                 state = np.asarray(stats["states"]["mean"], dtype=np.float32)[None]
             else:
                 state = np.zeros((1, 32), dtype=np.float32)
+            condition = {}
+            if variant == "VGQ-AE-D":
+                from rhsci.inference.history_client import CausalRgbHistory
+                history = CausalRgbHistory()
+                history.append(image)
+                condition = history.condition()
             request = RequestMessage(
                 image={"rgb_head_stereo_left": image},
                 instruction="Pick up the object from one table and place it into the container on the other table.",
                 history={"reset": True},
                 state={"states": state},
-                condition={},
+                condition=condition,
                 gt_action=[],
                 dataset_name="simple",
                 timestamp="warmup",
@@ -328,6 +336,8 @@ def worker(args):
 
                 if args.repair_scene_references:
                     sim_command.append("--repair-scene-references")
+                if variant == "VGQ-AE-D":
+                    sim_command.append("--rgb-history")
                 sim_command.extend(command_arguments(state_noise))
 
                 (destination / "command.sh").write_text(
