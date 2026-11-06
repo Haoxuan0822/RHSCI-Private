@@ -15,6 +15,7 @@ configuration in `plan.py`.
 | `legacy_inventory.py` | Freeze historical-only training cells for retesting |
 | `prepare_retests.py` | Restore selected historical checkpoints and processors |
 | `monitor_goal.py` | Check progress, continue exited workers and update result tables |
+| `watch_hf_free_nodes.py` | Check free download nodes hourly and fetch new HF checkpoint assets after a real transfer succeeds |
 
 Configure filesystem roots and model paths for your machine before running.
 Use each entry's `--help` to inspect its options. Preparation and evaluation are
