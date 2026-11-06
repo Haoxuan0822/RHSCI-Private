@@ -101,7 +101,9 @@ def repair_dispatchers():
             commands.append((path / "cmdline").read_bytes().split(b"\0"))
         except (FileNotFoundError, ProcessLookupError, PermissionError):
             pass
-    jobs = list(zip(("pi05", "gr00t", "nostate"), ROOTS[1:4]))
+    from run import active_focus
+    focus = active_focus(ROOTS[4])
+    jobs = [] if focus else list(zip(("pi05", "gr00t", "nostate"), ROOTS[1:4]))
     phase2 = STATE / "phase2-started.json"
     if not phase2.exists() and all((root / "COMPLETE.json").exists() for root in ROOTS[1:4]):
         from legacy_inventory import inventory

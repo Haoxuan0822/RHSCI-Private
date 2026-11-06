@@ -209,8 +209,10 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                 ]
                 if backbone == "legacy":
                     phase2 = ROOT / "evals/goal-latest-protocol-20261105/phase2-started.json"
+                    focus = active_focus(output)
                     candidates = [(run, level) for run, level in candidates
                                   if (phase2.exists() or run_key(run) in priority_keys)
+                                  and (focus is None or run_key(run) in focus["allowed_keys"])
                                   and priority_dependency_complete(run, output)]
                 ready = next(
                     (
@@ -282,6 +284,20 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
 
 
 next_pause_renewal = 0.0
+
+
+def active_focus(output):
+    """临时插队只放行指定任务；两组Mo完成后恢复原授权队列。"""
+    from plan import ROOT
+
+    path = ROOT / "evals/goal-latest-protocol-20261105/focus-runs.json"
+    if not path.exists():
+        return None
+    focus = json.loads(path.read_text())
+    if all(priority_dependency_complete({"after": {"key": key, "variant": "VGQ-AE-Mo"}}, output)
+           for key in focus["resume_after"]):
+        return None
+    return focus
 
 
 def priority_dependency_complete(run, output):

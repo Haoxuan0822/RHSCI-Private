@@ -1,5 +1,6 @@
 """读取Mo归档的模型前缀，复用哈希完全一致的本地处理器，跳过优化器。"""
 
+import argparse
 import hashlib
 import io
 import json
@@ -85,6 +86,18 @@ class CachedRanges(io.RawIOBase):
 
 
 def main():
+    global REVISION, ARCHIVE, SIZE, ARCHIVE_SHA256, KEY, STATE, URL
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task", choices=["hug", "handover"], default="hug")
+    args = parser.parse_args()
+    if args.task == "handover":
+        REVISION = "32a2cfd273f6eb937bf17f14e91cc1ad45415a8f"
+        ARCHIVE = "checkpoint/Gr00t/VGQ-AE-Mo/handover/gr00t-motion-hug-handover-20261105-v1/checkpoint-20000.tar.zst"
+        SIZE = 17831694139
+        ARCHIVE_SHA256 = "2715b9868028ca2664bdacf8872cd111bfeeda83cdad67840dead84ce0d2a2fe"
+        KEY = "gr00t-VGQ-AE-Mo-handover"
+        STATE = ROOT / "evals/goal-latest-protocol-20261105/mo-handover-inference-download"
+        URL = f"https://huggingface.co/ds1x/RHSCI/resolve/{REVISION}/{ARCHIVE}"
     STATE.mkdir(parents=True, exist_ok=True)
     receipt = PREPARATION / f"{KEY}.json"
     if receipt.exists():
@@ -93,7 +106,7 @@ def main():
     destination = ROOT / "checkpoints/followup" / KEY / "inference"
     checkpoint = destination / "checkpoint-20000"
     checkpoint.mkdir(parents=True, exist_ok=True)
-    source = ROOT / "checkpoints/followup/gr00t-VGQ-AE-hug/checkpoint-20000"
+    source = ROOT / f"checkpoints/followup/gr00t-VGQ-AE-{args.task}/checkpoint-20000"
     wanted = None
     extracted = set()
     manifest = None
