@@ -5,7 +5,7 @@ Entry: `bash scripts/train/gr00t.sh --help`.
 
 This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00t/LICENSE) limits the work and derivatives to non-commercial research and imposes other use restrictions. The current upstream main branch's license does not replace these terms. See [Third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE and VGQ-AE.
+The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE, VGQ-AE, VGQ-AE-240 and VGQ-AE-Mo. The latter two retain the Reader architecture; see [Training](../../docs/TRAINING.md) for their visual sampling and supervision.
 
 Saved PSI0-RAW no-Reader checkpoints with `rsci_memory_mode=full-vlm` also restore their full-token Query within the native model; the normal training CLI continues to select Reader memory. This compatibility path retains the old parameter keys and initialization order.
 

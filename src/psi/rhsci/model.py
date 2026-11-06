@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from rhsci.runtime.losses import masked_auxiliary_loss as masked_auxiliary_loss
 
-VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
+VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,7 @@ class RHSCIQuery(nn.Module):
     def memory(self, frames, masks, valid):
         if len(frames) != 4 or len(masks) != 4 or valid.shape != (frames[0].shape[0], 4):
             raise ValueError(
-                "RHSCI requires chronological [t-6,t-4,t-2,t] visual frames and [B,4] validity"
+                "RHSCI requires four chronological visual frames and [B,4] validity"
             )
         if not valid[:, -1].all():
             raise ValueError("RHSCI current frame must be valid")

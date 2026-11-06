@@ -42,7 +42,7 @@ class Lambda0RHSCI(Lambda0):
 
     def __init__(self, config, vlm=None):
         super().__init__(config, vlm=vlm)
-        if getattr(config, "rsci_variant", "STATE") in ("VGQ-AE", "VGQ-AE-Mo"):
+        if getattr(config, "rsci_variant", "STATE") in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             self.install_auxiliary()
 
     def install_auxiliary(self):
@@ -120,10 +120,10 @@ class Lambda0RHSCI(Lambda0):
         **kwargs,
     ):
         variant = getattr(self.config, "rsci_variant", "STATE")
-        self._rsci_capture = variant in ("VGQ-AE", "VGQ-AE-Mo")
+        self._rsci_capture = variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo")
         try:
             losses = super().forward(*args, **kwargs)
-            if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+            if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
                 if history is None or len(history) != 3:
                     raise ValueError("VGQ-AE requires three historical frames plus current")
                 prediction = self.auxiliary(

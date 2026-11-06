@@ -89,7 +89,7 @@ class Gr00tN1d6ActionHead(nn.Module):
             torch.tensor(config.noise_beta_beta, dtype=torch.float32, device="cpu"),
         )
         self.num_timestep_buckets = config.num_timestep_buckets
-        if config.rsci_variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             from .rhsci_query import VisualStateQuery
             self.rsci_query = VisualStateQuery(
                 config.backbone_embedding_dim, config.input_embedding_dim, config.hidden_size,
@@ -119,7 +119,7 @@ class Gr00tN1d6ActionHead(nn.Module):
             self.model.requires_grad_(False)
         if not tune_vlln:
             self.vlln.requires_grad_(False)
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             self.state_encoder.requires_grad_(False)
             if self.mask_token is not None:
                 self.mask_token.requires_grad_(False)
@@ -163,12 +163,12 @@ class Gr00tN1d6ActionHead(nn.Module):
 
     def _state_features(self, action_input, vl_embeds):
         # 真正移除token，不能把真实state清零后仍让state编码器生成条件token。
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             return vl_embeds.new_empty(vl_embeds.shape[0], 0, self.input_embedding_dim)
         return self.state_encoder(action_input.state, action_input.embodiment_id)
 
     def _join_state_action(self, state_features, action_features):
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             return action_features
         return torch.cat((state_features, action_features), dim=1)
 
@@ -812,7 +812,7 @@ class Gr00tN1d6(PreTrainedModel):
         backbone_outputs = self.backbone(backbone_inputs)
         # 原动作路径只收到当前帧；copy避免vlln原地修改当前特征导致辅助分支重复归一化。
         action_outputs = self.action_head(BatchFeature(dict(backbone_outputs)), action_inputs)
-        if self.config.rsci_variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             from .rhsci_query import masked_ardy_loss
             if "rsci_history" not in inputs:
                 raise ValueError("VGQ-AE training forward requires three historical VLM inputs")

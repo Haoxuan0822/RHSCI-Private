@@ -107,7 +107,7 @@ class RHSCITrainingBackend:
         if self.variant == "VGQ-AE-Mo":
             for key, value in self.motion_config.items():
                 setattr(model.config, f"rsci_{key}", value)
-        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             model.use_proprio = model.config.use_proprio = False
             model.state_conditioning_mode = model.config.state_conditioning_mode = (
                 "continuous_action_expert"
@@ -150,7 +150,7 @@ class RHSCITrainingBackend:
 
     def prepare_training_batches(self, iterator, accumulation_steps, device):
         """仅辅助方法预取一个更新组的原始 batch，VLM 处理仍逐微批进行。"""
-        if self.variant not in ("VGQ-AE", "VGQ-AE-Mo") or accumulation_steps == 1:
+        if self.variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") or accumulation_steps == 1:
             return (next(iterator) for _ in range(accumulation_steps))
         from rhsci.runtime.auxiliary_accumulation import attach_auxiliary_normalization
 
@@ -165,7 +165,7 @@ class RHSCITrainingBackend:
             # 验证仍复用官方数据序列，仅让 collator 保留辅助标签。
             loader.collate_fn = RHSCICollator()
             for meta in loader.dataset.metas.values():
-                if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
+                if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
                     meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
                     meta.update(
                         rsci_variant=self.variant,
@@ -181,7 +181,7 @@ class RHSCITrainingBackend:
         }
         reader = InfiniteDataReader(**keys)
         for meta in reader.metas.values():
-            if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
+            if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
                 meta["handler"] = "lambda0.rhsci.data:RHSCIPsiSimpleHandler"
                 meta.update(
                     rsci_variant=self.variant,

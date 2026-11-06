@@ -276,7 +276,8 @@ class RHSCITests(unittest.TestCase):
             self.assertNotIn("observation.depth.egocentric", timestamps)
             if RHSCISpec(variant).query:
                 self.assertEqual(
-                    timestamps["observation.images.egocentric"], [-0.12, -0.08, -0.04, 0]
+                    timestamps["observation.images.egocentric"],
+                    [-0.24, -0.16, -0.08, 0] if variant == "VGQ-AE-240" else [-0.12, -0.08, -0.04, 0],
                 )
                 raw = {
                     "observation.images.egocentric": torch.rand(4, 3, 4, 6),

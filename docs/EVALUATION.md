@@ -95,7 +95,8 @@ Noise enablement, type, severity, seed and protocol must match the saved worker
 and all evaluation segments when resuming. Historical records without noise
 configuration are treated as noise disabled.
 
-To evaluate `VGQ-AE-Mo`, use `--variant VGQ-AE-Mo --run-dir <saved-run>`.
+To evaluate `VGQ-AE-240` or `VGQ-AE-Mo`, use `--variant VGQ-AE-240 --run-dir <saved-run>`
+or `--variant VGQ-AE-Mo --run-dir <saved-run>`, respectively.
 The worker passes the selected method to the model server, which checks it
 against the checkpoint configuration before loading model weights. A method
 mismatch is rejected rather than recorded under the requested label.

@@ -127,12 +127,14 @@ class Gr00tN1d6Config(PretrainedConfig):
                     setattr(self, f.name, f.default)
                 elif getattr(f, "default_factory", MISSING) is not MISSING:
                     setattr(self, f.name, f.default_factory())
-        if self.rsci_variant not in (None, "STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
+        if self.rsci_variant not in (None, "STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             raise ValueError("GR00T RHSCI supports STATE, NO-STATE and VGQ-AE")
         if self.rsci_variant and (self.tune_llm or self.tune_visual or self.tune_top_llm_layers not in (0, 4)):
             raise ValueError("RHSCI supports SIMPLE top4 or explicit frozen VLM, not full VLM tuning")
         if self.rsci_ardy_weight < 0:
             raise ValueError("ARDY loss weight must be nonnegative")
+        if self.rsci_variant == "VGQ-AE-240" and self.rsci_memory_mode != "reader":
+            raise ValueError("VGQ-AE-240 requires the existing Reader architecture")
         if self.rsci_variant == "VGQ-AE-Mo":
             from rhsci.data.ardy_motion import validate_motion_config
 
@@ -141,7 +143,7 @@ class Gr00tN1d6Config(PretrainedConfig):
                 raise ValueError("VGQ-AE-Mo requires the existing Reader architecture")
         if self.rsci_memory_mode not in ("none", "reader", "full-vlm"):
             raise ValueError("Unknown GR00T Query memory mode")
-        if self.rsci_memory_mode == "full-vlm" and self.rsci_variant not in ("VGQ-AE", "VGQ-AE-Mo"):
+        if self.rsci_memory_mode == "full-vlm" and self.rsci_variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             raise ValueError("Full VLM Query memory requires VGQ-AE")
 
     def to_filtered_dict(self, exclude_augment: bool = True) -> dict:

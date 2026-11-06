@@ -3,7 +3,7 @@
 Implementations: `src/openpi` and `src/openpi/rhsci`.
 Entry: `bash scripts/train/pi05.sh --help`.
 
-The adapter uses quantile-safe preprocessing and native optimization. Optional execution profiles control history batching and query recomputation; the default is `reference`. Supported variants are STATE, NO-STATE and VGQ-AE. Pass `--dataset`, `--sidecar`, `--tokenizer`, `--checkpoint`, `--output-dir` and `--max-steps` for a SIMPLE G1 task. See [Training](../../docs/TRAINING.md).
+The adapter uses quantile-safe preprocessing and native optimization. Optional execution profiles control history batching and query recomputation; the default is `reference`. Supported variants are STATE, NO-STATE, VGQ-AE, VGQ-AE-240 and VGQ-AE-Mo. Pass `--dataset`, `--sidecar`, `--tokenizer`, `--checkpoint`, `--output-dir` and `--max-steps` for a SIMPLE G1 task. See [Training](../../docs/TRAINING.md).
 
 Use a separate Python 3.10 environment with the versions required by `src/openpi/rhsci/train.py`, the source `transformers_replace` overlay, and compatible π0.5 weights/tokenizer. `PI05_RHSCI_PYTHON` overrides the interpreter; otherwise it uses `$PSI_RUNTIME_ROOT/.venv-pi05-rsci/bin/python`.
 

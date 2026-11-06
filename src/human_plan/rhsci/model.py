@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from rhsci.data.ardy_motion import validate_motion_config
+from rhsci.data.visual_history import visual_history_offsets
 from rhsci.runtime.losses import masked_ardy_loss as masked_ardy_loss
 
 
@@ -73,7 +74,7 @@ class EgoVLARHSCI(nn.Module):
         if vlm_training not in ("full", "frozen"):
             raise ValueError("VLM training must be full or frozen")
         self.vlm_training = vlm_training
-        if variant not in ("VGQ-AE", "VGQ-AE-Mo", "STATE"):
+        if variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "STATE"):
             raise ValueError("Unknown model variant")
         self.variant = variant
         self.backbone = backbone
@@ -101,7 +102,7 @@ class EgoVLARHSCI(nn.Module):
         for key in ("tune_language_model", "tune_vision_tower", "tune_mm_projector"):
             setattr(config, key, vlm_training == "full")
         width = config.hidden_size
-        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             self.reader = Reader(width)
             self.query = nn.Parameter(torch.randn(1, 1, width) / width**0.5)
             self.ardy_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
@@ -111,7 +112,7 @@ class EgoVLARHSCI(nn.Module):
             schema="egovla-vgq-ae-v1",
             variant=variant,
             vlm=vlm_training,
-            history=[-6, -4, -2, 0],
+            history=list(visual_history_offsets(variant)),
             horizon=30,
             action_dim=36,
             ardy_dim=128,
@@ -242,11 +243,11 @@ class EgoVLARHSCI(nn.Module):
             or action_mask.shape != actions.shape
         ):
             raise ValueError("Expected chronological four frames and 30×36 actions/mask")
-        if self.variant in ("VGQ-AE", "VGQ-AE-Mo") and (
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") and (
             history_valid.shape != images.shape[:2] or not history_valid[:, -1].all()
         ):
             raise ValueError("Current image must be valid")
-        if self.variant in ("VGQ-AE", "VGQ-AE-Mo") and states is not None:
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") and states is not None:
             raise ValueError("VGQ-AE must not receive state")
         current = self.encode(images[:, -1], input_ids, labels, attention_mask)
         prediction = self.action_prediction(current, states)

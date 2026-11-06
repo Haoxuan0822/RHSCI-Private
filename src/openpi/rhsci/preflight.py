@@ -2,6 +2,8 @@
 
 import json
 
+from rhsci.data.visual_history import visual_history_offsets
+
 from .checkpoints import checkpoint_ok, latest_checkpoint, sha256
 
 
@@ -44,16 +46,18 @@ def run_training_preflight(args, paths):
         ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
-    for index in (0, 6, int(dataset.ends[0]) - 1, int(dataset.ends[0]), 6):
+    offsets = np.array(visual_history_offsets(args.model))
+    first_valid_frame = int(-offsets[0])
+    for index in (0, first_valid_frame, int(dataset.ends[0]) - 1, int(dataset.ends[0])):
         sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
+        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             np.testing.assert_array_equal(
-                sample["rsci_history_valid"], np.array([-6, -4, -2, 0]) + sample["frame_index"] >= 0
+                sample["rsci_history_valid"], offsets + sample["frame_index"] >= 0
             )
         if (sample["state"] is not None) != (args.model == "STATE"):
             raise ValueError("Unexpected state dependency")
     if processor:
-        batch = collate([dataset[0], dataset[6]])
+        batch = collate([dataset[0], dataset[first_valid_frame]])
         if batch["actions"].shape != (2, 30, 36) or not np.isfinite(batch["actions"].numpy()).all():
             raise ValueError("Invalid normalized action shape/value")
     print(

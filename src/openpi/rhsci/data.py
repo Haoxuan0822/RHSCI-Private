@@ -10,8 +10,8 @@ import torch
 from torch.utils.data import Dataset
 
 from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.visual_history import visual_history_offsets
 
-OFFSETS = np.array([-6, -4, -2, 0], dtype=np.int64)
 HORIZON = 30
 GROUPS = {
     "left_hand": (0, 7),
@@ -67,7 +67,7 @@ class SimpleRHSCIDataset(Dataset):
         # 所有对照组使用同一有效30步动作窗口，不跨episode补动作。
         self.ends = np.cumsum([max(0, e["length"] - HORIZON + 1) for e in self.episodes])
         self.reader = None
-        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -144,7 +144,9 @@ class SimpleRHSCIDataset(Dataset):
         episode = self.episodes[slot]
         episode_id = episode["episode_index"]
         table = self._table(episode)
-        offsets = OFFSETS if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else np.array([0])
+        offsets = np.array(
+            visual_history_offsets(self.variant) if self.reader is not None else [0]
+        )
         requested = frame + offsets
         clipped = np.maximum(requested, 0)
         video_path = self.path(episode, "video")
@@ -173,7 +175,10 @@ class SimpleRHSCIDataset(Dataset):
             metadata.update(
                 rsci_history_valid=(requested >= 0),
                 rsci_ardy_target=target.ardy_body_latent,
-                rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
+                rsci_ardy_valid=np.bool_(
+                    target.ardy_loss_mask
+                    and (self.variant != "VGQ-AE-240" or (requested >= 0).all())
+                ),
             )
         if self.variant == "VGQ-AE-Mo":
             from rhsci.data.ardy_motion import ardy_motion_target

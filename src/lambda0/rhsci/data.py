@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 
 from lambda0.data.domain_handler.psi_simple import PsiSimpleHandler, decode_video_segment
 from lambda0.data.heterogeneous_collator import HeterogeneousActionCollator
+from rhsci.data.visual_history import visual_history_offsets
 
 
 @contextmanager
@@ -42,6 +43,7 @@ class SafePsiSimpleHandler(PsiSimpleHandler):
 class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
     def __init__(self, meta, num_views):
         super().__init__(meta, num_views)
+        self.variant = meta.get("rsci_variant", "VGQ-AE")
         self.motion_delta = (
             meta.get("rsci_ardy_delta_frames", 6)
             if meta.get("rsci_variant") == "VGQ-AE-Mo"
@@ -68,8 +70,9 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
         sample = super()._build_sample(**kwargs)
         after = torch.get_rng_state()
         item, index, image_aug = kwargs["item"], kwargs["index"], kwargs["image_aug"]
-        offsets = np.array([-6, -4, -2, 0]) + index
-        start = max(0, index - 6)
+        history_offsets = visual_history_offsets(self.variant)
+        offsets = np.array(history_offsets) + index
+        start = max(0, index + history_offsets[0])
         if self.storage_layout == "episode_v2":
             _, video_path = self._episode_paths(int(item["episode_index"]))
             video_start = 0
@@ -91,7 +94,11 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
             history=torch.stack(history),
             history_valid=torch.from_numpy(offsets >= 0),
             ardy_target=torch.tensor(np.array(target.ardy_body_latent, copy=True)),
-            ardy_valid=torch.tensor(bool(target.ardy_loss_mask)),
+            ardy_valid=torch.tensor(
+                bool(target.ardy_loss_mask and (
+                    self.variant != "VGQ-AE-240" or (offsets >= 0).all()
+                ))
+            ),
         )
         # 不让真实 state 经 processor 文本或连续 AE 路径进入 VGQ-AE。
         if self.motion_delta is not None:

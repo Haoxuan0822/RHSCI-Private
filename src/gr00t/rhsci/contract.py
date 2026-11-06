@@ -1,6 +1,7 @@
 """gr00t: 启动身份与源码契约。"""
 
 from rhsci.data.ardy_motion import motion_config
+from rhsci.data.visual_history import visual_history_offsets
 from rhsci.paths import CODE_ROOT as CODE_ROOT
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 
@@ -33,7 +34,7 @@ def build_training_contract(args, paths):
         tune_top_llm_layers=4 if args.vlm == "top4" else 0,
         color_jitter=dict(brightness=0.3, contrast=0.4, saturation=0.5, hue=0.08),
         valid_action_horizon=16,
-        history_offsets=[-6, -4, -2, 0],
+        history_offsets=list(visual_history_offsets(args.model)),
         reader_layout="8image+8text-per-frame",
         dataset_fingerprint=dataset_content_fingerprint(paths["dataset"]),
         input_cache=cache_identity(paths["dataset"], config=paths["input_cache"]),
@@ -41,7 +42,7 @@ def build_training_contract(args, paths):
         initialization_config=sha256(paths["checkpoint"] / "config.json"),
         initialization_index=sha256(paths["checkpoint"] / "model.safetensors.index.json"),
     )
-    if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
         identity["sidecar_manifest"] = sha256(paths["sidecar"] / "manifest.json")
     identity.update(motion_config(args))
     identity = reuse_run_contract(identity, paths["output"])

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 from rhsci.data.cache_config import InputCacheConfig
 from rhsci.data.sampling import EpochSampler as EpochSampler
+from rhsci.data.visual_history import visual_history_offsets
 import torch
 from torch.utils.data import Dataset
 
@@ -24,7 +25,6 @@ from gr00t.data.types import (
 
 TAG = EmbodimentTag.G1_LOCO_DOWNSTREAM
 
-OFFSETS = np.array([-6, -4, -2, 0], dtype=np.int64)
 GROUPS = {
     "left_hand": (0, 7),
     "right_hand": (7, 14),
@@ -44,8 +44,8 @@ def modality(variant, *, training=True):
     return {
         TAG.value: {
             "video": ModalityConfig(
-                delta_indices=OFFSETS.tolist()
-                if training and variant in ("VGQ-AE", "VGQ-AE-Mo")
+                delta_indices=list(visual_history_offsets(variant))
+                if training and variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo")
                 else [0],
                 modality_keys=["rs_view"],
             ),
@@ -127,7 +127,7 @@ class SimpleRHSCIDataset(Dataset):
         # 沿用GR00T SIMPLE有效action horizon16；所有组使用完全相同的采样集合。
         self.ends = np.cumsum([max(0, e["length"] - 15) for e in self.episodes])
         self.reader = None
-        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -217,7 +217,9 @@ class SimpleRHSCIDataset(Dataset):
         episode = self.episodes[slot]
         episode_id = episode["episode_index"]
         table = self._table(episode)
-        offsets = OFFSETS if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else np.array([0])
+        offsets = np.array(
+            visual_history_offsets(self.variant) if self.reader is not None else [0]
+        )
         requested = frame + offsets
         clipped = np.maximum(requested, 0)
         from torchcodec.decoders import VideoDecoder

@@ -19,6 +19,7 @@ Shared infrastructure lives in `src/rhsci`.
 | --- | --- |
 | `rhsci.data` | ARDY sidecars, dataset provenance, sampling and raw input caches |
 | `rhsci.data.ardy_motion` | VGQ-AE-Mo configuration and same-episode backward ARDY differences |
+| `rhsci.data.visual_history` | Visual frame offsets for VGQ-AE and its 240 ms variant, independent of ARDY teacher windows |
 | `rhsci.runtime.losses` | Masked auxiliary and ARDY losses |
 | `rhsci.runtime.auxiliary_accumulation` | Valid-label counts across a complete optimizer update, including gradient accumulation and DDP |
 | `rhsci.runtime.hf_full_state` | Complete checkpoint lifecycle for HF-based adapters |
@@ -37,6 +38,8 @@ Shell launchers in `scripts/train` select the backbone environment and call its
 package-local CLI. Configuration, preflight, worker, trainer and checkpoint
 modules separate launch setup from model execution. Each backbone retains its
 native optimizer and sampling recipe.
+
+VGQ-AE-240 reuses each backbone's VGQ-AE model and processor. Dataset adapters obtain `[-12, -8, -4, 0]` from `rhsci.data.visual_history`; the original variants keep `[-6, -4, -2, 0]`. Existing current-ARDY labels are combined with the selected visual-history validity mask. The method name is saved through each backbone's existing configuration and checkpoint path; inference remains current-frame only.
 
 VGQ-AE-Mo extends the existing VGQ-AE branch inside each of the five VLA backbones. The current-ARDY and difference heads consume one shared Query output; the existing masked auxiliary loss handles both targets. Dataset adapters read backward differences through `rhsci.data.ardy_motion` and pass labels separately from observations. Method-specific settings and head weights are saved with the backbone's existing checkpoint/configuration files.
 

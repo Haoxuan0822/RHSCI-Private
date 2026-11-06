@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from rhsci.data.ardy_motion import motion_config
+from rhsci.data.visual_history import visual_history_offsets
 from rhsci.runtime.contracts import compute_contract_digest, reuse_run_contract
 from rhsci.runtime.environment import get_env
 
@@ -69,7 +70,8 @@ def execute_training(args: argparse.Namespace, config: LambdaTrainingConfig) -> 
         effective_state_conditioning_mode="discrete_vlm"
         if args.variant == "STATE"
         else "continuous_action_expert",
-        history_offsets=[-6, -4, -2, 0] if args.variant in ("VGQ-AE", "VGQ-AE-Mo") else [0],
+        history_offsets=list(visual_history_offsets(args.variant))
+        if args.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") else [0],
         normalization="rsci_q01_q99_degenerate_minmax_v1",
         initialization_weight_source="raw",
         inference="current-frame only; native Lambda0 generation; no Reader/Query",

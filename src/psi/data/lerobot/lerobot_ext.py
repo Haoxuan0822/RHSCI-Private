@@ -42,6 +42,8 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
         self.ardy_reader = None
         repack = data_cfg.transform.repack
         self.ardy_offset = getattr(data_cfg, "rsci_ardy_offset_frames", 0)
+        if repack.rsci_variant == "VGQ-AE-240" and self.ardy_offset:
+            raise ValueError("VGQ-AE-240 requires the unchanged current ARDY target")
         self.motion_delta = (
             data_cfg.rsci_ardy_delta_frames if repack.rsci_variant == "VGQ-AE-Mo" else None
         )

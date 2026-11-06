@@ -9,8 +9,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 from rhsci.data.cache_config import InputCacheConfig
-
-OFFSETS = np.array([-6, -4, -2, 0], dtype=np.int64)
+from rhsci.data.visual_history import visual_history_offsets
 
 
 class SimpleDataset(Dataset):
@@ -113,7 +112,9 @@ class SimpleDataset(Dataset):
         episode = self.episodes[slot]
         episode_id = episode["episode_index"]
         table = self._table(episode)
-        requested = frame + (np.array([0]) if self.variant == "STATE" else OFFSETS)
+        requested = frame + np.array(
+            [0] if self.variant == "STATE" else visual_history_offsets(self.variant)
+        )
         if self.input_cache is not None:
             images = self.input_cache.frames(episode_id, np.maximum(requested, 0).tolist())
         else:
@@ -149,7 +150,10 @@ class SimpleDataset(Dataset):
             sample,
             history_valid=requested >= 0,
             ardy_target=np.array(target.ardy_body_latent, copy=True),
-            ardy_valid=bool(target.ardy_loss_mask),
+            ardy_valid=bool(
+                target.ardy_loss_mask
+                and (self.variant != "VGQ-AE-240" or (requested >= 0).all())
+            ),
         )
 
     def _video_images(self, episode_id, episode, requested):

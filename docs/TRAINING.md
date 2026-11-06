@@ -87,6 +87,14 @@ python3 scripts/train/baseline.py --backbone lambda0 --mode rhsci \
 
 λ₀ uses its native dependency imports and model loader; the environment lock and source manifest are reproducibility references, not runtime version gates. Its inner `--dry-run` resolves local configuration and assets without a full weight hash scan; `--check-model` additionally checks asset hashes when a source receipt is available. The common launcher's outer `--dry-run` remains command-only.
 
+## VGQ-AE-240
+
+Select `--model VGQ-AE-240` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant VGQ-AE-240`. Use a separate output directory. At 50 Hz, this method samples visual frames `[t-12, t-8, t-4, t]`, covering 240 ms with 80 ms spacing.
+
+Only the visual frame sources change. Reader, shared Action Expert, Query, current-ARDY head, loss weights and action targets follow VGQ-AE. The existing ARDY `z(t)` and its teacher window remain unchanged; reuse existing sidecars and raw-frame caches. This variant has no motion head or difference loss. Inference still uses only current RGB and language.
+
+History is padded within the same episode. Current-ARDY supervision requires all four visual frames and a valid existing target, so its earliest valid sample is frame 12 (zero-based). Earlier samples still train the action branch. Reader removal and future-ARDY switches are unavailable for this method.
+
 ## VGQ-AE-Mo
 
 Select `--model VGQ-AE-Mo` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant VGQ-AE-Mo`. Start a separate output directory for this method. Existing VGQ-AE commands retain their original behavior.
@@ -112,8 +120,8 @@ For example, adapt the π0.5 command above with:
 
 | Training option | Backbones | Default | Effect |
 | --- | --- | --- | --- |
-| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION and VGQ-AE-Mo | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
-| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION and VGQ-AE-Mo | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
+| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240 and VGQ-AE-Mo | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
+| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240 and VGQ-AE-Mo | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
 

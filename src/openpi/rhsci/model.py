@@ -10,6 +10,7 @@ from torch.utils.checkpoint import checkpoint
 from transformers.models.gemma import modeling_gemma
 
 from rhsci.data.ardy_motion import validate_motion_config
+from rhsci.data.visual_history import visual_history_offsets
 from rhsci.runtime.losses import masked_auxiliary_loss
 
 from .augmentation import AUGMENTATION_VERSION, augment_training_images
@@ -67,7 +68,7 @@ class Pi05RHSCI(nn.Module):
         if execution not in ("reference", "history", "query", "both"):
             raise ValueError(f"Unknown execution profile: {execution}")
         self.execution = execution
-        if variant not in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-Mo"):
+        if variant not in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             raise ValueError(variant)
         if backbone is None:
             from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
@@ -96,7 +97,7 @@ class Pi05RHSCI(nn.Module):
             horizon=30,
             action_dim=36,
             vlm="frozen",
-            history=[-6, -4, -2, 0],
+            history=list(visual_history_offsets(variant)),
             ardy_weight=0.1,
             reader="16-per-frame-KV-projection-v1",
             normalization="simple-quantile-zero-span-clipped-v2",
@@ -104,9 +105,9 @@ class Pi05RHSCI(nn.Module):
             inference_compile="max-autotune" if compile_inference else "disabled",
             execution=execution,
         )
-        if variant not in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             self.rsci_config.update(history=[0], ardy_weight=0.0, reader=None)
-        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             self.reader = Reader(vlm_width, ae_width)
             self.query = nn.Parameter(torch.randn(1, 1, ae_width) / ae_width**0.5)
             self.ardy_head = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
@@ -241,7 +242,7 @@ class Pi05RHSCI(nn.Module):
         auxiliary_normalization=None,
     ):
         if actions.shape[1:] != (30, 36) or images.shape[1] != (
-            4 if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else 1
+            4 if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") else 1
         ):
             raise ValueError("Expected 30×36 actions and recipe-specific image count")
         if self.training:
@@ -261,7 +262,7 @@ class Pi05RHSCI(nn.Module):
         action_loss = (predicted - (noise - actions)).square().mean()
         loss = action_loss
         output = dict(action_loss=action_loss.detach())
-        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             if images.shape[1] != 4 or history_valid is None or not history_valid[:, -1].all():
                 raise ValueError("VGQ-AE requires chronological four-frame input")
             frames = self.encode_history(images[:, :3], tokens, token_mask)

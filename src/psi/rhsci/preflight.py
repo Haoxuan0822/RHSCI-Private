@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from rhsci.data.visual_history import visual_history_offsets
+
 
 def run_training_preflight(cfg):
     """检查本地资产和真实数据处理结果，不启动训练。验证失败抛出异常，通过时返回 None。"""
@@ -43,7 +45,9 @@ def run_training_preflight(cfg):
             raise ValueError("RHSCI RGB-only reader must exclude unused depth column")
     processor = AutoProcessor.from_pretrained(str(vlm), local_files_only=True)
     sample = cfg.data.transform(
-        wrapper[min(6, len(wrapper) - 1)], vlm_processor=processor, no_aug=True
+        wrapper[min(-visual_history_offsets(cfg.model.rsci_variant)[0], len(wrapper) - 1)],
+        vlm_processor=processor,
+        no_aug=True,
     )
     batch = PaddedCollatorForTogether(
         processor.tokenizer.model_max_length, processor.tokenizer.pad_token_id

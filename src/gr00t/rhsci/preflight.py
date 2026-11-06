@@ -2,6 +2,8 @@
 
 import json
 
+from rhsci.data.visual_history import visual_history_offsets
+
 
 def build_processor(args, paths):
     from gr00t.model.gr00t_n1d6.processing_gr00t_n1d6 import Gr00tN1d6Processor
@@ -50,14 +52,15 @@ def run_training_preflight(args, paths):
     )
 
     # 起始无效历史及完整历史各一个真实样本，包含官方Eagle分词/图像处理。
-    batch = processor.collator([dataset[0], dataset[6]])["inputs"]
+    first_valid_frame = -visual_history_offsets(args.model)[0]
+    batch = processor.collator([dataset[0], dataset[first_valid_frame]])["inputs"]
     if batch["action"].shape != (
         2,
         config_horizon := processor.max_action_horizon,
         processor.max_action_dim,
     ):
         raise ValueError("Invalid padded action shape")
-    if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
         if (
             len(batch["rsci_history"]) != 3
             or batch["rsci_history_valid"][0].all()
@@ -89,13 +92,14 @@ def validate_training_data(args, paths):
     )
 
     # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
-    indices = [6, 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1, 6]
+    offsets = np.array(visual_history_offsets(args.model))
+    indices = [int(-offsets[0]), 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1]
     for index in indices:
         sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-Mo"):
+        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             frame = sample.metadata["frame_index"]
             if not np.array_equal(
-                sample.metadata["rsci_history_valid"], np.array([-6, -4, -2, 0]) + frame >= 0
+                sample.metadata["rsci_history_valid"], offsets + frame >= 0
             ):
                 raise ValueError("History crossed episode boundary")
             target = dataset.reader.get(sample.metadata["episode_index"], frame)

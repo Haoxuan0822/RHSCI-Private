@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from rhsci.data.ardy_motion import motion_config
+from rhsci.data.visual_history import visual_history_offsets
 
 from .checkpoints import atomic_json, sha256
 
@@ -99,7 +100,7 @@ def assets(root, register=False, verify=False):
 def check_data(paths, variant="VGQ-AE", ardy_delta_frames=6):
     import numpy as np
 
-    from .data import OFFSETS, SimpleDataset
+    from .data import SimpleDataset
 
     dataset = SimpleDataset(
         paths["dataset"],
@@ -109,14 +110,15 @@ def check_data(paths, variant="VGQ-AE", ardy_delta_frames=6):
         ardy_delta_frames=ardy_delta_frames,
     )
 
-    for index in (0, 6, int(dataset.ends[0]) - 1, int(dataset.ends[0])):
+    offsets = np.array(visual_history_offsets(variant))
+    for index in (0, int(-offsets[0]), int(dataset.ends[0]) - 1, int(dataset.ends[0])):
         sample = dataset.raw_sample(index)
-        if variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             np.testing.assert_array_equal(
-                sample["history_valid"], OFFSETS + sample["frame_index"] >= 0
+                sample["history_valid"], offsets + sample["frame_index"] >= 0
             )
         if sample["actions"].shape != (30, 36) or any(
-            "depth" in key or (variant in ("VGQ-AE", "VGQ-AE-Mo") and "state" in key) for key in sample
+            "depth" in key or (variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") and "state" in key) for key in sample
         ):
             raise ValueError("Invalid action window or unexpected state/depth")
     print(
@@ -138,7 +140,8 @@ def validate_model_and_worker_preprocessing(args, paths):
     configure_vlm_execution(model, args)
     dataset = check_data(paths, args.model, getattr(args, "ardy_delta_frames", 6))
     dataset.processor = processor
-    batch = Collator(processor.tokenizer.pad_token_id)([dataset[0], dataset[6]])
+    sample_indices = [0, -visual_history_offsets(args.model)[0]]
+    batch = Collator(processor.tokenizer.pad_token_id)([dataset[index] for index in sample_indices])
     if batch["actions"].shape != (2, 30, 36):
         raise ValueError("Invalid model batch")
     # 主进程预处理通过不代表worker能用；真实spawn读取同样两帧，
@@ -147,7 +150,7 @@ def validate_model_and_worker_preprocessing(args, paths):
     from torch.utils.data import DataLoader, Subset
 
     worker_loader = DataLoader(
-        Subset(dataset, [0, 6]),
+        Subset(dataset, sample_indices),
         batch_size=2,
         num_workers=1,
         multiprocessing_context="spawn",

@@ -80,7 +80,7 @@ class Processor:
             token_mask=mask,
             actions=torch.from_numpy(self.normalize(sample["actions"], "action")),
         )
-        if self.variant in ("VGQ-AE", "VGQ-AE-Mo"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
             result.update(
                 history_valid=torch.as_tensor(sample["rsci_history_valid"]),
                 ardy_target=torch.tensor(np.array(sample["rsci_ardy_target"], copy=True)),

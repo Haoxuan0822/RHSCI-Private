@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, model_validator
 from torchvision.transforms import v2
 from psi.config.augmentation import *
 from psi.utils import get_asset_dir, pt_to_pil, resolve_path, pad_to_len
+from rhsci.data.visual_history import visual_history_offsets
 
 IGNORE_INDEX = -100
 
@@ -385,7 +386,9 @@ class SimpleRepackTransform(LerobotRepackTransform):
         }
 
         if self.rsci_variant and self.rsci_variant not in ("STATE", "NO-STATE"):
-            delta["observation.images.egocentric"] = [t / fps for t in (-6, -4, -2, 0)]
+            delta["observation.images.egocentric"] = [
+                t / fps for t in visual_history_offsets(self.rsci_variant)
+            ]
 
         return delta
 
