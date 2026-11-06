@@ -97,6 +97,10 @@ VGQ-AE-Mo keeps the four visual frames `[-6, -4, -2, 0]`, Reader, shared Action 
 
 Both labels must be valid and belong to the same episode. Missing history or an invalid endpoint masks only the difference loss, keeping the existing action/current-ARDY sample. With the standard six-frame ARDY history requirement and Δ=6, difference supervision starts at frame 12 (zero-based). Reader removal and future-current-target switches are unavailable for this method.
 
+Each auxiliary loss is averaged over its own valid labels across the complete optimizer update (all accumulated microbatches and all DDP ranks). Microbatches with no valid labels contribute zero; changing the microbatch split does not change this normalization. Backbone action losses retain their native normalization.
+
+ARDY `z(t)` encodes a four-frame motion window. At Δ=6, the two target windows together span `[t-12, t]` (240 ms), while the visual inputs cover `[t-6, t]` (120 ms). The older target window is therefore only partly observed. Mo supplies auxiliary training through shared parameters; it does not add a history buffer or a motion estimate to action inference.
+
 For example, adapt the π0.5 command above with:
 
 ```bash

@@ -1526,8 +1526,12 @@ def run_training(args, model, processor, tracker_name="Lambda0", backend=None) -
         accumulated_log_sums: dict[str, torch.Tensor] = {}
         accumulated_log_counts: dict[str, torch.Tensor] = {}
         accumulation_steps = args.gradient_accumulation_steps
-        for micro_step in range(accumulation_steps):
-            batch = next(data_iterator)
+        batches = (
+            operations.prepare_training_batches(data_iterator, accumulation_steps, accelerator.device)
+            if hasattr(operations, "prepare_training_batches")
+            else (next(data_iterator) for _ in range(accumulation_steps))
+        )
+        for micro_step, batch in enumerate(batches):
             phase_prefix = f"micro_{micro_step}"
             trace_training_phase(
                 accelerator,

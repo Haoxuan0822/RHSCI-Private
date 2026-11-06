@@ -106,7 +106,10 @@ def forward_loss(
     losses = {"loss": imitation, "loss_action": imitation}
     if spec.method == "VGQ-VLM":
         valid = batch["ardy_valid"].bool() & batch["history_valid"].bool().all(-1)
-        auxiliary = masked_auxiliary_loss(output.ardy_prediction, batch["ardy_target"], valid)
+        auxiliary = masked_auxiliary_loss(
+            output.ardy_prediction, batch["ardy_target"], valid,
+            normalization_denominator=batch.get("auxiliary_normalization", {}).get("ardy"),
+        )
         losses.update(loss_ardy=auxiliary, loss_ardy_weighted=spec.auxiliary_weight * auxiliary)
     elif spec.method == "STATE-RECONSTRUCTION":
         # 沿用 VGQ-AE 的有效窗口；ARDY 数值不参与重建监督。

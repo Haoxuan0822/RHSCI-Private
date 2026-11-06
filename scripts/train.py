@@ -241,7 +241,17 @@ def train(config: LaunchConfig):
     for epoch in range(epoch_start, MAX_TRAINING_EPOCHS):
         trainer.next_epoch(epoch)
         accelerator.wait_for_everyone()
-        for local_step, (batch, data_wait_s) in enumerate(timed_batches(trainer.train_dataloader)):
+        batches = trainer.train_dataloader
+        if (
+            getattr(config.model, "rsci_variant", None) not in (None, "STATE", "NO-STATE", "STATE-RECONSTRUCTION")
+            and trainer.gradient_accumulation_steps > 1
+        ):
+            from rhsci.runtime.auxiliary_accumulation import normalized_auxiliary_batches
+
+            batches = normalized_auxiliary_batches(
+                batches, trainer.gradient_accumulation_steps, accelerator.device
+            )
+        for local_step, (batch, data_wait_s) in enumerate(timed_batches(batches)):
             if (
                 config.train.skip_resumed_steps
                 and skip < resume_batches_to_skip

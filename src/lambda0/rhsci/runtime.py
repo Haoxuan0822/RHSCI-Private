@@ -119,6 +119,7 @@ class RHSCITrainingBackend:
 
     def prepare_inputs(self, batch, processor, device, policy):
         batch = dict(batch)
+        normalization = batch.pop("auxiliary_normalization", None)
         history = batch.pop("history", None)
         extra = {
             key: batch.pop(key)
@@ -143,7 +144,18 @@ class RHSCITrainingBackend:
                 )
                 result["history"].append({key: value.to(device) for key, value in inputs.items()})
         result.update({key: value.to(device) for key, value in extra.items()})
+        if normalization is not None:
+            result["auxiliary_normalization"] = normalization
         return result
+
+    def prepare_training_batches(self, iterator, accumulation_steps, device):
+        """仅辅助方法预取一个更新组的原始 batch，VLM 处理仍逐微批进行。"""
+        if self.variant not in ("VGQ-AE", "VGQ-AE-Mo") or accumulation_steps == 1:
+            return (next(iterator) for _ in range(accumulation_steps))
+        from rhsci.runtime.auxiliary_accumulation import attach_auxiliary_normalization
+
+        batches = [next(iterator) for _ in range(accumulation_steps)]
+        return attach_auxiliary_normalization(batches, device, accumulation_steps)
 
     def create_dataloader(self, **kwargs):
         from .data import ResumableLoader, RHSCICollator

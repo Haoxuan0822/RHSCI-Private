@@ -830,7 +830,11 @@ class Gr00tN1d6(PreTrainedModel):
             if self.config.rsci_variant == "VGQ-AE-Mo":
                 prediction, motion_prediction = prediction
             valid = action_inputs["rsci_ardy_valid"].bool() & action_inputs["rsci_history_valid"].bool().all(-1)
-            auxiliary = masked_ardy_loss(prediction, action_inputs["rsci_ardy_target"], valid)
+            normalization = inputs.get("auxiliary_normalization", {})
+            auxiliary = masked_ardy_loss(
+                prediction, action_inputs["rsci_ardy_target"], valid,
+                normalization_denominator=normalization.get("ardy"),
+            )
             action_outputs["ardy_loss"] = auxiliary
             action_outputs["ardy_prediction"] = prediction
             action_outputs["loss"] = action_outputs["loss"] + self.config.rsci_ardy_weight * auxiliary
@@ -840,7 +844,8 @@ class Gr00tN1d6(PreTrainedModel):
                     & action_inputs["rsci_history_valid"].bool().all(-1)
                 )
                 motion_loss = masked_ardy_loss(
-                    motion_prediction, action_inputs["rsci_motion_target"], motion_valid
+                    motion_prediction, action_inputs["rsci_motion_target"], motion_valid,
+                    normalization_denominator=normalization.get("motion"),
                 )
                 action_outputs["motion_prediction"] = motion_prediction
                 action_outputs["motion_loss"] = motion_loss

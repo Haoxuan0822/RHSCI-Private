@@ -769,14 +769,19 @@ class FinetuneTrainer(Trainer):
             from psi.rhsci.model import masked_auxiliary_loss
             if model_output.ardy_prediction is None or "ardy_target" not in batch or "ardy_valid" not in batch:
                 raise ValueError("RHSCI Query requires prediction and formal labels")
-            auxiliary = masked_auxiliary_loss(model_output.ardy_prediction, batch["ardy_target"], batch["ardy_valid"])
+            normalization = batch.get("auxiliary_normalization", {})
+            auxiliary = masked_auxiliary_loss(
+                model_output.ardy_prediction, batch["ardy_target"], batch["ardy_valid"],
+                normalization_denominator=normalization.get("ardy"),
+            )
             losses["loss_ardy"] = auxiliary
             losses["loss_ardy_weighted"] = self.model_cfg.rsci_ardy_weight * auxiliary
             losses["ardy_valid_fraction"] = batch["ardy_valid"].float().mean()
             losses["loss"] = losses["loss"] + losses["loss_ardy_weighted"]
             if self.model_cfg.rsci_variant == "VGQ-AE-Mo":
                 motion = masked_auxiliary_loss(
-                    model_output.motion_prediction, batch["motion_target"], batch["motion_valid"]
+                    model_output.motion_prediction, batch["motion_target"], batch["motion_valid"],
+                    normalization_denominator=normalization.get("motion"),
                 )
                 losses["loss_motion"] = motion
                 losses["loss_motion_weighted"] = self.model_cfg.rsci_motion_weight * motion

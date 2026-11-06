@@ -116,6 +116,7 @@ class Lambda0RHSCI(Lambda0):
         ardy_valid=None,
         motion_target=None,
         motion_valid=None,
+        auxiliary_normalization=None,
         **kwargs,
     ):
         variant = getattr(self.config, "rsci_variant", "STATE")
@@ -130,8 +131,10 @@ class Lambda0RHSCI(Lambda0):
                 )
                 if variant == "VGQ-AE-Mo":
                     prediction, motion_prediction = prediction
+                normalization = auxiliary_normalization or {}
                 auxiliary_loss = masked_ardy_loss(
-                    prediction, ardy_target, ardy_valid, global_reduction=self.training
+                    prediction, ardy_target, ardy_valid, global_reduction=self.training,
+                    normalization_denominator=normalization.get("ardy"),
                 )
                 # 官方训练器只接受其原生 metric key；总 loss 包含辅助项，独立值留给验收/调试。
                 self.last_ardy_loss = auxiliary_loss.detach()
@@ -142,6 +145,7 @@ class Lambda0RHSCI(Lambda0):
                         motion_target,
                         motion_valid,
                         global_reduction=self.training,
+                        normalization_denominator=normalization.get("motion"),
                     )
                     self.last_motion_loss = motion_loss.detach()
                     losses["loss"] = losses["loss"] + self.config.rsci_motion_weight * motion_loss

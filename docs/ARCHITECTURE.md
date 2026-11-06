@@ -20,6 +20,7 @@ Shared infrastructure lives in `src/rhsci`.
 | `rhsci.data` | ARDY sidecars, dataset provenance, sampling and raw input caches |
 | `rhsci.data.ardy_motion` | VGQ-AE-Mo configuration and same-episode backward ARDY differences |
 | `rhsci.runtime.losses` | Masked auxiliary and ARDY losses |
+| `rhsci.runtime.auxiliary_accumulation` | Valid-label counts across a complete optimizer update, including gradient accumulation and DDP |
 | `rhsci.runtime.hf_full_state` | Complete checkpoint lifecycle for HF-based adapters |
 | `rhsci.runtime.hf_resume` | Sampler epoch and progress restoration |
 | `rhsci.runtime.contracts` | Model, data and training configuration compatibility |

@@ -234,6 +234,7 @@ class EgoVLARHSCI(nn.Module):
         states=None,
         motion_target=None,
         motion_valid=None,
+        auxiliary_normalization=None,
     ):
         if (
             images.shape[1] != (1 if self.variant == "STATE" else 4)
@@ -263,7 +264,11 @@ class EgoVLARHSCI(nn.Module):
         latent = decode_latents(
             self.decoder, self.query.expand(images.shape[0], -1, -1), memory, mask
         )[:, 0]
-        ardy_loss = masked_ardy_loss(self.ardy_head(latent.float()), ardy_target, ardy_valid)
+        normalization = auxiliary_normalization or {}
+        ardy_loss = masked_ardy_loss(
+            self.ardy_head(latent.float()), ardy_target, ardy_valid,
+            normalization_denominator=normalization.get("ardy"),
+        )
         output = dict(
             loss=action_loss + 0.1 * ardy_loss,
             action_loss=action_loss.detach(),
@@ -271,7 +276,8 @@ class EgoVLARHSCI(nn.Module):
         )
         if self.variant == "VGQ-AE-Mo":
             motion_loss = masked_ardy_loss(
-                self.motion_head(latent.float()), motion_target, motion_valid
+                self.motion_head(latent.float()), motion_target, motion_valid,
+                normalization_denominator=normalization.get("motion"),
             )
             output["loss"] = output["loss"] + self.motion_weight * motion_loss
             output["motion_loss"] = motion_loss.detach()

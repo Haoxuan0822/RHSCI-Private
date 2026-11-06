@@ -9,8 +9,9 @@ def create_resume_trainer_class():
         tail_safe_training_values,
     )
     from transformers import Trainer
+    from rhsci.runtime.auxiliary_accumulation import AuxiliaryAccumulationTrainerMixin
 
-    class ResumeTrainer(Trainer):
+    class ResumeTrainer(AuxiliaryAccumulationTrainerMixin, Trainer):
         _inner_training_loop = tail_safe_training_loop(Trainer)
         set_initial_training_values = tail_safe_training_values(Trainer)
 

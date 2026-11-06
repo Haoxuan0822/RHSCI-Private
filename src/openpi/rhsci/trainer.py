@@ -13,10 +13,11 @@ def create_trainer_class():
     from transformers import Trainer
 
     from rhsci.data.loader_cleanup import close_dataloaders
+    from rhsci.runtime.auxiliary_accumulation import AuxiliaryAccumulationTrainerMixin
     from rhsci.runtime.hf_resume import isolate_worker_rng, tail_safe_training_loop
     from rhsci.runtime.numerics import require_finite
 
-    class RHSCITrainer(Trainer):
+    class RHSCITrainer(AuxiliaryAccumulationTrainerMixin, Trainer):
         _inner_training_loop = tail_safe_training_loop(Trainer)
 
         def __init__(self, *args, **kwargs):

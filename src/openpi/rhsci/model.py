@@ -238,6 +238,7 @@ class Pi05RHSCI(nn.Module):
         ardy_valid=None,
         motion_target=None,
         motion_valid=None,
+        auxiliary_normalization=None,
     ):
         if actions.shape[1:] != (30, 36) or images.shape[1] != (
             4 if self.variant in ("VGQ-AE", "VGQ-AE-Mo") else 1
@@ -274,12 +275,17 @@ class Pi05RHSCI(nn.Module):
                 recompute=self.execution not in ("query", "both"),
             )[:, 0]
             prediction = self.ardy_head(latent.float())
-            auxiliary = masked_auxiliary_loss(prediction, ardy_target, ardy_valid)
+            normalization = auxiliary_normalization or {}
+            auxiliary = masked_auxiliary_loss(
+                prediction, ardy_target, ardy_valid,
+                normalization_denominator=normalization.get("ardy"),
+            )
             loss = loss + 0.1 * auxiliary
             output["ardy_loss"] = auxiliary.detach()
             if self.variant == "VGQ-AE-Mo":
                 motion_loss = masked_auxiliary_loss(
-                    self.motion_head(latent.float()), motion_target, motion_valid
+                    self.motion_head(latent.float()), motion_target, motion_valid,
+                    normalization_denominator=normalization.get("motion"),
                 )
                 loss = loss + self.motion_weight * motion_loss
                 output["motion_loss"] = motion_loss.detach()
