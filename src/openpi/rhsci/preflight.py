@@ -50,7 +50,7 @@ def run_training_preflight(args, paths):
     first_valid_frame = int(-offsets[0])
     for index in (0, first_valid_frame, int(dataset.ends[0]) - 1, int(dataset.ends[0])):
         sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             np.testing.assert_array_equal(
                 sample["rsci_history_valid"], offsets + sample["frame_index"] >= 0
             )

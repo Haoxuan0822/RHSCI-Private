@@ -410,7 +410,7 @@ class SimpleRepackTransform(LerobotRepackTransform):
             auxiliary["history_valid"] = ~np.asarray(data[image_key + "_is_pad"], dtype=bool)
             auxiliary["ardy_target"] = np.asarray(data["ardy_target"], dtype=np.float32)
             auxiliary["ardy_valid"] = bool(data["ardy_valid"]) and bool(auxiliary["history_valid"].all())
-            if self.rsci_variant == "VGQ-AE-Mo":
+            if self.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 auxiliary["motion_target"] = np.asarray(data["motion_target"], dtype=np.float32)
                 auxiliary["motion_valid"] = bool(data["motion_valid"]) and auxiliary["ardy_valid"]
             data[image_key] = images[-1]

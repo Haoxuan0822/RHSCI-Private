@@ -139,20 +139,20 @@ class SimpleDataset(Dataset):
             target.ardy_loss_mask and not np.isfinite(target.ardy_body_latent).all()
         ):
             raise ValueError("Invalid formal ARDY target")
-        if self.variant == "VGQ-AE-Mo":
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_motion import ardy_motion_target
 
             motion, valid = ardy_motion_target(
                 self.reader, episode_id, frame, self.ardy_delta_frames
             )
-            sample.update(motion_target=motion, motion_valid=valid)
+            sample.update(motion_target=motion, motion_valid=bool(valid and (requested >= 0).all()))
         return dict(
             sample,
             history_valid=requested >= 0,
             ardy_target=np.array(target.ardy_body_latent, copy=True),
             ardy_valid=bool(
                 target.ardy_loss_mask
-                and (self.variant != "VGQ-AE-240" or (requested >= 0).all())
+                and (self.variant not in ("VGQ-AE-240", "VGQ-AE-Mo-240") or (requested >= 0).all())
             ),
         )
 

@@ -83,7 +83,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     """校验 CLI 参数并应用 Ψ0 配方；返回配置、启动命令、输出目录和进程数。"""
     motion = motion_config(args)
-    if args.model in ("VGQ-AE-240", "VGQ-AE-Mo") and (args.no_reader or args.ardy_offset):
+    if args.model in ("VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") and (args.no_reader or args.ardy_offset):
         raise ValueError(f"{args.model} retains the Reader and current ARDY target")
     if args.model in CONTROL_VARIANTS and (args.no_reader or args.ardy_offset):
         raise ValueError("Controls use their fixed Reader/target-time protocol")

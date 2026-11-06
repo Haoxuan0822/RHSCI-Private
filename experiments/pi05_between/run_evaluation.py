@@ -455,7 +455,7 @@ def build_argument_parser():
     parser.add_argument("--num-episodes", type=int, choices=range(1, 11), default=10)
     parser.add_argument(
         "--variant",
-        choices=["STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "NO-STATE", "RGB", "VGQ-VLM", "VGQ-AE-F10"],
+        choices=["STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "NO-STATE", "RGB", "VGQ-VLM", "VGQ-AE-F10"],
         required=True,
     )
     parser.add_argument("--backbone", choices=["pi05", "gr00t", "psi0"], default="pi05")

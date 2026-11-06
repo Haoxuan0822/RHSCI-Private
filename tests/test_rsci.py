@@ -277,7 +277,7 @@ class RHSCITests(unittest.TestCase):
             if RHSCISpec(variant).query:
                 self.assertEqual(
                     timestamps["observation.images.egocentric"],
-                    [-0.24, -0.16, -0.08, 0] if variant == "VGQ-AE-240" else [-0.12, -0.08, -0.04, 0],
+                    [-0.24, -0.16, -0.08, 0] if variant in ("VGQ-AE-240", "VGQ-AE-Mo-240") else [-0.12, -0.08, -0.04, 0],
                 )
                 raw = {
                     "observation.images.egocentric": torch.rand(4, 3, 4, 6),
@@ -291,7 +291,7 @@ class RHSCITests(unittest.TestCase):
                     "ardy_target": np.zeros(128, np.float32),
                     "ardy_valid": True,
                 }
-                if variant == "VGQ-AE-Mo":
+                if variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                     raw.update(motion_target=np.zeros(128, np.float32), motion_valid=True)
                 packed = repack(raw)
                 self.assertFalse(packed["ardy_valid"])

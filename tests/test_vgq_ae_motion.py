@@ -109,6 +109,8 @@ class LabelTests(unittest.TestCase):
 
 
 class PsiMotionTests(unittest.TestCase):
+    variant = "VGQ-AE-Mo"
+
     def test_wrapper_and_repack_keep_motion_labels_out_of_observation(self):
         from psi.config.transform import SimpleRepackTransform
         from psi.data.lerobot.lerobot_ext import LeRobotDatasetWrapper
@@ -130,7 +132,7 @@ class PsiMotionTests(unittest.TestCase):
         wrapper.base_dataset = [raw]
         wrapper.ardy_reader, wrapper.ardy_offset, wrapper.motion_delta = reader, 0, 2
         sample = wrapper[0]
-        repack = SimpleRepackTransform(rsci_variant="VGQ-AE-Mo", action_chunk_size=2)
+        repack = SimpleRepackTransform(rsci_variant=self.variant, action_chunk_size=2)
         packed = repack(sample)
         np.testing.assert_array_equal(packed["motion_target"], np.full(128, 28, np.float32))
         self.assertTrue(packed["motion_valid"])
@@ -142,7 +144,7 @@ class PsiMotionTests(unittest.TestCase):
         from psi0_fixtures import trainer
 
         torch.set_num_threads(1)
-        config, model = policy("VGQ-AE-Mo")
+        config, model = policy(self.variant)
         batch = sample()
         batch.update(motion_target=torch.randn(2, 128), motion_valid=torch.tensor([False, True]))
         with patch.object(model, "_rhsci_query_latent", wraps=model._rhsci_query_latent) as query:
@@ -165,11 +167,13 @@ class PsiMotionTests(unittest.TestCase):
 
 
 class PiMotionTests(unittest.TestCase):
+    variant = "VGQ-AE-Mo"
+
     def test_processor_collates_labels_without_adding_observation_fields(self):
         from openpi.rhsci.processing import Processor, collate
 
         processor = Processor.__new__(Processor)
-        processor.variant = "VGQ-AE-Mo"
+        processor.variant = self.variant
         processor.tokenizer = SimpleNamespace(encode=lambda *args, **kwargs: [1, 2])
         processor.stats = {"action": dict(q01=[-1.0] * 36, q99=[1.0] * 36)}
         sample = dict(
@@ -204,7 +208,7 @@ class PiMotionTests(unittest.TestCase):
         from test_pi05_rsci import fixture
 
         torch.set_num_threads(1)
-        model, batch = fixture("VGQ-AE-Mo")
+        model, batch = fixture(self.variant)
         batch.update(motion_target=torch.randn(2, 128), motion_valid=torch.tensor([False, True]))
         output = model(**batch)
         torch.testing.assert_close(
@@ -214,7 +218,7 @@ class PiMotionTests(unittest.TestCase):
         output["loss"].backward()
         self.assertGreater(model.motion_head[-1].weight.grad.abs().sum(), 0)
         self.assertGreater(model.query.grad.abs().sum(), 0)
-        restored, _ = fixture("VGQ-AE-Mo")
+        restored, _ = fixture(self.variant)
         restored.load_state_dict(model.state_dict(), strict=True)
         model.eval()
         with patch.object(model.reader, "forward", side_effect=AssertionError("inference Reader")):
@@ -228,11 +232,13 @@ class PiMotionTests(unittest.TestCase):
 
 
 class GrMotionTests(unittest.TestCase):
+    variant = "VGQ-AE-Mo"
+
     def test_shared_dit_backward_and_unchanged_action_path(self):
         from test_gr00t_rsci import batch, model
 
         torch.set_num_threads(1)
-        policy = model("VGQ-AE-Mo")
+        policy = model(self.variant)
         inputs = batch()
         inputs.update(
             rsci_motion_target=torch.randn(2, 128), rsci_motion_valid=torch.tensor([False, True])
@@ -246,7 +252,7 @@ class GrMotionTests(unittest.TestCase):
         self.assertGreater(policy.action_head.rsci_query.query.grad.abs().sum(), 0)
         self.assertGreater(policy.action_head.rsci_query.motion_head[-1].weight.grad.abs().sum(), 0)
         self.assertIsNone(policy.action_head.rsci_query.ardy_head[-1].weight.grad)
-        restored = model("VGQ-AE-Mo")
+        restored = model(self.variant)
         restored.load_state_dict(policy.state_dict(), strict=True)
         with patch.object(
             policy.action_head.rsci_query, "forward", side_effect=AssertionError("inference Query")
@@ -256,12 +262,14 @@ class GrMotionTests(unittest.TestCase):
 
 
 class EgoMotionTests(unittest.TestCase):
+    variant = "VGQ-AE-Mo"
+
     def test_shared_decoder_and_motion_loss(self):
         from egovla.test_egovla import Backbone, batch
         from human_plan.rhsci.model import EgoVLARHSCI
 
         torch.set_num_threads(1)
-        model = EgoVLARHSCI(Backbone(), variant="VGQ-AE-Mo", vlm_training="frozen")
+        model = EgoVLARHSCI(Backbone(), variant=self.variant, vlm_training="frozen")
         inputs = batch()
         inputs.update(motion_target=torch.randn(2, 128), motion_valid=torch.tensor([False, True]))
         output = model(**inputs)
@@ -280,6 +288,8 @@ class EgoMotionTests(unittest.TestCase):
 
 
 class LambdaMotionTests(unittest.TestCase):
+    variant = "VGQ-AE-Mo"
+
     def test_motion_head_uses_single_auxiliary_pass(self):
         import importlib.util
         from pathlib import Path
@@ -292,7 +302,7 @@ class LambdaMotionTests(unittest.TestCase):
         inputs, tiny, vlm_inputs = fixtures.inputs, fixtures.tiny, fixtures.vlm_inputs
 
         torch.set_num_threads(1)
-        model = tiny("VGQ-AE-Mo")
+        model = tiny(self.variant)
         model.config.rsci_ardy_delta_frames = 2
         model.config.rsci_motion_weight = 0.1
         model.install_auxiliary()

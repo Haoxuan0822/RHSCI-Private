@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from rhsci.runtime.losses import masked_auxiliary_loss as masked_auxiliary_loss
 
-VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
+VARIANTS = ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "EGQ-AE", "EGQ-VLM", "VGQ-VLM*", "EGQ-VLM*")
 
 
 @dataclass(frozen=True)
@@ -105,7 +105,7 @@ class RHSCIQuery(nn.Module):
         self.encoder_projection = nn.Linear(384, width) if spec.encoder_guided else None
         self.ardy_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
         self.register_buffer("schema_version", torch.tensor(1 if use_reader else 2))
-        if spec.name == "VGQ-AE-Mo":
+        if spec.name in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             self.motion_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 128))
 
     def memory(self, frames, masks, valid):
@@ -433,7 +433,7 @@ class RHSCIPolicyMixin:
             )
             if compute_rsci_aux:
                 prediction = self.action_header.rsci.ardy_head(latent[:, 0])
-                if self.rsci_method == "VGQ-AE-Mo":
+                if self.rsci_method in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                     motion_prediction = self.action_header.rsci.motion_head(latent[:, 0])
             if self.rsci_spec.forward_latent:
                 current = torch.cat((current, latent), 1)

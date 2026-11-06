@@ -19,7 +19,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     add_motion_arguments(argument_parser)
     add_input_cache_arguments(argument_parser, env_var="RHSCI_INPUT_CACHE")
     argument_parser.add_argument("--task", required=True)
-    argument_parser.add_argument("--model", choices=("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "STATE"), default="VGQ-AE")
+    argument_parser.add_argument("--model", choices=("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "STATE"), default="VGQ-AE")
     argument_parser.add_argument(
         "--vlm-training",
         choices=("full", "frozen"),

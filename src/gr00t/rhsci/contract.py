@@ -42,7 +42,7 @@ def build_training_contract(args, paths):
         initialization_config=sha256(paths["checkpoint"] / "config.json"),
         initialization_index=sha256(paths["checkpoint"] / "model.safetensors.index.json"),
     )
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
         identity["sidecar_manifest"] = sha256(paths["sidecar"] / "manifest.json")
     identity.update(motion_config(args))
     identity = reuse_run_contract(identity, paths["output"])

@@ -46,7 +46,7 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
         self.variant = meta.get("rsci_variant", "VGQ-AE")
         self.motion_delta = (
             meta.get("rsci_ardy_delta_frames", 6)
-            if meta.get("rsci_variant") == "VGQ-AE-Mo"
+            if meta.get("rsci_variant") in ("VGQ-AE-Mo", "VGQ-AE-Mo-240")
             else None
         )
         if self.fps != 50:
@@ -96,7 +96,7 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
             ardy_target=torch.tensor(np.array(target.ardy_body_latent, copy=True)),
             ardy_valid=torch.tensor(
                 bool(target.ardy_loss_mask and (
-                    self.variant != "VGQ-AE-240" or (offsets >= 0).all()
+                    self.variant not in ("VGQ-AE-240", "VGQ-AE-Mo-240") or (offsets >= 0).all()
                 ))
             ),
         )
@@ -107,7 +107,10 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
             motion, valid = ardy_motion_target(
                 self.reader, int(item["episode_index"]), index, self.motion_delta
             )
-            sample.update(motion_target=torch.from_numpy(motion), motion_valid=torch.tensor(valid))
+            sample.update(
+                motion_target=torch.from_numpy(motion),
+                motion_valid=torch.tensor(bool(valid and (offsets >= 0).all())),
+            )
         sample["proprio"].zero_()
         sample["proprio_valid_mask"].zero_()
         return sample

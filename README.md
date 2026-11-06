@@ -239,7 +239,7 @@ Both use the `psi0_decoupled_wbc` HTTP client and `level-0`, episodes 0–9. Res
 
 | Backbone | RHSCI variants implemented | Guide |
 | --- | --- | --- |
-| PSI0 | STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM*, STATE-RECONSTRUCTION | [PSI0](baselines/psi0/README.md) |
+| PSI0 | STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo, VGQ-AE-Mo-240, EGQ-AE, VGQ-VLM, EGQ-VLM, VGQ-VLM*, EGQ-VLM*, STATE-RECONSTRUCTION | [PSI0](baselines/psi0/README.md) |
 | π0.5 | STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo | [π0.5](baselines/pi05/README.md) |
 | GR00T | STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo | [GR00T](baselines/gr00t/README.md) |
 | EgoVLA | STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo | [EgoVLA](baselines/egovla/README.md) |

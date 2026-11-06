@@ -778,7 +778,7 @@ class FinetuneTrainer(Trainer):
             losses["loss_ardy_weighted"] = self.model_cfg.rsci_ardy_weight * auxiliary
             losses["ardy_valid_fraction"] = batch["ardy_valid"].float().mean()
             losses["loss"] = losses["loss"] + losses["loss_ardy_weighted"]
-            if self.model_cfg.rsci_variant == "VGQ-AE-Mo":
+            if self.model_cfg.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 motion = masked_auxiliary_loss(
                     model_output.motion_prediction, batch["motion_target"], batch["motion_valid"],
                     normalization_denominator=normalization.get("motion"),

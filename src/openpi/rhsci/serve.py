@@ -97,7 +97,7 @@ class Server:
         )
         if self.variant == "STATE":
             sample["state"] = request.state["states"][0]
-        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             # Processor metadata only; sample_actions never executes the auxiliary branch.
             sample.update(
                 rsci_history_valid=np.ones(4, bool),

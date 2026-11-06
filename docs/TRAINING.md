@@ -116,12 +116,20 @@ For example, adapt the π0.5 command above with:
 --output-dir /runs/pi05/my_task/VGQ-AE-Mo
 ```
 
+## VGQ-AE-Mo-240
+
+Select `--model VGQ-AE-Mo-240` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant VGQ-AE-Mo-240`. Use a separate output directory. This variant combines Mo's two heads with visual sampling at `[t-12, t-8, t-4, t]` (240 ms at 50 Hz).
+
+Compared with VGQ-AE-Mo, only the visual frame sources change. The default difference remains `z(t) - z(t-6)` (past 120 ms), with `--ardy-delta-frames` and `--motion-weight` retaining their existing meaning and defaults. Current ARDY labels, their teacher windows, shared AE, heads, losses and current-frame inference remain unchanged. Reuse existing sidecars and raw-frame caches.
+
+Both auxiliary losses require complete visual history. With default Δ=6, their earliest valid sample is frame 12 (zero-based). A shorter Δ does not bypass the visual-history mask; a longer Δ can delay difference supervision further. Action samples remain in training. Reader removal and future-ARDY switches are unavailable.
+
 ## Experimental switches
 
 | Training option | Backbones | Default | Effect |
 | --- | --- | --- | --- |
-| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240 and VGQ-AE-Mo | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
-| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240 and VGQ-AE-Mo | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
+| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240, VGQ-AE-Mo and VGQ-AE-Mo-240 | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
+| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240, VGQ-AE-Mo and VGQ-AE-Mo-240 | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
 

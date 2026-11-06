@@ -67,7 +67,7 @@ class SimpleRHSCIDataset(Dataset):
         # 所有对照组使用同一有效30步动作窗口，不跨episode补动作。
         self.ends = np.cumsum([max(0, e["length"] - HORIZON + 1) for e in self.episodes])
         self.reader = None
-        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -177,16 +177,19 @@ class SimpleRHSCIDataset(Dataset):
                 rsci_ardy_target=target.ardy_body_latent,
                 rsci_ardy_valid=np.bool_(
                     target.ardy_loss_mask
-                    and (self.variant != "VGQ-AE-240" or (requested >= 0).all())
+                    and (self.variant not in ("VGQ-AE-240", "VGQ-AE-Mo-240") or (requested >= 0).all())
                 ),
             )
-        if self.variant == "VGQ-AE-Mo":
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_motion import ardy_motion_target
 
             motion, valid = ardy_motion_target(
                 self.reader, episode_id, frame, self.ardy_delta_frames
             )
-            metadata.update(rsci_motion_target=motion, rsci_motion_valid=np.bool_(valid))
+            metadata.update(
+                rsci_motion_target=motion,
+                rsci_motion_valid=np.bool_(valid and (requested >= 0).all()),
+            )
         return dict(
             images=images,
             state=state[0] if self.variant == "STATE" else None,

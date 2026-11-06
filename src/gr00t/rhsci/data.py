@@ -45,7 +45,7 @@ def modality(variant, *, training=True):
         TAG.value: {
             "video": ModalityConfig(
                 delta_indices=list(visual_history_offsets(variant))
-                if training and variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo")
+                if training and variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240")
                 else [0],
                 modality_keys=["rs_view"],
             ),
@@ -127,7 +127,7 @@ class SimpleRHSCIDataset(Dataset):
         # 沿用GR00T SIMPLE有效action horizon16；所有组使用完全相同的采样集合。
         self.ends = np.cumsum([max(0, e["length"] - 15) for e in self.episodes])
         self.reader = None
-        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -272,7 +272,7 @@ class SimpleRHSCIDataset(Dataset):
                 rsci_ardy_target=target.ardy_body_latent,
                 rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
             )
-        if self.variant == "VGQ-AE-Mo":
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_motion import ardy_motion_target
 
             motion, valid = ardy_motion_target(

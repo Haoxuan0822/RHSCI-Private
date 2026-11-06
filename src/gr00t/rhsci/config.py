@@ -21,7 +21,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Optional alternate NCCL library; otherwise use the environment runtime",
     )
     argument_parser.add_argument(
-        "--model", choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"), default="VGQ-AE"
+        "--model", choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"), default="VGQ-AE"
     )
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument(

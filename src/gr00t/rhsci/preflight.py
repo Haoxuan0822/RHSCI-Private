@@ -60,7 +60,7 @@ def run_training_preflight(args, paths):
         processor.max_action_dim,
     ):
         raise ValueError("Invalid padded action shape")
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
         if (
             len(batch["rsci_history"]) != 3
             or batch["rsci_history_valid"][0].all()
@@ -96,7 +96,7 @@ def validate_training_data(args, paths):
     indices = [int(-offsets[0]), 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1]
     for index in indices:
         sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             frame = sample.metadata["frame_index"]
             if not np.array_equal(
                 sample.metadata["rsci_history_valid"], offsets + frame >= 0

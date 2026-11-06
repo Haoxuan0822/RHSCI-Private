@@ -1,10 +1,10 @@
-"""VGQ-AE-Mo 的同 episode 差分标签与配置，不改变当前 ARDY 监督。"""
+"""Mo 变体的同 episode 差分标签与配置，不改变当前 ARDY 监督。"""
 
 import math
 
 import numpy as np
 
-MOTION_VARIANT = "VGQ-AE-Mo"
+MOTION_VARIANTS = ("VGQ-AE-Mo", "VGQ-AE-Mo-240")
 DEFAULT_DELTA_FRAMES = 6
 DEFAULT_MOTION_WEIGHT = 0.1
 
@@ -21,13 +21,13 @@ def add_motion_arguments(parser):
         "--ardy-delta-frames",
         type=int,
         default=DEFAULT_DELTA_FRAMES,
-        help="VGQ-AE-Mo: backward ARDY difference interval at 50 Hz (default 6; 120 ms)",
+        help="Mo variants: backward ARDY difference interval at 50 Hz (default 6; 120 ms)",
     )
     parser.add_argument(
         "--motion-weight",
         type=float,
         default=DEFAULT_MOTION_WEIGHT,
-        help="VGQ-AE-Mo: difference loss weight (default 0.1)",
+        help="Mo variants: difference loss weight (default 0.1)",
     )
 
 
@@ -37,9 +37,9 @@ def motion_config(args):
     weight = getattr(args, "motion_weight", DEFAULT_MOTION_WEIGHT)
     validate_motion_config(delta, weight)
     variant = getattr(args, "model", getattr(args, "variant", None))
-    if variant != MOTION_VARIANT:
+    if variant not in MOTION_VARIANTS:
         if delta != DEFAULT_DELTA_FRAMES or weight != DEFAULT_MOTION_WEIGHT:
-            raise ValueError("Motion options require VGQ-AE-Mo")
+            raise ValueError("Motion options require VGQ-AE-Mo or VGQ-AE-Mo-240")
         return {}
     return dict(ardy_delta_frames=delta, motion_weight=weight)
 

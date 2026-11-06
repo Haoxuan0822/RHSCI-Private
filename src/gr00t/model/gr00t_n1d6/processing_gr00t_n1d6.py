@@ -145,11 +145,11 @@ class Gr00tN1d6Processor(BaseProcessor):
         transformers_loading_kwargs: dict = {"trust_remote_code": True},
         rsci_variant: str | None = None,
     ):
-        if rsci_variant not in (None, "STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if rsci_variant not in (None, "STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             raise ValueError("Unsupported GR00T RHSCI processor variant")
         self.rsci_variant = rsci_variant
         self.modality_configs = parse_modality_configs(modality_configs)
-        if rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             for config in self.modality_configs.values():
                 if config["state"].modality_keys or use_relative_action:
                     raise ValueError("Stateless RHSCI requires empty state modalities and absolute actions")
@@ -406,11 +406,11 @@ class Gr00tN1d6Processor(BaseProcessor):
         if action_mask is not None:
             transformed_inputs["action_mask"] = action_mask
         transformed_inputs["embodiment_id"] = self.embodiment_id_mapping[embodiment_tag.value]
-        if self.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo") and self.training:
+        if self.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") and self.training:
             # 教师与历史有效性只交给辅助loss，绝不放进VLM会话或动作条件。
             for key in ("rsci_history_valid", "rsci_ardy_target", "rsci_ardy_valid"):
                 transformed_inputs[key] = content.metadata[key]
-            if self.rsci_variant == "VGQ-AE-Mo":
+            if self.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 for key in ("rsci_motion_target", "rsci_motion_valid"):
                     transformed_inputs[key] = content.metadata[key]
         return transformed_inputs
@@ -455,7 +455,7 @@ class Gr00tN1d6Processor(BaseProcessor):
             .numpy()
         )  # (T*V, C, H, W), Eagle processor expects numpy array
 
-        if self.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             time_steps = next(iter(temporal_stacked_images.values())).shape[0]
             if time_steps != (4 if self.training else 1):
                 raise ValueError("VGQ-AE requires four frames during training, one during inference")

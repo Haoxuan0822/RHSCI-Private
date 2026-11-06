@@ -42,7 +42,7 @@ class Lambda0RHSCI(Lambda0):
 
     def __init__(self, config, vlm=None):
         super().__init__(config, vlm=vlm)
-        if getattr(config, "rsci_variant", "STATE") in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if getattr(config, "rsci_variant", "STATE") in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             self.install_auxiliary()
 
     def install_auxiliary(self):
@@ -52,7 +52,7 @@ class Lambda0RHSCI(Lambda0):
         self.rsci_reader = HistoryReader(width)
         self.rsci_query = nn.Parameter(torch.randn(1, 1, ae_width) * 0.02)
         self.rsci_ardy = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
-        if self.config.rsci_variant == "VGQ-AE-Mo":
+        if self.config.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from rhsci.data.ardy_motion import validate_motion_config
 
             validate_motion_config(
@@ -103,7 +103,7 @@ class Lambda0RHSCI(Lambda0):
             query = tokens[:, -1:]
         latent = expert.output_norm(query)[:, 0]
         prediction = self.rsci_ardy(latent)
-        if self.config.rsci_variant == "VGQ-AE-Mo":
+        if self.config.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             return prediction, self.rsci_motion(latent)
         return prediction
 
@@ -120,16 +120,16 @@ class Lambda0RHSCI(Lambda0):
         **kwargs,
     ):
         variant = getattr(self.config, "rsci_variant", "STATE")
-        self._rsci_capture = variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo")
+        self._rsci_capture = variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240")
         try:
             losses = super().forward(*args, **kwargs)
-            if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+            if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 if history is None or len(history) != 3:
                     raise ValueError("VGQ-AE requires three historical frames plus current")
                 prediction = self.auxiliary(
                     self._rsci_current, history, history_valid, kwargs["embodiment_id"]
                 )
-                if variant == "VGQ-AE-Mo":
+                if variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                     prediction, motion_prediction = prediction
                 normalization = auxiliary_normalization or {}
                 auxiliary_loss = masked_ardy_loss(
@@ -139,7 +139,7 @@ class Lambda0RHSCI(Lambda0):
                 # 官方训练器只接受其原生 metric key；总 loss 包含辅助项，独立值留给验收/调试。
                 self.last_ardy_loss = auxiliary_loss.detach()
                 losses["loss"] = losses["loss"] + 0.1 * auxiliary_loss
-                if variant == "VGQ-AE-Mo":
+                if variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                     motion_loss = masked_ardy_loss(
                         motion_prediction,
                         motion_target,

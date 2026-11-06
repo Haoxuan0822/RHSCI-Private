@@ -89,11 +89,11 @@ class Gr00tN1d6ActionHead(nn.Module):
             torch.tensor(config.noise_beta_beta, dtype=torch.float32, device="cpu"),
         )
         self.num_timestep_buckets = config.num_timestep_buckets
-        if config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from .rhsci_query import VisualStateQuery
             self.rsci_query = VisualStateQuery(
                 config.backbone_embedding_dim, config.input_embedding_dim, config.hidden_size,
-                motion=config.rsci_variant == "VGQ-AE-Mo",
+                motion=config.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"),
             )
         self.set_trainable_parameters(
             config.tune_projector, config.tune_diffusion_model, config.tune_vlln
@@ -119,7 +119,7 @@ class Gr00tN1d6ActionHead(nn.Module):
             self.model.requires_grad_(False)
         if not tune_vlln:
             self.vlln.requires_grad_(False)
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             self.state_encoder.requires_grad_(False)
             if self.mask_token is not None:
                 self.mask_token.requires_grad_(False)
@@ -163,12 +163,12 @@ class Gr00tN1d6ActionHead(nn.Module):
 
     def _state_features(self, action_input, vl_embeds):
         # 真正移除token，不能把真实state清零后仍让state编码器生成条件token。
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             return vl_embeds.new_empty(vl_embeds.shape[0], 0, self.input_embedding_dim)
         return self.state_encoder(action_input.state, action_input.embodiment_id)
 
     def _join_state_action(self, state_features, action_features):
-        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             return action_features
         return torch.cat((state_features, action_features), dim=1)
 
@@ -812,7 +812,7 @@ class Gr00tN1d6(PreTrainedModel):
         backbone_outputs = self.backbone(backbone_inputs)
         # 原动作路径只收到当前帧；copy避免vlln原地修改当前特征导致辅助分支重复归一化。
         action_outputs = self.action_head(BatchFeature(dict(backbone_outputs)), action_inputs)
-        if self.config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+        if self.config.rsci_variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
             from .rhsci_query import masked_ardy_loss
             if "rsci_history" not in inputs:
                 raise ValueError("VGQ-AE training forward requires three historical VLM inputs")
@@ -827,7 +827,7 @@ class Gr00tN1d6(PreTrainedModel):
                 frame["backbone_features"])}) for frame in frames]
             prediction = self.action_head.rsci_query(frames, action_inputs["rsci_history_valid"],
                                                       self.action_head.model)
-            if self.config.rsci_variant == "VGQ-AE-Mo":
+            if self.config.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 prediction, motion_prediction = prediction
             valid = action_inputs["rsci_ardy_valid"].bool() & action_inputs["rsci_history_valid"].bool().all(-1)
             normalization = inputs.get("auxiliary_normalization", {})
@@ -838,7 +838,7 @@ class Gr00tN1d6(PreTrainedModel):
             action_outputs["ardy_loss"] = auxiliary
             action_outputs["ardy_prediction"] = prediction
             action_outputs["loss"] = action_outputs["loss"] + self.config.rsci_ardy_weight * auxiliary
-            if self.config.rsci_variant == "VGQ-AE-Mo":
+            if self.config.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
                 motion_valid = (
                     action_inputs["rsci_motion_valid"].bool()
                     & action_inputs["rsci_history_valid"].bool().all(-1)

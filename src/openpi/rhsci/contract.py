@@ -44,7 +44,7 @@ def build_training_contract(args, paths):
         else None,
         tokenizer=sha256(paths["tokenizer"]),
     )
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
         identity["sidecar"] = sha256(paths["sidecar"] / "manifest.json")
     identity.update(motion_config(args))
     identity = reuse_run_contract(identity, paths["output"])
