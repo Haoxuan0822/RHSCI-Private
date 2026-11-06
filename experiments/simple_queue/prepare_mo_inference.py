@@ -15,6 +15,7 @@ from plan import PREPARATION, ROOT
 REVISION = "de464d121fcfc6a1056e8b7096cf0a096708d996"
 ARCHIVE = "checkpoint/Gr00t/VGQ-AE-Mo/hug/gr00t-motion-hug-handover-20261105-v1/checkpoint-20000.tar.zst"
 SIZE = 17828130219
+ARCHIVE_SHA256 = "07f30931c0d9a8c9e8f1fac5e8dee9bd44c64509d6b0dd5e52184e1777adc1d7"
 KEY = "gr00t-VGQ-AE-Mo-hug"
 STATE = ROOT / "evals/goal-latest-protocol-20261105/mo-inference-download"
 URL = f"https://huggingface.co/ds1x/RHSCI/resolve/{REVISION}/{ARCHIVE}"
@@ -150,6 +151,7 @@ def main():
                     provenance="Model/config/statistics verified against saved RSCI_COMPLETE; original training contract not downloaded")
     (destination / "launch_contract.json").write_text(json.dumps(contract, indent=2) + "\n")
     info = dict(run_dir=str(destination), revision=REVISION, archive_url=URL,
+                source_archive_sha256=ARCHIVE_SHA256,
                 horizon=horizon, saved_model=config["rsci_variant"], inference_only=True,
                 verification="Per-member SHA256; full training archive intentionally not downloaded",
                 files={name: manifest["files"][name] for name in sorted(wanted | {"processor_config.json", "statistics.json"})})

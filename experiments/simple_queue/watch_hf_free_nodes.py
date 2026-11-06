@@ -13,7 +13,7 @@ from urllib.parse import quote
 import requests
 import yaml
 
-from plan import ROOT
+from plan import PREPARATION, ROOT
 
 STATE = ROOT / "evals/goal-latest-protocol-20261105/hf-free-watch"
 BASE = ROOT / "hf/RHSCI/model-59a1ea14"
@@ -40,6 +40,21 @@ def eligible(record):
 
 def identity(record):
     return record.get("lfs", {}).get("sha256", record.get("blobId"))
+
+
+def inference_already_prepared(record):
+    """已单独校验推理成员的归档不再自动补下完整训练状态。"""
+    for receipt in PREPARATION.glob("*.json"):
+        info = json.loads(receipt.read_text())
+        if (not info.get("inference_only")
+                or info.get("source_archive_sha256") != identity(record)
+                or not info.get("archive_url", "").endswith("/" + record["rfilename"])):
+            continue
+        checkpoint = Path(info["run_dir"]) / "checkpoint-20000"
+        if all((checkpoint / name).is_file() and (checkpoint / name).stat().st_size == saved["size"]
+               for name, saved in info["files"].items()):
+            return True
+    return False
 
 
 def check():
@@ -78,7 +93,9 @@ def check():
                     raise RuntimeError("Incomplete probe payload")
             old = json.loads((BASE / "DOWNLOAD_MANIFEST-3fdbb4c7.json").read_text())
             previous = {r["rfilename"]: r for r in old["files"]}
-            changed = [r for r in records if r["rfilename"] not in previous or identity(r) != identity(previous[r["rfilename"]])]
+            changed = [r for r in records
+                       if (r["rfilename"] not in previous or identity(r) != identity(previous[r["rfilename"]]))
+                       and not inference_already_prepared(r)]
             selection = dict(time=time.time(), repo="ds1x/RHSCI", revision=revision,
                              node=node, baseline_revision=old["revision"], files=changed)
             path = f"selection-{revision}.json"
