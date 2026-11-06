@@ -110,7 +110,7 @@ def repair_dispatchers():
             child = subprocess.Popen(["/root/miniforge/bin/python3", "-u", str(REPO / "experiments/simple_queue/prepare_retests.py")],
                                      cwd=REPO, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         phase2.write_text(json.dumps(dict(time=time.time(), models=len(runs), preparation_pid=child.pid)) + "\n")
-    if phase2.exists():
+    if phase2.exists() or (STATE / "priority-runs.json").exists():
         jobs.append(("legacy", ROOTS[4]))
     for backbone, root in jobs:
         if (root / "COMPLETE.json").exists():

@@ -23,6 +23,10 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
     if backbone == "legacy":
         from legacy_inventory import inventory
         selected_runs = inventory()
+        priority_path = ROOT / "evals/goal-latest-protocol-20261105/priority-runs.json"
+        priority_runs = json.loads(priority_path.read_text())["runs"] if priority_path.exists() else []
+        priority_keys = {run_key(run) for run in priority_runs}
+        selected_runs = [*priority_runs, *(run for run in selected_runs if run_key(run) not in priority_keys)]
     elif backbone == "nostate":
         from prepare_nostate import RUNS as selected_runs
     else:
@@ -203,6 +207,11 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
                     for run, level in pending
                     if (PREPARATION / f"{run_key(run)}.json").exists()
                 ]
+                if backbone == "legacy":
+                    phase2 = ROOT / "evals/goal-latest-protocol-20261105/phase2-started.json"
+                    candidates = [(run, level) for run, level in candidates
+                                  if (phase2.exists() or run_key(run) in priority_keys)
+                                  and priority_dependency_complete(run, output)]
                 ready = next(
                     (
                         (run, level)
@@ -273,6 +282,18 @@ def rerun_on_gpus(gpus, output, *, resume=False, auto_gpus=False, backbone="gr00
 
 
 next_pause_renewal = 0.0
+
+
+def priority_dependency_complete(run, output):
+    """插队任务遵守显式前置组；不把部分完成当作整组完成。"""
+    dependency = run.get("after")
+    if dependency is None:
+        return True
+    for level in LEVELS:
+        marker = output / dependency["key"] / dependency["variant"] / level / "COMPLETE.json"
+        if not marker.exists() or json.loads(marker.read_text()).get("episodes") != 50:
+            return False
+    return True
 
 
 def maintain_gpu_reservation():
