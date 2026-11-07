@@ -122,8 +122,8 @@
       "bytes": 379
     },
     "baselines/psi0/README.md": {
-      "export_sha256": "305c0a8cdcf95ed857b2ebcd2039617b5720caef1932215c3928e8c9ea9bc909",
-      "bytes": 6718
+      "export_sha256": "ce7ee20cb8dc412ee996ac89d6fef1a85d0d8323b76a1cef736d52ef0c7e193e",
+      "bytes": 7564
     },
     "configs/simple/eval_assets.json": {
       "export_sha256": "7fb5b75e0089cbd250c34f0572bd846ed79aa3e3cd9888f30699b2a1dcca5a2f",
@@ -4250,12 +4250,12 @@
       "bytes": 46
     },
     "src/psi/data/lerobot/compat.py": {
-      "export_sha256": "01c740235131311d49161613617c9e61534c89b6ad6d3be45ec7a9e9bb3ce4e1",
-      "bytes": 572
+      "export_sha256": "dee4629a9cffff34e8673ccf431d7fab42b6bcb1bb1f70059f9f866066dac153",
+      "bytes": 4004
     },
     "src/psi/data/lerobot/lerobot_ext.py": {
-      "export_sha256": "512c41b09a521521264c34e565932c49960a4be106de0e6369d65f13884e8653",
-      "bytes": 8662
+      "export_sha256": "935b5576efd3e6a5328e79bd08f788a0665e93727eac6d90e94fba4c006d7413",
+      "bytes": 8941
     },
     "src/psi/data/sampler.py": {
       "export_sha256": "8deb7f6110725931c70947eb7479d1ab415703607d4b351309b0334a95fde14c",
@@ -5148,6 +5148,10 @@
     "tests/test_multitask_input_cache.py": {
       "export_sha256": "6b397a3cf470961fda7d9275cac54567dc708d398b9a35baf4d01273baeb03bc",
       "bytes": 14313
+    },
+    "tests/test_psi0_episode_stats.py": {
+      "export_sha256": "476ac2097a45919b4cfec61ce6a958d5abc577725ab2fa4b8b2f79058ed7d2d8",
+      "bytes": 4230
     }
   }
 }

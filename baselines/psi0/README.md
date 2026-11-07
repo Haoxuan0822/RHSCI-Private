@@ -59,6 +59,10 @@ For multiple training repos, omitted `--stats-path` now generates shared **bound
 
 The native run configuration embeds the resulting bounds. Inference uses those saved values without requiring the training datasets or generated JSON. Single-task statistics remain unchanged, and an explicit `--stats-path` takes precedence. This automatic shared-bounds default differs from upstream's first-repo fallback; it does not change existing checkpoints. RHSCI visual sampling, Reader, ARDY targets and motion losses remain those of the selected variant; this interface does not add joint-training options to the other backbone launchers.
 
+Legacy SIMPLE per-episode numeric statistics may omit LeRobot's `count`. The compatibility reader fills missing `states`/`action` counts from the episode frame lengths **in memory**, then uses native LeRobot aggregation. Existing counts are preserved; missing counts for sampled image statistics are rejected. Dataset bytes, ARDY fingerprints and the configured bounds normalization are unchanged.
+
+RHSCI SIMPLE RGB loading projects only states, actions and frame/episode/task/time indices before Parquet concatenation. This supports episodes with different unused depth or auxiliary columns and avoids decoding those columns into the dataset cache. Native video decoding, action/history queries and transforms remain unchanged. The projection is scoped to the RHSCI SIMPLE RGB constructor; other dataset loaders retain their original behavior.
+
 ## Inference
 
 Use `scripts/deploy/serve_psi0_simple.sh` to serve a checkpoint and the official SIMPLE runtime to evaluate it. `bash scripts/deploy/serve_psi0_simple.sh --help` lists server arguments. See [Inference](../../docs/INFERENCE.md) for the four-frame client protocol required by starred variants.

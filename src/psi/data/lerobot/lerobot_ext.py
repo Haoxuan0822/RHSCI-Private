@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, TYPE_CHECKING
+from contextlib import nullcontext
 if TYPE_CHECKING:
     from psi.config.data_lerobot import LerobotDataConfig
     # from psi.config.data_simple import SimpleDataConfig
@@ -10,9 +11,10 @@ from psi.data.lerobot.compat import (
     LeRobotDataset,
     LeRobotDatasetMetadata,
     MultiLeRobotDataset,
+    simple_rgb_parquet_loading,
 )
 from psi.utils import resolve_path
-from psi.config.transform import LerobotRepackTransform
+from psi.config.transform import LerobotRepackTransform, SimpleRepackTransform
 
 
 class CachedRGBLeRobotDataset(LeRobotDataset):
@@ -67,12 +69,14 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
                 raise ValueError("RGB frame cache currently requires one dataset")
             lerobot_dataset_class = CachedRGBLeRobotDataset
 
-        self.base_dataset = lerobot_dataset_class(
-            repo_ids,# type: ignore
-            root=root_dir,
-            delta_timestamps=delta_timestamps, # type: ignore
-            image_transforms=None,
-        )
+        rgb_only = isinstance(repack, SimpleRepackTransform) and bool(repack.rsci_variant)
+        with simple_rgb_parquet_loading() if rgb_only else nullcontext():
+            self.base_dataset = lerobot_dataset_class(
+                repo_ids,# type: ignore
+                root=root_dir,
+                delta_timestamps=delta_timestamps, # type: ignore
+                image_transforms=None,
+            )
 
         packs = getattr(self.base_dataset, "_datasets", None) or [self.base_dataset]
         for pack in packs:
