@@ -149,7 +149,7 @@ def run_training_worker(args, paths, processor, dataset, digest, *, validation_s
             "DDP gradient bucket views; VLM features only",
             flush=True,
         )
-    trainer = create_trainer_class()(
+    trainer = create_trainer_class(native_mixture="datasets" in paths)(
         model=model,
         args=training,
         train_dataset=dataset,

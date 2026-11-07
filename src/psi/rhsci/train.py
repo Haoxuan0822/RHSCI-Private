@@ -40,6 +40,10 @@ def main():
     )
     if args.dry_run:
         return
+    if len(cfg.data.train_repo_ids) > 1 and args.stats_path is None:
+        from .normalization import prepare_shared_statistics
+
+        print(f"RHSCI shared bounds: {prepare_shared_statistics(cfg)}", flush=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
     os.environ["PSI_RHSCI_TRAIN"] = "1"  # 此入口完全使用显式配置，不要求复制其他工作树的 .env。
     if args.guardian_fd is not None:

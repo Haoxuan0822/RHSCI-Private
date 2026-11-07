@@ -28,6 +28,8 @@ Keep model source, normalization statistics, control frequency and simulator set
 
 ## π0.5 and GR00T
 
+Jointly trained π0.5 models restore their shared normalization statistics from `launch_contract.json`. Supply the matching `--tokenizer`; `--dataset` is optional for these models. Single-task models still require their original dataset or saved processor metadata. GR00T restores joint statistics through its saved native processor, using the same serving command as single-task models. Keep the run contract with the checkpoint when exporting either backbone.
+
 Both RHSCI adapters expose SIMPLE HTTP `POST /act` and `GET /health` through a common entry. Use the selected backbone's training environment, with FastAPI and Uvicorn installed. Run from the repository root with `PYTHONPATH=src`.
 
 Discover complete checkpoints under an explicit run directory:

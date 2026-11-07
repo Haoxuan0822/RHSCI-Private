@@ -39,6 +39,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     argument_parser.add_argument("--execution", choices=("reference", "logits", "both"), default="reference", help="VGQ-VLM execution only; both also disables VLM checkpointing")
     argument_parser.add_argument("--task", required=True, help="本地 SIMPLE repo/task 名")
+    argument_parser.add_argument("--train-repo-ids", nargs="+", help="Official multi-dataset training list; defaults to --task")
+    argument_parser.add_argument("--val-repo-ids", nargs="+", help="Validation dataset list; defaults to the first training repo, as upstream")
+    argument_parser.add_argument("--task-sample-weights", nargs="+", help="Official per-frame sampling rules, e.g. trash=4 faucet=2")
+    argument_parser.add_argument("--stats-path", type=Path, help="Explicit normalization stats; joint training otherwise merges training bounds automatically")
     argument_parser.add_argument("--vlm", choices=("frozen", "lora"), default="frozen")
     argument_parser.add_argument("--gpus", default=get_env("CUDA_VISIBLE_DEVICES") or "0")
     argument_parser.add_argument("--port", type=int)
@@ -83,7 +87,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     """校验 CLI 参数并应用 Ψ0 配方；返回配置、启动命令、输出目录和进程数。"""
     motion = motion_config(args)
-    if args.model in ("VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") and (args.no_reader or args.ardy_offset):
+    train_repos = args.train_repo_ids or [args.task]
+    val_repos = args.val_repo_ids or [train_repos[0]]
+    if any(not re.fullmatch(r"[A-Za-z0-9_-]+", repo) for repo in [*train_repos, *val_repos]):
+        raise ValueError("Dataset repo IDs must be plain local directory names")
+    if len(set(train_repos)) != len(train_repos) or len(set(val_repos)) != len(val_repos):
+        raise ValueError("Dataset repo IDs must not be duplicated within a split")
+    sidecars_by_repo = len(set([*train_repos, *val_repos])) > 1
+    if args.model in ("VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") and (args.no_reader or args.ardy_offset):
         raise ValueError(f"{args.model} retains the Reader and current ARDY target")
     if args.model in CONTROL_VARIANTS and (args.no_reader or args.ardy_offset):
         raise ValueError("Controls use their fixed Reader/target-time protocol")
@@ -131,7 +142,8 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
         "train.val-num-workers": args.num_workers,
         "train.prefetch-factor": 2,
         "data.root_dir": args.data_root or runtime / "data/simple",
-        "data.train-repo-ids": args.task,
+        "data.train-repo-ids": train_repos,
+        "data.val-repo-ids": val_repos,
         "model.model_name_or_path": args.vlm_path
         or local / "pre.fast.1by1.2601091803.ckpt.ego200k.he30k",
         "model.pretrained-action-header-path": args.ae_path
@@ -154,8 +166,20 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
     query = args.model not in ("STATE", "NO-STATE")
     if query:
         updates["data.rsci-ardy-sidecar-root"] = (
-            args.sidecar_root or runtime / "data/simple-ardy-sidecars" / args.task
+            args.sidecar_root or (
+                runtime / "data/simple-ardy-sidecars" if sidecars_by_repo
+                else runtime / "data/simple-ardy-sidecars" / train_repos[0]
+            )
         )
+        if sidecars_by_repo:
+            updates["data.rsci-ardy-sidecars-by-repo"] = True
+    if args.task_sample_weights:
+        updates["data.task-sample-weights"] = args.task_sample_weights
+    if args.stats_path:
+        updates["data.transform.field.stat-path"] = args.stats_path.resolve()
+    elif len(train_repos) > 1:
+        # dry-run只声明目标路径；真正启动/检查时再生成，验证库不参与统计。
+        updates["data.transform.field.stat-path"] = (output / "normalization/shared_bounds.json").resolve()
     if args.model.startswith("EGQ-"):
         updates["model.rsci-rgb-encoder-path"] = (
             args.dino_path or runtime / "cache/checkpoints/dinov2-small"
@@ -175,7 +199,13 @@ def resolve_training_plan(args: argparse.Namespace) -> TrainingPlan:
             continue
         values.append(item)
     updates["data.transform.repack.rsci-variant"] = args.model
-    values += [f"--{key}={value}" for key, value in updates.items()]
+    for key, value in updates.items():
+        if isinstance(value, list):
+            values += [f"--{key}", *map(str, value)]
+        elif value is True:
+            values.append(f"--{key}")
+        else:
+            values.append(f"--{key}={value}")
     if args.no_reader:
         values.append("--model.no-rsci-use-reader")
     values += ["--train.optimizer-fused", "--train.pin-memory", "--train.non-blocking-transfer"]

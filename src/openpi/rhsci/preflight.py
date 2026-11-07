@@ -2,6 +2,12 @@
 
 import json
 
+from rhsci.data.multitask import (
+    build_training_dataset,
+    dataset_children,
+    preflight_indices,
+    shared_statistics,
+)
 from rhsci.data.visual_history import visual_history_offsets
 
 from .checkpoints import checkpoint_ok, latest_checkpoint, sha256
@@ -12,10 +18,13 @@ def run_training_preflight(args, paths):
     import numpy as np
 
     from .data import SimpleRHSCIDataset
-    from .processing import Processor, collate
+
+    statistics = shared_statistics(paths, "pi05")
 
     if not args.check_data:
         from safetensors import safe_open
+
+        from .processing import Processor, collate
 
         asset_manifest = paths["checkpoint"] / "RSCI_ASSETS.json"
         # 清单是可选的显式资产审计；正常加载由模型/分词器自身检查结构。
@@ -34,32 +43,37 @@ def run_training_preflight(args, paths):
             paths["dataset"],
             paths["tokenizer"],
             args.model,
+            statistics=statistics,
         )
     else:
         processor = None
-    dataset = SimpleRHSCIDataset(
-        paths["dataset"],
+    dataset = build_training_dataset(
+        paths,
+        SimpleRHSCIDataset,
         args.model,
         processor,
-        paths["sidecar"],
-        cache=paths["input_cache"],
         ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
+        pad_actions="datasets" in paths,
     )
 
     offsets = np.array(visual_history_offsets(args.model))
-    first_valid_frame = int(-offsets[0])
-    for index in (0, first_valid_frame, int(dataset.ends[0]) - 1, int(dataset.ends[0])):
-        sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
-            np.testing.assert_array_equal(
-                sample["rsci_history_valid"], offsets + sample["frame_index"] >= 0
-            )
-        if (sample["state"] is not None) != (args.model == "STATE"):
-            raise ValueError("Unexpected state dependency")
-    if processor:
-        batch = collate([dataset[0], dataset[first_valid_frame]])
-        if batch["actions"].shape != (2, 30, 36) or not np.isfinite(batch["actions"].numpy()).all():
-            raise ValueError("Invalid normalized action shape/value")
+    for child in dataset_children(dataset):
+        indices = preflight_indices(child, args.model)
+        for index in indices:
+            sample = child.raw_sample(index)
+            if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
+                np.testing.assert_array_equal(
+                    sample["rsci_history_valid"], offsets + sample["frame_index"] >= 0
+                )
+            if (sample["state"] is not None) != (args.model == "STATE"):
+                raise ValueError("Unexpected state dependency")
+        if processor:
+            batch = collate([child[indices[0]], child[indices[-1]]])
+            if (
+                batch["actions"].shape != (2, 30, 36)
+                or not np.isfinite(batch["actions"].numpy()).all()
+            ):
+                raise ValueError("Invalid normalized action shape/value")
     print(
         f"PI05_DATA_CHECK_OK task={args.task} model={args.model} samples={len(dataset)}; no training started",
         flush=True,

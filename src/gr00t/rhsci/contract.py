@@ -42,8 +42,14 @@ def build_training_contract(args, paths):
         initialization_config=sha256(paths["checkpoint"] / "config.json"),
         initialization_index=sha256(paths["checkpoint"] / "model.safetensors.index.json"),
     )
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
         identity["sidecar_manifest"] = sha256(paths["sidecar"] / "manifest.json")
     identity.update(motion_config(args))
+    if "datasets" in paths:
+        from rhsci.data.multitask import multitask_contract
+
+        identity["multitask"] = multitask_contract(paths, "gr00t")
+        identity["sampler"] = "native-sharded-mixture"
+        identity["data_restart"] = "native-seed-plus-global-step-no-batch-skip"
     identity = reuse_run_contract(identity, paths["output"])
     return identity, compute_contract_digest(identity)

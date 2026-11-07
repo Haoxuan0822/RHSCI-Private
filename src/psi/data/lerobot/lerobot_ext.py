@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     # from psi.config.data_simple import SimpleDataConfig
 
 import torch
+import logging
 from psi.data.lerobot.compat import (
     LeRobotDataset,
     LeRobotDatasetMetadata,
@@ -40,35 +41,18 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
         delta_timestamps = data_cfg.transform.repack.delta_timestamps(dataset_meta.fps)
 
         self.ardy_reader = None
+        self.ardy_readers = []
         repack = data_cfg.transform.repack
         self.ardy_offset = getattr(data_cfg, "rsci_ardy_offset_frames", 0)
-        if repack.rsci_variant in ("VGQ-AE-240", "VGQ-AE-Mo-240") and self.ardy_offset:
+        if repack.rsci_variant in ("VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") and self.ardy_offset:
             raise ValueError(f"{repack.rsci_variant} requires the unchanged current ARDY target")
         self.motion_delta = (
-            data_cfg.rsci_ardy_delta_frames if repack.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240") else None
+            data_cfg.rsci_ardy_delta_frames if repack.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") else None
         )
         if self.motion_delta is not None and self.ardy_offset:
             raise ValueError("VGQ-AE-Mo requires current ARDY supervision")
         if self.ardy_offset and getattr(repack, "rsci_variant", None) in (None, "STATE", "NO-STATE"):
             raise ValueError("Future ARDY requires an RHSCI Query variant")
-        if getattr(repack, "rsci_variant", None) not in (None, "STATE", "NO-STATE"):
-            if len(repo_ids) != 1 or not data_cfg.rsci_ardy_sidecar_root:
-                raise ValueError("RHSCI ARDY requires one task and data.rsci_ardy_sidecar_root")
-            import json
-            from pathlib import Path
-            from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
-            sidecar = Path(resolve_path(data_cfg.rsci_ardy_sidecar_root))
-            context = json.loads((sidecar / "manifest.json").read_text())["context"]
-            validate_processed_dataset_context(resolve_path(f"{data_cfg.root_dir}/{first_repo}"), context)
-            self.ardy_reader = ArdySidecarReader(sidecar, context, require_formal_teacher=True)
-            episodes = dataset_meta.episodes
-            for episode in episodes.values():
-                index = int(episode["episode_index"])
-                arrays = self.ardy_reader._episodes.get(index)
-                if arrays is None or len(arrays["ardy_body_latent"]) != int(episode["length"]):
-                    raise ValueError(f"RHSCI ARDY sidecar episode {index} frame count mismatch")
-
-
         if len(repo_ids) > 1:
             root_dir = data_cfg.root_dir
             lerobot_dataset_class = MultiLeRobotDataset
@@ -90,13 +74,18 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
             image_transforms=None,
         )
 
-        if len(data_cfg.train_repo_ids if split == "train" else data_cfg.val_repo_ids) == 1:
+        packs = getattr(self.base_dataset, "_datasets", None) or [self.base_dataset]
+        for pack in packs:
+            if pack.meta.fps != dataset_meta.fps:
+                raise ValueError("Joint datasets must use the same sampling frequency")
             # RHSCI的RGB实验复用RGBD封装时，不将未使用的整幅深度转换成Tensor。
             # 仅改变内存列视图，磁盘/metadata/数据指纹及RGB历史采样保持原样。
             depth_key = 'observation.depth.egocentric'
             if getattr(repack, 'rsci_variant', None):
-                if depth_key in self.base_dataset.hf_dataset.column_names:
-                    self.base_dataset.hf_dataset = self.base_dataset.hf_dataset.remove_columns([depth_key])
+                if depth_key in pack.hf_dataset.column_names:
+                    pack.hf_dataset = pack.hf_dataset.remove_columns([depth_key])
+        if getattr(repack, "rsci_variant", None) not in (None, "STATE", "NO-STATE"):
+            self._load_ardy_readers(data_cfg, packs)
         if cache_root:
             from rhsci.data.rgb_frame_cache import RGBFrameCache
             if self.base_dataset.video_backend != "torchcodec":
@@ -104,18 +93,66 @@ class LeRobotDatasetWrapper(torch.utils.data.Dataset):
             self.base_dataset.rgb_frame_cache = RGBFrameCache(resolve_path(cache_root), root_dir)
         self._cache = {}
 
+    def _load_ardy_readers(self, data_cfg, packs):
+        """逐数据集校验正式标签，保留各自局部 episode 编号，避免混用同号标签。"""
+        import json
+        from pathlib import Path
+        from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
+
+        if not data_cfg.rsci_ardy_sidecar_root:
+            raise ValueError("RHSCI Query requires formal ARDY sidecars")
+        if len(packs) > 1 and not data_cfg.rsci_ardy_sidecars_by_repo:
+            raise ValueError("Multiple datasets require rsci_ardy_sidecars_by_repo")
+        root = Path(resolve_path(data_cfg.rsci_ardy_sidecar_root))
+        for pack in packs:
+            sidecar = root / pack.repo_id if data_cfg.rsci_ardy_sidecars_by_repo else root
+            context = json.loads((sidecar / "manifest.json").read_text())["context"]
+            validate_processed_dataset_context(pack.root, context)
+            reader = ArdySidecarReader(sidecar, context, require_formal_teacher=True)
+            if set(reader._episodes) != set(pack.meta.episodes):
+                raise ValueError(f"ARDY episode identities do not match {pack.repo_id}")
+            for episode in pack.meta.episodes.values():
+                index = int(episode["episode_index"])
+                if len(reader._episodes[index]["ardy_body_latent"]) != int(episode["length"]):
+                    raise ValueError(f"ARDY frame count mismatch: {pack.repo_id}, episode {index}")
+            self.ardy_readers.append(reader)
+        if len(self.ardy_readers) == 1:
+            self.ardy_reader = self.ardy_readers[0]
+
+    def frame_task_weights(self, rules: dict[str, float]) -> torch.Tensor:
+        """复用官方逐帧权重语义：匹配多条时取最大值，未匹配为1，不按任务数均分。"""
+        import numpy as np
+
+        packs = getattr(self.base_dataset, "_datasets", None) or [self.base_dataset]
+        chunks = []
+        for pack in packs:
+            task_index = np.asarray(pack.hf_dataset.with_format("numpy")["task_index"]).reshape(-1)
+            per_task = np.ones(int(task_index.max()) + 1, dtype=np.float64)
+            for index, task in pack.meta.tasks.items():
+                weights = [weight for text, weight in rules.items() if text in str(task).lower()]
+                if weights:
+                    per_task[int(index)] = max(weights)
+            chunks.append(per_task[task_index])
+        weights = np.concatenate(chunks)
+        if len(weights) != len(self):
+            raise ValueError("Sampling weights do not match dataset frame count")
+        if np.all(weights == 1):
+            logging.getLogger(__name__).warning("task_sample_weights %s matched no non-unit weights", rules)
+        return torch.as_tensor(weights, dtype=torch.double)
+
     def __getitem__(self, idx) -> dict:
         sample = self.base_dataset[idx]
-        if self.ardy_reader is not None:
+        if self.ardy_readers:
+            reader = self.ardy_readers[int(sample.get("dataset_index", 0))]
             from rhsci.data.ardy_future import ardy_target_at_offset
             sample["ardy_target"], sample["ardy_valid"] = ardy_target_at_offset(
-                self.ardy_reader, int(sample["episode_index"]), int(sample["frame_index"]),
+                reader, int(sample["episode_index"]), int(sample["frame_index"]),
                 self.ardy_offset)
             if self.motion_delta is not None:
                 from rhsci.data.ardy_motion import ardy_motion_target
 
                 sample["motion_target"], sample["motion_valid"] = ardy_motion_target(
-                    self.ardy_reader, int(sample["episode_index"]), int(sample["frame_index"]),
+                    reader, int(sample["episode_index"]), int(sample["frame_index"]),
                     self.motion_delta,
                 )
         return sample

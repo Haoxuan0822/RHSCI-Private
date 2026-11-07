@@ -45,7 +45,7 @@ def modality(variant, *, training=True):
         TAG.value: {
             "video": ModalityConfig(
                 delta_indices=list(visual_history_offsets(variant))
-                if training and variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240")
+                if training and variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480")
                 else [0],
                 modality_keys=["rs_view"],
             ),
@@ -69,8 +69,9 @@ def modality(variant, *, training=True):
     }
 
 
-def statistics(root, variant):
-    raw = json.loads((Path(root) / "meta/stats.json").read_text())
+def statistics(root, variant, *, raw=None):
+    if raw is None:
+        raw = json.loads((Path(root) / "meta/stats.json").read_text())
     result = {"state": {}, "action": {}}
     for kind, source, keys in (
         ("action", "action", list(GROUPS)),
@@ -98,11 +99,13 @@ class SimpleRHSCIDataset(Dataset):
         seed=292285,
         *,
         cache=InputCacheConfig(),
-        ardy_delta_frames=6,
+        ardy_delta_frames=None,
     ):
         self.root, self.variant, self.processor = Path(root), variant, processor
         self.seed = seed
-        self.ardy_delta_frames = ardy_delta_frames
+        from rhsci.data.ardy_motion import resolve_motion_delta
+
+        self.ardy_delta_frames = resolve_motion_delta(variant, ardy_delta_frames)
         self.info = json.loads((self.root / "meta/info.json").read_text())
         if self.info["fps"] != 50:
             raise ValueError("RSCI history offsets require 50Hz data")
@@ -127,7 +130,7 @@ class SimpleRHSCIDataset(Dataset):
         # 沿用GR00T SIMPLE有效action horizon16；所有组使用完全相同的采样集合。
         self.ends = np.cumsum([max(0, e["length"] - 15) for e in self.episodes])
         self.reader = None
-        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             from rhsci.data.ardy_sidecar import (
                 ArdySidecarReader,
                 validate_processed_dataset_context,
@@ -272,7 +275,7 @@ class SimpleRHSCIDataset(Dataset):
                 rsci_ardy_target=target.ardy_body_latent,
                 rsci_ardy_valid=np.bool_(target.ardy_loss_mask),
             )
-        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             from rhsci.data.ardy_motion import ardy_motion_target
 
             motion, valid = ardy_motion_target(

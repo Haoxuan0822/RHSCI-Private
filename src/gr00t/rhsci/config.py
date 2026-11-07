@@ -5,7 +5,8 @@ from pathlib import Path
 
 from rhsci.data.ardy_motion import add_motion_arguments, motion_config
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
-from rhsci.paths import CheckpointTrainingPaths, add_data_arguments, dataset_paths
+from rhsci.data.multitask import add_multitask_arguments, multitask_paths
+from rhsci.paths import CheckpointTrainingPaths, add_data_arguments
 from rhsci.runtime.environment import get_env
 
 
@@ -13,6 +14,18 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
+    add_multitask_arguments(argument_parser, weighted=True)
+    from gr00t.configs.data.data_config import DataConfig
+
+    native_data = DataConfig()
+    argument_parser.add_argument("--shard-size", type=int, default=native_data.shard_size)
+    argument_parser.add_argument(
+        "--episode-sampling-rate", type=float, default=native_data.episode_sampling_rate
+    )
+    argument_parser.add_argument(
+        "--num-shards-per-epoch", type=int, default=native_data.num_shards_per_epoch
+    )
+    argument_parser.add_argument("--data-seed", type=int, default=native_data.seed)
     add_motion_arguments(argument_parser)
     add_input_cache_arguments(argument_parser, env_var="RHSCI_GR00T_INPUT_CACHE")
     argument_parser.add_argument(
@@ -21,7 +34,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Optional alternate NCCL library; otherwise use the environment runtime",
     )
     argument_parser.add_argument(
-        "--model", choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"), default="VGQ-AE"
+        "--model",
+        choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"),
+        default="VGQ-AE",
     )
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument(
@@ -86,8 +101,14 @@ def resolve_training_paths(args: argparse.Namespace) -> CheckpointTrainingPaths:
     runtime = Path(get_env("PSI_RUNTIME_ROOT", "/opt/rsci-data"))
     if args.max_steps < 1:
         raise ValueError("max-steps must be positive")
+    if (
+        args.shard_size < 1
+        or args.num_shards_per_epoch < max(1, args.num_workers) * len(args.gpus.split(","))
+        or not 0 < args.episode_sampling_rate <= 1
+    ):
+        raise ValueError("Invalid shard size/rate/schedule; schedule must cover all rank/workers")
     paths = CheckpointTrainingPaths(
-        **dataset_paths(args),
+        **multitask_paths(args),
         input_cache=resolve_input_cache(args),
         checkpoint=args.checkpoint or runtime / "cache/checkpoints/GR00T-N1.6-3B",
         output=args.output_dir
@@ -99,6 +120,13 @@ def resolve_training_paths(args: argparse.Namespace) -> CheckpointTrainingPaths:
         / f"seed-{args.seed}"
         / args.run_tag,
     )
+    if "datasets" in paths:
+        paths["shard_config"] = dict(
+            shard_size=args.shard_size,
+            episode_sampling_rate=args.episode_sampling_rate,
+            num_shards_per_epoch=args.num_shards_per_epoch,
+            seed=args.data_seed,
+        )
     return paths
 
 

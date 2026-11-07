@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 from lambda0.data.domain_handler.psi_simple import PsiSimpleHandler, decode_video_segment
 from lambda0.data.heterogeneous_collator import HeterogeneousActionCollator
 from rhsci.data.visual_history import visual_history_offsets
+from rhsci.data.ardy_motion import resolve_motion_delta
 
 
 @contextmanager
@@ -45,8 +46,8 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
         super().__init__(meta, num_views)
         self.variant = meta.get("rsci_variant", "VGQ-AE")
         self.motion_delta = (
-            meta.get("rsci_ardy_delta_frames", 6)
-            if meta.get("rsci_variant") in ("VGQ-AE-Mo", "VGQ-AE-Mo-240")
+            resolve_motion_delta(self.variant, meta.get("rsci_ardy_delta_frames"))
+            if meta.get("rsci_variant") in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480")
             else None
         )
         if self.fps != 50:
@@ -96,7 +97,7 @@ class RHSCIPsiSimpleHandler(SafePsiSimpleHandler):
             ardy_target=torch.tensor(np.array(target.ardy_body_latent, copy=True)),
             ardy_valid=torch.tensor(
                 bool(target.ardy_loss_mask and (
-                    self.variant not in ("VGQ-AE-240", "VGQ-AE-Mo-240") or (offsets >= 0).all()
+                    self.variant not in ("VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") or (offsets >= 0).all()
                 ))
             ),
         )

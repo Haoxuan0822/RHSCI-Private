@@ -71,7 +71,7 @@ def execute_training(args: argparse.Namespace, config: LambdaTrainingConfig) -> 
         if args.variant == "STATE"
         else "continuous_action_expert",
         history_offsets=list(visual_history_offsets(args.variant))
-        if args.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") else [0],
+        if args.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") else [0],
         normalization="rsci_q01_q99_degenerate_minmax_v1",
         initialization_weight_source="raw",
         inference="current-frame only; native Lambda0 generation; no Reader/Query",

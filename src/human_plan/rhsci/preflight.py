@@ -97,7 +97,7 @@ def assets(root, register=False, verify=False):
     return manifest
 
 
-def check_data(paths, variant="VGQ-AE", ardy_delta_frames=6):
+def check_data(paths, variant="VGQ-AE", ardy_delta_frames=None):
     import numpy as np
 
     from .data import SimpleDataset
@@ -113,12 +113,12 @@ def check_data(paths, variant="VGQ-AE", ardy_delta_frames=6):
     offsets = np.array(visual_history_offsets(variant))
     for index in (0, int(-offsets[0]), int(dataset.ends[0]) - 1, int(dataset.ends[0])):
         sample = dataset.raw_sample(index)
-        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             np.testing.assert_array_equal(
                 sample["history_valid"], offsets + sample["frame_index"] >= 0
             )
         if sample["actions"].shape != (30, 36) or any(
-            "depth" in key or (variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") and "state" in key) for key in sample
+            "depth" in key or (variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") and "state" in key) for key in sample
         ):
             raise ValueError("Invalid action window or unexpected state/depth")
     print(

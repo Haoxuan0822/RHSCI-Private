@@ -5,7 +5,12 @@ import json
 import os
 from pathlib import Path
 
-from rhsci.inference.checkpoints import BACKBONES, discover, inspect_run, validate_evaluation_variant
+from rhsci.inference.checkpoints import (
+    BACKBONES,
+    discover,
+    inspect_run,
+    validate_evaluation_variant,
+)
 from rhsci.inference.http_app import ActionPolicy, create_policy_app
 
 
@@ -31,7 +36,9 @@ def build_argument_parser():
         help="π0.5: verify historical run source hashes against its original training checkout",
     )
     argument_parser.add_argument(
-        "--dataset", type=Path, help="π0.5 training dataset for its processor"
+        "--dataset",
+        type=Path,
+        help="Single-task π0.5 training dataset for its processor; joint models use saved statistics",
     )
     argument_parser.add_argument("--tokenizer", type=Path, help="π0.5 training SentencePiece model")
     argument_parser.add_argument("--device", default="cuda:0")
@@ -63,8 +70,6 @@ def main():
             )
         )
         return
-    if args.backbone == "pi05" and (args.dataset is None or args.tokenizer is None):
-        cli.error("π0.5 requires --dataset and --tokenizer")
     contract, checkpoint = inspect_run(
         args.run_dir,
         args.backbone,
@@ -72,8 +77,15 @@ def main():
         verify_hash=False,
         training_source_root=args.training_source_root,
     )
+    if args.backbone == "pi05":
+        if args.tokenizer is None:
+            cli.error("π0.5 requires --tokenizer")
+        if args.dataset is None and not contract.get("multitask", {}).get("statistics"):
+            cli.error("Single-task π0.5 requires --dataset")
     saved = json.loads(
-        (checkpoint / ("rsci_config.json" if args.backbone == "pi05" else "config.json")).read_text()
+        (
+            checkpoint / ("rsci_config.json" if args.backbone == "pi05" else "config.json")
+        ).read_text()
     )
     actual = saved["variant"] if args.backbone == "pi05" else saved.get("rsci_variant", "STATE")
     validate_evaluation_variant(args.expected_variant, actual)

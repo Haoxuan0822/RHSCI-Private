@@ -4,15 +4,19 @@ import json
 
 from rhsci.data.cache_config import cache_arguments
 
-from .config import build_argument_parser as build_argument_parser
-from .config import build_training_arguments as build_training_arguments
-from .config import optimization_kwargs as optimization_kwargs
-from .config import resolve_training_paths as resolve_training_paths
+from .config import (
+    build_argument_parser as build_argument_parser,
+    build_training_arguments as build_training_arguments,
+    optimization_kwargs as optimization_kwargs,
+    resolve_training_paths as resolve_training_paths,
+)
 from .contract import build_training_contract as build_training_contract
 from .guardian import run_training_guardian as run_training_guardian
-from .preflight import build_processor as build_processor
-from .preflight import run_training_preflight as run_training_preflight
-from .preflight import validate_training_data
+from .preflight import (
+    build_processor as build_processor,
+    run_training_preflight as run_training_preflight,
+    validate_training_data,
+)
 from .trainer import create_resume_trainer_class as create_resume_trainer_class
 from .worker import run_training_worker as run_training_worker
 
@@ -27,7 +31,7 @@ def main():
 
     args = build_argument_parser().parse_args()
     paths = resolve_training_paths(args)
-    print(json.dumps({key: str(value) for key, value in paths.items()}, indent=2), flush=True)
+    print(json.dumps(paths, default=str, indent=2), flush=True)
     if args.dry_run:
         print(json.dumps(optimization_kwargs(), sort_keys=True), flush=True)
         return

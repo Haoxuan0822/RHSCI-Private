@@ -17,13 +17,18 @@ class Processor:
         variant,
         *,
         normalization="simple-quantile-zero-span-clipped-v2",
+        statistics=None,
     ):
         self.variant = variant
         if normalization not in ("simple-quantile-v1", "simple-quantile-zero-span-clipped-v2"):
             raise ValueError(f"Unsupported π0.5 normalization: {normalization}")
         self.normalization = normalization
         self.tokenizer = sentencepiece.SentencePieceProcessor(model_file=str(tokenizer))
-        self.stats = json.loads((Path(root) / "meta/stats.json").read_text())
+        self.stats = (
+            statistics
+            if statistics is not None
+            else json.loads((Path(root) / "meta/stats.json").read_text())
+        )
 
     def normalize(self, value, key):
         stats = self.stats[key]
@@ -80,13 +85,13 @@ class Processor:
             token_mask=mask,
             actions=torch.from_numpy(self.normalize(sample["actions"], "action")),
         )
-        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             result.update(
                 history_valid=torch.as_tensor(sample["rsci_history_valid"]),
                 ardy_target=torch.tensor(np.array(sample["rsci_ardy_target"], copy=True)),
                 ardy_valid=torch.tensor(bool(sample["rsci_ardy_valid"])),
             )
-        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240") and "rsci_motion_target" in sample:
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") and "rsci_motion_target" in sample:
             result.update(
                 motion_target=torch.tensor(np.array(sample["rsci_motion_target"], copy=True)),
                 motion_valid=torch.tensor(bool(sample["rsci_motion_valid"])),

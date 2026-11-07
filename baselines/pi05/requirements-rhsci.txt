@@ -16,3 +16,4 @@ requests>=2.32
 fastapi==0.119.1
 uvicorn==0.38.0
 pydantic==2.10.6
+numpydantic==1.6.7

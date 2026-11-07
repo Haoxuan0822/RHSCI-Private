@@ -95,6 +95,30 @@ Only the visual frame sources change. Reader, shared Action Expert, Query, curre
 
 History is padded within the same episode. Current-ARDY supervision requires all four visual frames and a valid existing target, so its earliest valid sample is frame 12 (zero-based). Earlier samples still train the action branch. Reader removal and future-ARDY switches are unavailable for this method.
 
+## Joint training: π0.5 and GR00T
+
+Both RHSCI launchers accept `--datasets ROOT_A ROOT_B ...` instead of `--dataset`. Query variants also require `--sidecars LABELS_A LABELS_B ...`, in exactly the same order. STATE and NO-STATE need no sidecars. `--task` names the run; each sample's instruction comes from its own dataset's task metadata. All six supported variants can use joint training. Use a new output directory and `--no-input-cache`: the current single-dataset cache format cannot represent multiple sources.
+
+```bash
+bash scripts/train/pi05.sh --task joint --model VGQ-AE \
+  --datasets /datasets/task_a /datasets/task_b \
+  --sidecars /labels/task_a /labels/task_b --no-input-cache \
+  --checkpoint /models/pi05_droid --tokenizer /models/paligemma_tokenizer.model \
+  --output-dir /runs/pi05/joint --check-data
+```
+
+Use `--check` for processor/initialization checks, then remove the check flag to train. For GR00T, use `scripts/train/gr00t.sh`, its initialization checkpoint and no tokenizer flag. Neither command creates an independent validation split.
+
+π0.5 concatenates all frames, including episode ends; every frame has equal sampling probability. Its 30-step action query repeats the last action when necessary, without crossing episodes. Shared statistics use the actual OpenPI `RunningStats` implementation over current states and those action chunks, in source/episode/frame order. Its streaming histogram quantiles depend on batching: `--statistics-batch-size` defaults to 256, as in the official SIMPLE-mix-33 configuration. Only the final incomplete global batch is dropped during statistics computation. For smaller datasets, choose a smaller statistics batch explicitly. Numeric columns are streamed without decoding RGB, and unlisted parquet files are excluded. The existing v2 normalization and clipping are retained.
+
+GR00T reuses native `ShardedSingleStepDataset` partitioning, `ShardedMixtureDataset` scheduling/statistics and `Gr00tTrainer` loading. Each root represents one native dataset group; default group ratios are equal, and `--dataset-weights 1 3` requests a 1:3 frame mixture in expectation. Native scheduling divides these ratios by average shard lengths, cycles shuffled shards and shuffles samples within each shard. Samples retain complete 16-step action windows. Native defaults are `--shard-size 1024`, `--episode-sampling-rate 0.1`, `--num-shards-per-epoch 100000` and `--data-seed 42`; the episode sampling rate controls partition splits, not dropping 90% of frames. The mixture handles both rank and worker partitioning; its plain DataLoader is not sharded again by Accelerate. Native augmentation runs in shard-processing order. Statistics use weighted mean/std and global min/max/q01/q99 envelopes. Native checkpoint restart reseeds the mixture; it does not promise an identical continuation of sample order.
+
+These changes align the joint data mechanism, not every historical RHSCI training choice. CLI training budgets remain π0.5 40000 updates (warmup 1000, default microbatch 16) and GR00T 20000 updates (global batch 24). The pinned official π0.5 SIMPLE-mix-33 preset uses 100000 updates, global batch 256 and warmup 2000; its single merged corpus also has different file/episode order from arbitrary separate roots. The pinned GR00T SIMPLE preset inherits 50000 updates and initializes from `pretrain_he_g1_h1_mixed_scratch_gr00t/checkpoint-50000`; the RHSCI default initializes from NVIDIA GR00T-N1.6-3B. Existing image processing, RHSCI Query/AE/Mo losses, precision/memory optimizations and serving protocol remain project-specific. Selecting multiple roots alone does not reproduce those complete official experiments.
+
+ARDY readers and episode/frame IDs stay local to each dataset, including Mo differences and history masks. Joint training rejects conflicting recorded teacher identities. All source fingerprints, sidecar manifests, sampling settings and shared statistics are saved in `launch_contract.json`; GR00T also saves its native processor statistics. Joint π0.5 inference reads the saved statistics and needs only `--tokenizer`, without `--dataset`. Original single-dataset commands and their saved normalization behavior remain supported.
+
+Reference implementations: [OpenPI multi-root loading](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/src/openpi/training/data_loader.py) and [GR00T mixtures/statistics](https://github.com/physical-superintelligence-lab/Psi0/blob/cda3fdfafe47cb6fa75400d013de1bd36e3cea05/src/gr00t/gr00t/data/dataset/sharded_mixture_dataset.py).
+
 ## VGQ-AE-Mo
 
 Select `--model VGQ-AE-Mo` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant VGQ-AE-Mo`. Start a separate output directory for this method. Existing VGQ-AE commands retain their original behavior.
@@ -124,12 +148,20 @@ Compared with VGQ-AE-Mo, only the visual frame sources change. The default diffe
 
 Both auxiliary losses require complete visual history. With default Δ=6, their earliest valid sample is frame 12 (zero-based). A shorter Δ does not bypass the visual-history mask; a longer Δ can delay difference supervision further. Action samples remain in training. Reader removal and future-ARDY switches are unavailable.
 
+## VGQ-AE-480 and VGQ-AE-Mo-480
+
+Select `--model VGQ-AE-480` or `--model VGQ-AE-Mo-480` for Ψ0, π0.5, GR00T or EgoVLA; λ₀ uses `--variant`. Use a separate output directory. Both sample `[t-24, t-16, t-8, t]`: four visual frames covering 480 ms at 50 Hz, with 160 ms spacing.
+
+VGQ-AE-480 changes only the visual frame sources. VGQ-AE-Mo-480 additionally defaults to the backward target `z(t) - z(t-12)` (past 240 ms). `--ardy-delta-frames N` overrides this interval; `--motion-weight` remains 0.1. Earlier Mo variants keep their six-frame/120 ms default.
+
+The Reader, shared AE, current ARDY target, teacher windows and loss definitions are retained. Reuse existing sidecars and raw-frame caches. Both auxiliary losses require all four visual frames to be valid; with the default Mo-480 interval, the earliest valid auxiliary sample is frame 24 (zero-based). Earlier frames still train the action branch. Inference remains current RGB and language only. Reader removal and future-ARDY switches are unavailable for both 480 variants.
+
 ## Experimental switches
 
 | Training option | Backbones | Default | Effect |
 | --- | --- | --- | --- |
-| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240, VGQ-AE-Mo and VGQ-AE-Mo-240 | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
-| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240, VGQ-AE-Mo and VGQ-AE-Mo-240 | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
+| `--no-reader` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240/480 and all Mo variants | Reader enabled | Use all valid tokens from each of the four history frames, without learned Reader compression. |
+| `--ardy-offset N` | PSI0 Reader query variants, except STATE-RECONSTRUCTION, VGQ-AE-240/480 and all Mo variants | `0` | Predict the ARDY target at `t + N` in the same episode. At 50 Hz, `10` is 200 ms. |
 
 For example, configure PSI0 VGQ-AE without a Reader and with a 200 ms future target:
 

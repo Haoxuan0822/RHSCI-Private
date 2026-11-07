@@ -332,6 +332,13 @@ class FinetuneTrainer(Trainer):
             "pin_memory": self.train_cfg.pin_memory,
             "prefetch_factor": getattr(self.train_cfg, "prefetch_factor", 2),
         }
+        sample_weights = getattr(train_dataset, "sample_weights", None)
+        if sample_weights is not None:
+            # 与官方一致，各rank使用相同抽样序列，再由Accelerate分片；不重复按rank抽样。
+            train_dataloader_kwargs.pop("shuffle")
+            train_dataloader_kwargs["sampler"] = torch.utils.data.WeightedRandomSampler(
+                sample_weights, num_samples=len(sample_weights), replacement=True, generator=g,
+            )
 
         val_dataloader_kwargs = {
             # Validation workers are also allocated per rank.
@@ -342,8 +349,8 @@ class FinetuneTrainer(Trainer):
             "persistent_workers": True,
             "pin_memory": self.train_cfg.pin_memory,
             "prefetch_factor": getattr(self.train_cfg, "prefetch_factor", 2),
-            "shuffle": True,
-        }  # 1 small enough to fit im Mem. 2. no need distributed sampler
+            "shuffle": False,
+        }  # 官方验证集按固定顺序遍历，不使用训练采样权重。
 
         collator = PaddedCollatorForTogether(
             model_max_length=self.tokenizer.model_max_length,
@@ -778,7 +785,7 @@ class FinetuneTrainer(Trainer):
             losses["loss_ardy_weighted"] = self.model_cfg.rsci_ardy_weight * auxiliary
             losses["ardy_valid_fraction"] = batch["ardy_valid"].float().mean()
             losses["loss"] = losses["loss"] + losses["loss_ardy_weighted"]
-            if self.model_cfg.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+            if self.model_cfg.rsci_variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
                 motion = masked_auxiliary_loss(
                     model_output.motion_prediction, batch["motion_target"], batch["motion_valid"],
                     normalization_denominator=normalization.get("motion"),

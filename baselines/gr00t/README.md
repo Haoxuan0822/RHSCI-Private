@@ -5,7 +5,9 @@ Entry: `bash scripts/train/gr00t.sh --help`.
 
 This distribution includes GR00T **N1.6**, whose [NVIDIA License](../../src/gr00t/LICENSE) limits the work and derivatives to non-commercial research and imposes other use restrictions. The current upstream main branch's license does not replace these terms. See [Third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-Mo and VGQ-AE-Mo-240. VGQ-AE-240 and both Mo variants retain the Reader architecture; see [Training](../../docs/TRAINING.md) for their visual sampling and supervision.
+The adapter uses native optimization defaults, FP32 Adam states with ZeRO-1 partitioning, and non-reentrant DiT recomputation. Supported variants are STATE, NO-STATE, VGQ-AE, VGQ-AE-240, VGQ-AE-480, VGQ-AE-Mo, VGQ-AE-Mo-240 and VGQ-AE-Mo-480. The 240/480 and Mo variants retain the Reader architecture; see [Training](../../docs/TRAINING.md) for their visual sampling and supervision.
+
+Joint training accepts `--datasets ROOT_A ROOT_B`, matching `--sidecars LABELS_A LABELS_B` for Query variants and `--no-input-cache`. Each root is one native mixing group with equal default ratios; `--dataset-weights 1 3` requests a 1:3 frame mixture. Native shard partitioning, shard-length-adjusted scheduling, rank/worker filtering and the plain native DataLoader are reused. Native statistics merging supplies one shared processor, saved with each checkpoint. See [joint training](../../docs/TRAINING.md#joint-training-π05-and-gr00t) for shard defaults and remaining upstream differences.
 
 Saved PSI0-RAW no-Reader checkpoints with `rsci_memory_mode=full-vlm` also restore their full-token Query within the native model; the normal training CLI continues to select Reader memory. This compatibility path retains the old parameter keys and initialization order.
 
@@ -19,7 +21,7 @@ The reference is PSI0's pinned [SIMPLE preset](https://github.com/physical-super
 
 | Setting | SIMPLE reference | RHSCI README example |
 | --- | --- | --- |
-| Updates / global batch | 20000 / 24 | Same |
+| Updates / global batch | 50000 / 24 | 20000 / 24 |
 | Learning rate / warmup ratio / weight decay | `1e-4` / `0.05` / `1e-5` | Same |
 | Color jitter: brightness, contrast, saturation, hue | `0.3`, `0.4`, `0.5`, `0.08` | Same |
 | GPU layout | 2 GPUs | 8 GPUs × batch 3; accumulation 1 |

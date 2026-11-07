@@ -113,6 +113,8 @@ def worker_arguments(args, argument_parser):
         if isinstance(value, bool):
             if value:
                 result.append(action.option_strings[0])
+        elif isinstance(value, (list, tuple)):
+            result += [action.option_strings[0], *map(str, value)]
         else:
             result += [action.option_strings[0], str(value)]
     return result

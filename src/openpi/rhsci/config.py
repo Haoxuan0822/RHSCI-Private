@@ -5,7 +5,8 @@ from pathlib import Path
 
 from rhsci.data.ardy_motion import add_motion_arguments, motion_config
 from rhsci.data.cache_config import add_input_cache_arguments, resolve_input_cache
-from rhsci.paths import TrainingPaths, add_data_arguments, dataset_paths
+from rhsci.data.multitask import add_multitask_arguments, multitask_paths
+from rhsci.paths import TrainingPaths, add_data_arguments
 from rhsci.runtime.environment import get_env
 
 
@@ -20,6 +21,13 @@ def build_argument_parser() -> argparse.ArgumentParser:
     """构造命令行解析器并读取环境默认值；返回解析器，不加载模型或启动训练。"""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     add_data_arguments(argument_parser)
+    add_multitask_arguments(argument_parser)
+    argument_parser.add_argument(
+        "--statistics-batch-size",
+        type=int,
+        default=256,
+        help="Joint RunningStats batch size (official SIMPLE-mix-33: 256); final partial batch is dropped",
+    )
     add_motion_arguments(argument_parser)
     add_input_cache_arguments(argument_parser, env_var="RHSCI_INPUT_CACHE")
     argument_parser.add_argument(
@@ -28,7 +36,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Optional alternate NCCL library; otherwise use the environment runtime",
     )
     argument_parser.add_argument(
-        "--model", choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"), default="VGQ-AE"
+        "--model",
+        choices=("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"),
+        default="VGQ-AE",
     )
     argument_parser.add_argument("--task", required=True)
     argument_parser.add_argument("--vlm", choices=("frozen",), default="frozen")
@@ -78,8 +88,10 @@ def resolve_training_paths(args: argparse.Namespace) -> Pi05TrainingPaths:
     runtime = Path(get_env("PSI_RUNTIME_ROOT", "/opt/rsci-data"))
     if args.max_steps < 1:
         raise ValueError("max-steps must be positive")
+    if args.statistics_batch_size < 1:
+        raise ValueError("statistics-batch-size must be positive")
     paths = Pi05TrainingPaths(
-        **dataset_paths(args),
+        **multitask_paths(args),
         input_cache=resolve_input_cache(args),
         checkpoint=args.checkpoint or runtime / "cache/checkpoints/openpi/pi05_droid",
         tokenizer=args.tokenizer or runtime / "assets/paligemma_tokenizer.model",
@@ -93,6 +105,8 @@ def resolve_training_paths(args: argparse.Namespace) -> Pi05TrainingPaths:
         / args.execution
         / args.run_tag,
     )
+    if "datasets" in paths:
+        paths["statistics_batch_size"] = args.statistics_batch_size
     return paths
 
 

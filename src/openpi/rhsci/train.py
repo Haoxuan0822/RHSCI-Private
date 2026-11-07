@@ -29,7 +29,7 @@ def main():
 
     args = build_argument_parser().parse_args()
     paths = resolve_training_paths(args)
-    print(json.dumps({key: str(value) for key, value in paths.items()}, indent=2), flush=True)
+    print(json.dumps(paths, default=str, indent=2), flush=True)
     if args.dry_run:
         return
     if args.check_data:

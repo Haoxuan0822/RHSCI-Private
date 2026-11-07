@@ -12,19 +12,19 @@ from rhsci.data.ardy_sidecar import ArdySidecarReader
 from rhsci.runtime.losses import masked_ardy_loss
 
 
-def sidecar():
+def sidecar(length=20):
     reader = ArdySidecarReader.__new__(ArdySidecarReader)
     reader._episodes = {}
     for episode in (0, 1):
         reader._episodes[episode] = dict(
             ardy_body_latent=np.broadcast_to(
-                (1000 * episode + np.arange(20, dtype=np.float32) ** 2)[:, None], (20, 128)
+                (1000 * episode + np.arange(length, dtype=np.float32) ** 2)[:, None], (length, 128)
             ).copy(),
-            teacher_valid=np.ones(20, bool),
-            visual_history_valid=np.arange(20) >= 6,
-            ardy_loss_mask=np.arange(20) >= 6,
+            teacher_valid=np.ones(length, bool),
+            visual_history_valid=np.arange(length) >= 6,
+            ardy_loss_mask=np.arange(length) >= 6,
             raw_episode_index=episode,
-            raw_frame_index=np.arange(20),
+            raw_frame_index=np.arange(length),
         )
     return reader
 
@@ -131,6 +131,7 @@ class PsiMotionTests(unittest.TestCase):
         wrapper = LeRobotDatasetWrapper.__new__(LeRobotDatasetWrapper)
         wrapper.base_dataset = [raw]
         wrapper.ardy_reader, wrapper.ardy_offset, wrapper.motion_delta = reader, 0, 2
+        wrapper.ardy_readers = [reader]
         sample = wrapper[0]
         repack = SimpleRepackTransform(rsci_variant=self.variant, action_chunk_size=2)
         packed = repack(sample)

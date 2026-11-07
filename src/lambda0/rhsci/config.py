@@ -54,7 +54,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     argument_parser.add_argument("--max-steps", type=int, default=40000)
     argument_parser.add_argument("--seed", type=int, default=0)
-    argument_parser.add_argument("--variant", choices=("STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"), default="VGQ-AE")
+    argument_parser.add_argument("--variant", choices=("STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"), default="VGQ-AE")
     argument_parser.add_argument("--runtime-root", type=Path, default=RUNTIME)
     argument_parser.add_argument(
         "--checkpoint", type=Path, help="本地官方 Stage-II raw checkpoint，不自动下载"

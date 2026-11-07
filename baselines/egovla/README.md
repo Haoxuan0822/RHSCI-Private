@@ -3,7 +3,7 @@
 Backbone package: `src/human_plan`; VILA dependency: `src/egovla/VILA`. Adapter: `src/human_plan/rhsci` (`human_plan.rhsci`).
 Entry: `bash scripts/train/egovla.sh --help`.
 
-The adapter uses the SIMPLE 36D four-layer action decoder. VGQ-AE adds training-only Reader/query supervision; STATE uses the native state path. VLM training defaults to full finetuning. VGQ-AE inference does not use training history or auxiliary queries.
+The adapter uses the SIMPLE 36D four-layer action decoder. VGQ-AE adds training-only Reader/query supervision; STATE uses the native state path. VLM training defaults to full finetuning. VGQ-AE inference does not use training history or auxiliary queries. VGQ-AE-240/480 and the corresponding Mo variants use the same architecture; see [visual history and motion targets](../../docs/TRAINING.md#vgq-ae-480-and-vgq-ae-mo-480).
 
 Use the separate EgoVLA/VILA environment and a registered SIMPLE VLM asset manifest. `EGOVLA_PYTHON` overrides `$PSI_RUNTIME_ROOT/.venv-egovla-rsci/bin/python`. The included native `llava/data` pipeline is incomplete; the RHSCI adapter supplies its own task reader. Native training needs the missing upstream data dependency.
 

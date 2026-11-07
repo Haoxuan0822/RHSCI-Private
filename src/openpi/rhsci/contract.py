@@ -44,8 +44,12 @@ def build_training_contract(args, paths):
         else None,
         tokenizer=sha256(paths["tokenizer"]),
     )
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
         identity["sidecar"] = sha256(paths["sidecar"] / "manifest.json")
     identity.update(motion_config(args))
+    if "datasets" in paths:
+        from rhsci.data.multitask import multitask_contract
+
+        identity["multitask"] = multitask_contract(paths, "pi05")
     identity = reuse_run_contract(identity, paths["output"])
     return identity, compute_contract_digest(identity)

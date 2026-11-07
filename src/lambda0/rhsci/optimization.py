@@ -16,7 +16,7 @@ def native_arguments(settings):
 
 def effective_arguments(settings, variant):
     args = native_arguments(settings)
-    if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+    if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
         args.use_proprio = False
         args.state_conditioning_mode = "continuous_action_expert"
     return vars(args)

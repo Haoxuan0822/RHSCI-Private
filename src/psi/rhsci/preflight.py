@@ -11,13 +11,11 @@ def run_training_preflight(cfg):
     from transformers import AutoProcessor
 
     from psi.data.lerobot import LeRobotDatasetWrapper
-    from psi.trainers.qwen3vl_mixin import PaddedCollatorForTogether
-
     vlm = Path(cfg.model.model_name_or_path)
     required = [
         vlm / "config.json",
         Path(cfg.model.pretrained_action_header_path) / "action_header.safetensors",
-        Path(cfg.data.root_dir) / cfg.data.train_repo_ids[0] / "meta/stats_psi0.json",
+        Path(cfg.data.root_dir) / cfg.data.train_repo_ids[0] / cfg.data.transform.field.stat_path,
     ]
     if not any(
         (vlm / name).is_file() for name in ("model.safetensors", "model.safetensors.index.json")
@@ -32,20 +30,39 @@ def run_training_preflight(cfg):
         if not path.is_file() or not path.stat().st_size:
             raise ValueError(f"Missing local asset: {path}")
     # wrapper 执行正式教师、数据指纹及逐 episode sidecar 长度门禁。
-    wrapper = LeRobotDatasetWrapper(cfg.data)
+    wrappers = [LeRobotDatasetWrapper(cfg.data, split=split) for split in ("train", "val")]
     if cfg.data.rsci_ardy_offset_frames:
         from rhsci.data.ardy_future import supervision_counts
 
-        counts = supervision_counts(wrapper.ardy_reader, cfg.data.rsci_ardy_offset_frames)
-        if not counts["valid_ardy_frames"]:
-            raise ValueError("No valid future ARDY targets in this dataset")
-        print("RSCI_ARDY_SUPERVISION " + json.dumps(counts), flush=True)
-    if cfg.model.rsci_variant:
-        if "observation.depth.egocentric" in wrapper.base_dataset.hf_dataset.column_names:
-            raise ValueError("RHSCI RGB-only reader must exclude unused depth column")
+        for wrapper in wrappers:
+            for reader in wrapper.ardy_readers:
+                counts = supervision_counts(reader, cfg.data.rsci_ardy_offset_frames)
+                if not counts["valid_ardy_frames"]:
+                    raise ValueError("No valid future ARDY targets in one of the datasets")
+                print("RSCI_ARDY_SUPERVISION " + json.dumps(counts), flush=True)
     processor = AutoProcessor.from_pretrained(str(vlm), local_files_only=True)
+    # 每个split的每个数据集都预处理一个样本；不只检查混合后的第一个任务。
+    for wrapper in wrappers:
+        start = 0
+        packs = getattr(wrapper.base_dataset, "_datasets", None) or [wrapper.base_dataset]
+        for pack in packs:
+            if cfg.model.rsci_variant and "observation.depth.egocentric" in pack.hf_dataset.column_names:
+                raise ValueError("RHSCI RGB-only reader must exclude unused depth column")
+            index = start + min(-visual_history_offsets(cfg.model.rsci_variant)[0], len(pack) - 1)
+            _check_processed_sample(cfg, wrapper[index], processor)
+            start += len(pack)
+    print(
+        "RHSCI local assets, formal dataset gates and CPU preprocessing/collation samples passed; no training started.",
+        flush=True,
+    )
+
+
+def _check_processed_sample(cfg, raw_sample, processor):
+    """核对一个原生样本的当前输入、四帧辅助标签和批处理结构。"""
+    from psi.trainers.qwen3vl_mixin import PaddedCollatorForTogether
+
     sample = cfg.data.transform(
-        wrapper[min(-visual_history_offsets(cfg.model.rsci_variant)[0], len(wrapper) - 1)],
+        raw_sample,
         vlm_processor=processor,
         no_aug=True,
     )
@@ -71,10 +88,6 @@ def run_training_preflight(cfg):
         from transformers import AutoConfig
         from .vlm_query import four_frame_inputs
         current = {key: batch[key] for key in ("input_ids", "attention_mask", "pixel_values", "image_grid_thw")}
-        packed = four_frame_inputs([*batch["history_vlm_inputs"], current], AutoConfig.from_pretrained(str(vlm), local_files_only=True))
+        packed = four_frame_inputs([*batch["history_vlm_inputs"], current], AutoConfig.from_pretrained(cfg.model.model_name_or_path, local_files_only=True))
         if packed["input_ids"].shape[1] + 1 > cfg.model.model_max_length:
             raise ValueError("Direct four-image Query exceeds context budget")
-    print(
-        "RHSCI local assets, formal dataset gate and one CPU preprocessing/collation sample passed; no training started.",
-        flush=True,
-    )

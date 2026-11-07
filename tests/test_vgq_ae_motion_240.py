@@ -17,16 +17,18 @@ VARIANT = "VGQ-AE-Mo-240"
 
 
 def check_motion_samples(test, dataset_class, *, gr=False, ego=False):
-    dataset = dataset_fixture(dataset_class, VARIANT)
-    for delta in (6, 2):
+    dataset = dataset_fixture(dataset_class, test.variant, length=80)
+    offsets = np.array(visual_history_offsets(test.variant))
+    span = -offsets[0]
+    for delta in (test.delta, 2):
         dataset.ardy_delta_frames = delta
         for episode in (0, 1):
-            for frame in (0, 6, 8, 11, 12, 13):
-                sample = dataset.raw_sample(episode * 21 + frame)
+            for frame in (0, test.delta, 8, span - 1, span, span + 1):
+                sample = dataset.raw_sample(episode * 51 + frame)
                 values = sample.metadata if gr else sample
                 images = np.array(sample.images["rs_view"]) if gr else sample["images"]
                 prefix = "" if ego else "rsci_"
-                requested = frame + np.array([-12, -8, -4, 0])
+                requested = frame + offsets
                 np.testing.assert_array_equal(
                     images[:, 0, 0, 0], 100 * episode + np.maximum(requested, 0)
                 )
@@ -39,12 +41,12 @@ def check_motion_samples(test, dataset_class, *, gr=False, ego=False):
                 history_valid = values[prefix + "history_valid"]
                 test.assertEqual(
                     bool(values[prefix + "motion_valid"] and history_valid.all()),
-                    bool(valid and frame >= 12),
+                    bool(valid and frame >= span),
                 )
                 # π/Ego直接使用此mask；不能只在测试或模型外临时合并历史有效性。
                 if not gr:
                     test.assertEqual(
-                        bool(values[prefix + "motion_valid"]), bool(valid and frame >= 12)
+                        bool(values[prefix + "motion_valid"]), bool(valid and frame >= span)
                     )
 
 
@@ -75,6 +77,7 @@ class ConfigurationTests(unittest.TestCase):
 
 class PsiMotion240Tests(motion.PsiMotionTests):
     variant = VARIANT
+    delta = 6
 
     def test_sampling_and_saved_motion_configuration(self):
         from psi.config.transform import SimpleRepackTransform
@@ -87,7 +90,7 @@ class PsiMotion240Tests(motion.PsiMotionTests):
                 "--task",
                 "fixture",
                 "--model",
-                VARIANT,
+                self.variant,
                 "--ardy-delta-frames",
                 "2",
                 "--motion-weight",
@@ -97,40 +100,43 @@ class PsiMotion240Tests(motion.PsiMotionTests):
         plan = resolve_training_plan(args)
         config = plan.config
         contract = build_training_contract(config, 1)
-        self.assertEqual(contract["model"]["rsci_variant"], VARIANT)
+        self.assertEqual(contract["model"]["rsci_variant"], self.variant)
         self.assertEqual(contract["model"]["rsci_motion_weight"], 0.3)
         self.assertEqual(contract["data"]["rsci_ardy_delta_frames"], 2)
         repack = config.data.transform.repack
+        offsets = np.array(visual_history_offsets(self.variant))
+        span = -offsets[0]
         self.assertEqual(
-            repack.delta_timestamps(50)["observation.images.egocentric"], [-0.24, -0.16, -0.08, 0]
+            repack.delta_timestamps(50)["observation.images.egocentric"], (offsets / 50).tolist()
         )
-        for frame in (8, 11, 12):
-            target, valid = ardy_motion_target(motion.sidecar(), 0, frame, 2)
+        for frame in (8, span - 1, span):
+            target, valid = ardy_motion_target(motion.sidecar(80), 0, frame, 2)
             raw = dict(
                 states=torch.zeros(1, 32),
                 action=torch.ones(30, 36),
                 action_is_pad=torch.zeros(30, dtype=torch.bool),
                 task="move",
-                ardy_target=motion.sidecar().get(0, frame).ardy_body_latent,
+                ardy_target=motion.sidecar(80).get(0, frame).ardy_body_latent,
                 ardy_valid=True,
                 motion_target=target,
                 motion_valid=valid,
                 **{
                     "observation.images.egocentric": torch.rand(4, 3, 4, 6),
-                    "observation.images.egocentric_is_pad": frame + np.array([-12, -8, -4, 0]) < 0,
+                    "observation.images.egocentric_is_pad": frame + offsets < 0,
                 },
             )
-            packed = SimpleRepackTransform(rsci_variant=VARIANT)(raw)
-            self.assertEqual(packed["motion_valid"], frame >= 12)
-            self.assertEqual(packed["ardy_valid"], frame >= 12)
+            packed = SimpleRepackTransform(rsci_variant=self.variant)(raw)
+            self.assertEqual(packed["motion_valid"], frame >= span)
+            self.assertEqual(packed["ardy_valid"], frame >= span)
         for option in (["--no-reader"], ["--ardy-offset", "1"]):
-            args = parser.parse_args(["--task", "fixture", "--model", VARIANT, *option])
+            args = parser.parse_args(["--task", "fixture", "--model", self.variant, *option])
             with self.assertRaisesRegex(ValueError, "retains the Reader"):
                 resolve_training_plan(args)
 
 
 class PiMotion240Tests(motion.PiMotionTests):
     variant = VARIANT
+    delta = 6
 
     def test_visual_history_and_independent_difference_interval(self):
         from openpi.rhsci.data import SimpleRHSCIDataset
@@ -140,15 +146,16 @@ class PiMotion240Tests(motion.PiMotionTests):
     def test_parameter_layout_and_saved_sampling_metadata_match_mo(self):
         from test_pi05_rsci import fixture
 
-        model, _ = fixture(VARIANT)
+        model, _ = fixture(self.variant)
         assert_same_parameters(self, fixture("VGQ-AE-Mo")[0], model)
-        self.assertEqual(model.rsci_config["history"], [-12, -8, -4, 0])
-        self.assertEqual(model.rsci_config["ardy_delta_frames"], 6)
-        self.assertEqual(model.rsci_config["variant"], VARIANT)
+        self.assertEqual(model.rsci_config["history"], list(visual_history_offsets(self.variant)))
+        self.assertEqual(model.rsci_config["ardy_delta_frames"], self.delta)
+        self.assertEqual(model.rsci_config["variant"], self.variant)
 
 
 class GrMotion240Tests(motion.GrMotionTests):
     variant = VARIANT
+    delta = 6
 
     def test_visual_history_and_independent_difference_interval(self):
         from gr00t.rhsci.data import SimpleRHSCIDataset
@@ -158,6 +165,7 @@ class GrMotion240Tests(motion.GrMotionTests):
 
 class EgoMotion240Tests(motion.EgoMotionTests):
     variant = VARIANT
+    delta = 6
 
     def test_visual_history_and_independent_difference_interval(self):
         from human_plan.rhsci.data import SimpleDataset
@@ -167,17 +175,19 @@ class EgoMotion240Tests(motion.EgoMotionTests):
 
 class LambdaMotion240Tests(motion.LambdaMotionTests):
     variant = VARIANT
+    delta = 6
 
     def test_video_span_and_short_delta_require_complete_visual_history(self):
         from lambda0.rhsci.data import RHSCIPsiSimpleHandler, SafePsiSimpleHandler
 
         handler = RHSCIPsiSimpleHandler.__new__(RHSCIPsiSimpleHandler)
-        handler.variant, handler.reader = VARIANT, motion.sidecar()
+        handler.variant, handler.reader = self.variant, motion.sidecar(80)
+        span = -visual_history_offsets(self.variant)[0]
         handler.storage_layout, handler.fps = "episode_v2", 50
         handler._episode_paths = lambda episode: (Path("unused.parquet"), Path("unused.mp4"))
-        for delta in (6, 2):
+        for delta in (self.delta, 2):
             handler.motion_delta = delta
-            for frame in (0, 6, 8, 11, 12, 13):
+            for frame in (0, self.delta, 8, span - 1, span, span + 1):
                 native = dict(
                     proprio=torch.ones(32),
                     proprio_valid_mask=torch.ones(32, dtype=torch.bool),
@@ -185,7 +195,7 @@ class LambdaMotion240Tests(motion.LambdaMotionTests):
                 )
 
                 def decode(path, *, start_frame, length, fps):
-                    self.assertEqual(start_frame, max(0, frame - 12))
+                    self.assertEqual(start_frame, max(0, frame - span))
                     self.assertEqual(length, frame - start_frame + 1)
                     return np.broadcast_to(
                         np.arange(start_frame, start_frame + length, dtype=np.uint8)[
@@ -205,6 +215,6 @@ class LambdaMotion240Tests(motion.LambdaMotionTests):
                     )
                 expected, valid = ardy_motion_target(handler.reader, 1, frame, delta)
                 np.testing.assert_array_equal(result["motion_target"], expected)
-                self.assertEqual(bool(result["motion_valid"]), bool(valid and frame >= 12))
-                self.assertEqual(bool(result["ardy_valid"]), frame >= 12)
+                self.assertEqual(bool(result["motion_valid"]), bool(valid and frame >= span))
+                self.assertEqual(bool(result["ardy_valid"]), frame >= span)
                 self.assertIs(result["action"], native["action"])

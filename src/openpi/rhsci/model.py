@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 from transformers.models.gemma import modeling_gemma
 
-from rhsci.data.ardy_motion import validate_motion_config
+from rhsci.data.ardy_motion import resolve_motion_delta, validate_motion_config
 from rhsci.data.visual_history import visual_history_offsets
 from rhsci.runtime.losses import masked_auxiliary_loss
 
@@ -61,14 +61,14 @@ class Pi05RHSCI(nn.Module):
         ae_width=1024,
         compile_inference=True,
         execution="reference",
-        ardy_delta_frames=6,
+        ardy_delta_frames=None,
         motion_weight=0.1,
     ):
         super().__init__()
         if execution not in ("reference", "history", "query", "both"):
             raise ValueError(f"Unknown execution profile: {execution}")
         self.execution = execution
-        if variant not in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant not in ("STATE", "NO-STATE", "VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             raise ValueError(variant)
         if backbone is None:
             from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
@@ -90,6 +90,7 @@ class Pi05RHSCI(nn.Module):
         self.time_mlp_in = nn.Linear(ae_width, ae_width)
         self.time_mlp_out = nn.Linear(ae_width, ae_width)
         self.variant = variant
+        ardy_delta_frames = resolve_motion_delta(variant, ardy_delta_frames)
         validate_motion_config(ardy_delta_frames, motion_weight)
         self.motion_weight = motion_weight
         self.rsci_config = dict(
@@ -105,13 +106,13 @@ class Pi05RHSCI(nn.Module):
             inference_compile="max-autotune" if compile_inference else "disabled",
             execution=execution,
         )
-        if variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant not in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             self.rsci_config.update(history=[0], ardy_weight=0.0, reader=None)
-        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             self.reader = Reader(vlm_width, ae_width)
             self.query = nn.Parameter(torch.randn(1, 1, ae_width) / ae_width**0.5)
             self.ardy_head = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
-        if variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             self.motion_head = nn.Sequential(nn.LayerNorm(ae_width), nn.Linear(ae_width, 128))
             self.rsci_config.update(
                 ardy_delta_frames=ardy_delta_frames, motion_weight=motion_weight
@@ -242,7 +243,7 @@ class Pi05RHSCI(nn.Module):
         auxiliary_normalization=None,
     ):
         if actions.shape[1:] != (30, 36) or images.shape[1] != (
-            4 if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240") else 1
+            4 if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") else 1
         ):
             raise ValueError("Expected 30×36 actions and recipe-specific image count")
         if self.training:
@@ -262,7 +263,7 @@ class Pi05RHSCI(nn.Module):
         action_loss = (predicted - (noise - actions)).square().mean()
         loss = action_loss
         output = dict(action_loss=action_loss.detach())
-        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             if images.shape[1] != 4 or history_valid is None or not history_valid[:, -1].all():
                 raise ValueError("VGQ-AE requires chronological four-frame input")
             frames = self.encode_history(images[:, :3], tokens, token_mask)
@@ -283,7 +284,7 @@ class Pi05RHSCI(nn.Module):
             )
             loss = loss + 0.1 * auxiliary
             output["ardy_loss"] = auxiliary.detach()
-            if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+            if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
                 motion_loss = masked_auxiliary_loss(
                     self.motion_head(latent.float()), motion_target, motion_valid,
                     normalization_denominator=normalization.get("motion"),

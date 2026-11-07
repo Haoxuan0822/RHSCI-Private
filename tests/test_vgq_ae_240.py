@@ -22,18 +22,18 @@ def assert_same_parameters(test, reference, widened):
         torch.testing.assert_close(value, widened.state_dict()[name], rtol=0, atol=0)
 
 
-def dataset_fixture(dataset_class, variant):
+def dataset_fixture(dataset_class, variant, length=50):
     """真实 raw_sample 路径；缓存用像素值暴露实际取帧索引及 episode。"""
     dataset = dataset_class.__new__(dataset_class)
-    dataset.variant, dataset.reader = variant, sidecar()
-    dataset.ends = np.array([21, 42])
-    dataset.episodes = [dict(episode_index=index, length=50) for index in (0, 1)]
+    dataset.variant, dataset.reader = variant, sidecar(length)
+    dataset.ends = (length - 29) * np.array([1, 2])
+    dataset.episodes = [dict(episode_index=index, length=length) for index in (0, 1)]
     dataset.tasks = {0: "move"}
     dataset._pid = dataset._cache_pid = os.getpid()
     dataset.path = lambda *args: Path("unused.mp4")
     dataset._table = lambda episode: dict(
-        action=np.arange(50 * 36, dtype=np.float32).reshape(50, 36),
-        task_index=np.zeros(50, dtype=int),
+        action=np.arange(length * 36, dtype=np.float32).reshape(length, 36),
+        task_index=np.zeros(length, dtype=int),
     )
     cache = SimpleNamespace(
         frames=lambda episode, indices: np.broadcast_to(
@@ -46,18 +46,20 @@ def dataset_fixture(dataset_class, variant):
 
 
 def check_dataset(test, dataset_class, *, gr=False, ego=False):
-    current = dataset_fixture(dataset_class, "VGQ-AE-240")
-    reference = dataset_fixture(dataset_class, "VGQ-AE")
+    offsets = np.array(visual_history_offsets(test.variant))
+    span = -offsets[0]
+    current = dataset_fixture(dataset_class, test.variant, length=80)
+    reference = dataset_fixture(dataset_class, "VGQ-AE", length=80)
     for episode in (0, 1):
-        for frame in (0, 6, 11, 12, 13):
-            index = 21 * episode + frame
+        for frame in (0, 6, span - 1, span, span + 1):
+            index = 51 * episode + frame
             sample, original = current.raw_sample(index), reference.raw_sample(index)
             if gr:
                 values = sample.metadata
                 pixels = np.array(sample.images["rs_view"])
             else:
                 values, pixels = sample, sample["images"]
-            requested = frame + np.array([-12, -8, -4, 0])
+            requested = frame + offsets
             np.testing.assert_array_equal(
                 pixels[:, 0, 0, 0], 100 * episode + np.maximum(requested, 0)
             )
@@ -67,7 +69,7 @@ def check_dataset(test, dataset_class, *, gr=False, ego=False):
             target = current.reader.get(episode, frame)
             np.testing.assert_array_equal(values[prefix + "ardy_target"], target.ardy_body_latent)
             # GR 在模型/累积计数处联合 history mask；其它路径在数据侧合并。
-            test.assertEqual(bool(values[prefix + "ardy_valid"] and valid.all()), frame >= 12)
+            test.assertEqual(bool(values[prefix + "ardy_valid"] and valid.all()), frame >= span)
             test.assertFalse(any("motion" in key for key in values))
             if gr:
                 for key in sample.actions:
@@ -99,17 +101,21 @@ class ConfigurationTests(unittest.TestCase):
 
 
 class PsiTests(unittest.TestCase):
+    variant = "VGQ-AE-240"
+
     def test_visual_timestamps_and_history_validity(self):
         from psi.config.transform import SimpleRepackTransform
 
         old = SimpleRepackTransform(rsci_variant="VGQ-AE")
-        widened = SimpleRepackTransform(rsci_variant="VGQ-AE-240")
+        widened = SimpleRepackTransform(rsci_variant=self.variant)
+        offsets = np.array(visual_history_offsets(self.variant))
+        span = -offsets[0]
         stamps = widened.delta_timestamps(50)
-        self.assertEqual(stamps["observation.images.egocentric"], [-0.24, -0.16, -0.08, 0])
+        self.assertEqual(stamps["observation.images.egocentric"], (offsets / 50).tolist())
         for key in ("states", "action"):
             self.assertEqual(stamps[key], old.delta_timestamps(50)[key])
-        for frame in (6, 11, 12):
-            target = sidecar().get(0, frame)
+        for frame in (6, span - 1, span):
+            target = sidecar(80).get(0, frame)
             raw = dict(
                 states=torch.full((1, 32), float("nan")),
                 action=torch.ones(30, 36),
@@ -119,18 +125,18 @@ class PsiTests(unittest.TestCase):
                 ardy_valid=target.ardy_loss_mask,
                 **{
                     "observation.images.egocentric": torch.rand(4, 3, 4, 6),
-                    "observation.images.egocentric_is_pad": frame + np.array([-12, -8, -4, 0]) < 0,
+                    "observation.images.egocentric_is_pad": frame + offsets < 0,
                 },
             )
             sample = widened(raw)
-            self.assertEqual(sample["ardy_valid"], frame >= 12)
+            self.assertEqual(sample["ardy_valid"], frame >= span)
             self.assertFalse(sample["states"].any())
             np.testing.assert_array_equal(sample["ardy_target"], target.ardy_body_latent)
         from psi.rhsci.training_config import build_argument_parser, resolve_training_plan
 
         for option in (["--no-reader"], ["--ardy-offset", "1"]):
             args = build_argument_parser().parse_args(
-                ["--task", "fixture", "--model", "VGQ-AE-240", *option]
+                ["--task", "fixture", "--model", self.variant, *option]
             )
             with self.assertRaisesRegex(ValueError, "retains the Reader"):
                 resolve_training_plan(args)
@@ -143,7 +149,7 @@ class PsiTests(unittest.TestCase):
         torch.manual_seed(37)
         _, reference = policy("VGQ-AE")
         torch.manual_seed(37)
-        config, model = policy("VGQ-AE-240")
+        config, model = policy(self.variant)
         assert_same_parameters(self, reference, model)
         data = sample()
         losses = trainer(config).forward_and_loss(model, data)
@@ -160,6 +166,8 @@ class PsiTests(unittest.TestCase):
 
 
 class PiTests(unittest.TestCase):
+    variant = "VGQ-AE-240"
+
     def test_sampling_and_unchanged_current_targets(self):
         from openpi.rhsci.data import SimpleRHSCIDataset
 
@@ -169,9 +177,9 @@ class PiTests(unittest.TestCase):
         from test_pi05_rsci import fixture
 
         torch.set_num_threads(1)
-        model, batch = fixture("VGQ-AE-240")
+        model, batch = fixture(self.variant)
         assert_same_parameters(self, fixture("VGQ-AE")[0], model)
-        self.assertEqual(model.rsci_config["history"], [-12, -8, -4, 0])
+        self.assertEqual(model.rsci_config["history"], list(visual_history_offsets(self.variant)))
         result = model(**batch)
         self.assertNotIn("motion_loss", result)
         result["loss"].backward()
@@ -186,13 +194,18 @@ class PiTests(unittest.TestCase):
 
 
 class GrTests(unittest.TestCase):
+    variant = "VGQ-AE-240"
+
     def test_sampling_and_modality_keep_inference_current_only(self):
         from gr00t.rhsci.data import SimpleRHSCIDataset, TAG, modality
 
         check_dataset(self, SimpleRHSCIDataset, gr=True)
-        self.assertEqual(modality("VGQ-AE-240")[TAG.value]["video"].delta_indices, [-12, -8, -4, 0])
         self.assertEqual(
-            modality("VGQ-AE-240", training=False)[TAG.value]["video"].delta_indices, [0]
+            modality(self.variant)[TAG.value]["video"].delta_indices,
+            list(visual_history_offsets(self.variant)),
+        )
+        self.assertEqual(
+            modality(self.variant, training=False)[TAG.value]["video"].delta_indices, [0]
         )
 
     def test_existing_dit_and_history_mask(self):
@@ -202,7 +215,7 @@ class GrTests(unittest.TestCase):
         torch.manual_seed(37)
         reference = model("VGQ-AE")
         torch.manual_seed(37)
-        widened = model("VGQ-AE-240")
+        widened = model(self.variant)
         assert_same_parameters(self, reference, widened)
         data = batch()
         output = widened(data)
@@ -218,10 +231,12 @@ class GrTests(unittest.TestCase):
         ):
             self.assertIn("action_pred", widened.get_action(current))
         with self.assertRaisesRegex(ValueError, "Reader"):
-            model("VGQ-AE-240", memory_mode="full-vlm")
+            model(self.variant, memory_mode="full-vlm")
 
 
 class EgoTests(unittest.TestCase):
+    variant = "VGQ-AE-240"
+
     def test_sampling_and_unchanged_current_targets(self):
         from human_plan.rhsci.data import SimpleDataset
 
@@ -235,9 +250,9 @@ class EgoTests(unittest.TestCase):
         torch.manual_seed(37)
         reference = EgoVLARHSCI(Backbone(), variant="VGQ-AE", vlm_training="frozen")
         torch.manual_seed(37)
-        model = EgoVLARHSCI(Backbone(), variant="VGQ-AE-240", vlm_training="frozen")
+        model = EgoVLARHSCI(Backbone(), variant=self.variant, vlm_training="frozen")
         assert_same_parameters(self, reference, model)
-        self.assertEqual(model.rsci_config["history"], [-12, -8, -4, 0])
+        self.assertEqual(model.rsci_config["history"], list(visual_history_offsets(self.variant)))
         data = batch()
         output = model(**data)
         self.assertNotIn("motion_loss", output)
@@ -251,14 +266,18 @@ class EgoTests(unittest.TestCase):
 
 
 class LambdaTests(unittest.TestCase):
+    variant = "VGQ-AE-240"
+
     def test_video_span_and_padded_history_preserve_native_action_sample(self):
         from lambda0.rhsci.data import RHSCIPsiSimpleHandler, SafePsiSimpleHandler
 
         handler = RHSCIPsiSimpleHandler.__new__(RHSCIPsiSimpleHandler)
-        handler.variant, handler.reader, handler.motion_delta = "VGQ-AE-240", sidecar(), None
+        handler.variant, handler.reader, handler.motion_delta = self.variant, sidecar(80), None
+        offsets = np.array(visual_history_offsets(self.variant))
+        span = -offsets[0]
         handler.storage_layout, handler.fps = "episode_v2", 50
         handler._episode_paths = lambda episode: (Path("unused.parquet"), Path("unused.mp4"))
-        for frame in (0, 6, 11, 12, 13):
+        for frame in (0, 6, span - 1, span, span + 1):
             native = dict(
                 proprio=torch.ones(32),
                 proprio_valid_mask=torch.ones(32, dtype=torch.bool),
@@ -266,7 +285,7 @@ class LambdaTests(unittest.TestCase):
             )
 
             def decode(path, *, start_frame, length, fps):
-                self.assertEqual(start_frame, max(0, frame - 12))
+                self.assertEqual(start_frame, max(0, frame - span))
                 self.assertEqual(length, frame - start_frame + 1)
                 return np.broadcast_to(
                     np.arange(start_frame, start_frame + length, dtype=np.uint8)[
@@ -285,12 +304,12 @@ class LambdaTests(unittest.TestCase):
                     image_aug=lambda image: torch.tensor(np.array(image).copy()),
                 )
             np.testing.assert_array_equal(
-                result["history"][:, 0, 0, 0], np.maximum(frame + np.array([-12, -8, -4]), 0)
+                result["history"][:, 0, 0, 0], np.maximum(frame + offsets[:-1], 0)
             )
             np.testing.assert_array_equal(
                 result["ardy_target"], handler.reader.get(1, frame).ardy_body_latent
             )
-            self.assertEqual(bool(result["ardy_valid"]), frame >= 12)
+            self.assertEqual(bool(result["ardy_valid"]), frame >= span)
             self.assertIs(result["action"], native["action"])
             self.assertFalse(result["proprio"].any())
 
@@ -304,7 +323,7 @@ class LambdaTests(unittest.TestCase):
         torch.manual_seed(37)
         reference = fixtures.tiny("VGQ-AE")
         torch.manual_seed(37)
-        model = fixtures.tiny("VGQ-AE-240")
+        model = fixtures.tiny(self.variant)
         model.install_auxiliary()
         assert_same_parameters(self, reference, model)
         data = fixtures.inputs(model)

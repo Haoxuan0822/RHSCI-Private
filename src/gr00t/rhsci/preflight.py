@@ -2,6 +2,12 @@
 
 import json
 
+from rhsci.data.multitask import (
+    build_training_dataset,
+    dataset_children,
+    preflight_indices,
+    shared_statistics,
+)
 from rhsci.data.visual_history import visual_history_offsets
 
 
@@ -16,7 +22,7 @@ def build_processor(args, paths):
     ]
     settings.update(
         modality_configs=modality(args.model),
-        statistics=statistics(paths["dataset"], args.model),
+        statistics=statistics(paths["dataset"], args.model, raw=shared_statistics(paths, "gr00t")),
         rsci_variant=args.model,
         use_relative_action=False,
         max_state_dim=config["max_state_dim"],
@@ -41,36 +47,41 @@ def run_training_preflight(args, paths):
         if not (checkpoint / shard).is_file():
             raise FileNotFoundError(checkpoint / shard)
     processor = build_processor(args, paths)
-    dataset = SimpleRHSCIDataset(
-        paths["dataset"],
+    dataset = build_training_dataset(
+        paths,
+        SimpleRHSCIDataset,
         args.model,
         processor,
-        paths["sidecar"],
         seed=args.seed,
-        cache=paths["input_cache"],
         ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
     # 起始无效历史及完整历史各一个真实样本，包含官方Eagle分词/图像处理。
-    first_valid_frame = -visual_history_offsets(args.model)[0]
-    batch = processor.collator([dataset[0], dataset[first_valid_frame]])["inputs"]
-    if batch["action"].shape != (
-        2,
-        config_horizon := processor.max_action_horizon,
-        processor.max_action_dim,
-    ):
-        raise ValueError("Invalid padded action shape")
-    if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
-        if (
-            len(batch["rsci_history"]) != 3
-            or batch["rsci_history_valid"][0].all()
-            or not batch["rsci_history_valid"][1].all()
-        ):
-            raise ValueError("Invalid chronological history mask")
+    config_horizon = processor.max_action_horizon
+    for child in dataset_children(dataset):
+        indices = preflight_indices(child, args.model)
+        selected = [indices[0], indices[1] if len(indices) > 1 else indices[0]]
+        batch = processor.collator([child[index] for index in selected])["inputs"]
+        if batch["action"].shape != (2, config_horizon, processor.max_action_dim):
+            raise ValueError("Invalid padded action shape")
+        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
+            import numpy as np
+
+            expected = np.stack(
+                [child.raw_sample(index).metadata["rsci_history_valid"] for index in selected]
+            )
+            if len(batch["rsci_history"]) != 3 or not np.array_equal(
+                batch["rsci_history_valid"], expected
+            ):
+                raise ValueError("Invalid chronological history mask")
     print(
         f"GR00T_RSCI_CHECK_OK task={args.task} model={args.model} samples={len(dataset)} padded_horizon={config_horizon}; no training started",
         flush=True,
     )
+    if "datasets" in paths:
+        from .multitask import build_sharded_mixture
+
+        dataset = build_sharded_mixture(paths, dataset, processor)
     return processor, dataset
 
 
@@ -82,32 +93,30 @@ def validate_training_data(args, paths):
 
     from .data import SimpleRHSCIDataset
 
-    dataset = SimpleRHSCIDataset(
-        paths["dataset"],
+    shared_statistics(paths, "gr00t")
+    dataset = build_training_dataset(
+        paths,
+        SimpleRHSCIDataset,
         args.model,
-        sidecar=paths["sidecar"],
         seed=args.seed,
-        cache=paths["input_cache"],
         ardy_delta_frames=getattr(args, "ardy_delta_frames", 6),
     )
 
     # 混乱次序、第一集边界与下一集开头，验证不会跨episode读取历史/标签。
     offsets = np.array(visual_history_offsets(args.model))
-    indices = [int(-offsets[0]), 0, int(dataset.ends[0]), int(dataset.ends[0]) - 1]
-    for index in indices:
-        sample = dataset.raw_sample(index)
-        if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
-            frame = sample.metadata["frame_index"]
-            if not np.array_equal(
-                sample.metadata["rsci_history_valid"], offsets + frame >= 0
-            ):
-                raise ValueError("History crossed episode boundary")
-            target = dataset.reader.get(sample.metadata["episode_index"], frame)
-            np.testing.assert_array_equal(
-                sample.metadata["rsci_ardy_target"], target.ardy_body_latent
-            )
-        if bool(sample.states) != (args.model == "STATE"):
-            raise ValueError("Unexpected state dependency")
+    for child in dataset_children(dataset):
+        for index in preflight_indices(child, args.model):
+            sample = child.raw_sample(index)
+            if args.model in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
+                frame = sample.metadata["frame_index"]
+                if not np.array_equal(sample.metadata["rsci_history_valid"], offsets + frame >= 0):
+                    raise ValueError("History crossed episode boundary")
+                target = child.reader.get(sample.metadata["episode_index"], frame)
+                np.testing.assert_array_equal(
+                    sample.metadata["rsci_ardy_target"], target.ardy_body_latent
+                )
+            if bool(sample.states) != (args.model == "STATE"):
+                raise ValueError("Unexpected state dependency")
     print(
         f"GR00T_RSCI_DATA_OK task={args.task} model={args.model} samples={len(dataset)}; no model loaded",
         flush=True,

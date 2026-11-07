@@ -4,9 +4,16 @@ import math
 
 import numpy as np
 
-MOTION_VARIANTS = ("VGQ-AE-Mo", "VGQ-AE-Mo-240")
+MOTION_VARIANTS = ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480")
 DEFAULT_DELTA_FRAMES = 6
 DEFAULT_MOTION_WEIGHT = 0.1
+
+
+def resolve_motion_delta(variant, delta_frames=None):
+    """显式间隔优先；Mo-480 默认回看240ms，其余版本沿用120ms。"""
+    if delta_frames is not None:
+        return delta_frames
+    return 12 if variant == "VGQ-AE-Mo-480" else DEFAULT_DELTA_FRAMES
 
 
 def validate_motion_config(delta_frames, weight):
@@ -20,8 +27,8 @@ def add_motion_arguments(parser):
     parser.add_argument(
         "--ardy-delta-frames",
         type=int,
-        default=DEFAULT_DELTA_FRAMES,
-        help="Mo variants: backward ARDY difference interval at 50 Hz (default 6; 120 ms)",
+        default=None,
+        help="Backward ARDY interval at 50 Hz (Mo-480: 12/240 ms; other Mo: 6/120 ms)",
     )
     parser.add_argument(
         "--motion-weight",
@@ -33,13 +40,15 @@ def add_motion_arguments(parser):
 
 def motion_config(args):
     """仅新方法写入差分配置，保留旧方法的契约与随机初始化路径。"""
-    delta = getattr(args, "ardy_delta_frames", DEFAULT_DELTA_FRAMES)
+    variant = getattr(args, "model", getattr(args, "variant", None))
+    delta = resolve_motion_delta(variant, getattr(args, "ardy_delta_frames", None))
     weight = getattr(args, "motion_weight", DEFAULT_MOTION_WEIGHT)
     validate_motion_config(delta, weight)
-    variant = getattr(args, "model", getattr(args, "variant", None))
+    # 预检与数据构造也从同一 Namespace 读取已经解析的默认间隔。
+    args.ardy_delta_frames = delta
     if variant not in MOTION_VARIANTS:
         if delta != DEFAULT_DELTA_FRAMES or weight != DEFAULT_MOTION_WEIGHT:
-            raise ValueError("Motion options require VGQ-AE-Mo or VGQ-AE-Mo-240")
+            raise ValueError("Motion options require a VGQ-AE-Mo variant")
         return {}
     return dict(ardy_delta_frames=delta, motion_weight=weight)
 

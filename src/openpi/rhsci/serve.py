@@ -28,15 +28,22 @@ class Server:
 
         self.action_noise = RequestActionNoise(deterministic_eval, eval_seed)
 
-        dataset = Path(dataset)
+        dataset = Path(dataset) if dataset is not None else None
         saved_metadata = checkpoint.parent / "dataset-meta"
-        if not any((dataset / "data").glob("**/*.parquet")) and saved_metadata.is_dir():
-            # 推理归档保留训练时metadata，无需为读取归一化统计恢复全部训练轨迹。
-            for name in ("stats.json", "info.json"):
-                if sha256(dataset / "meta" / name) != sha256(saved_metadata / name):
-                    raise ValueError(f"π0.5 saved processor metadata differs: {name}")
-        elif dataset_content_fingerprint(dataset) != contract["dataset"]:
-            raise ValueError("π0.5 processor dataset differs from training")
+        joint_statistics = contract.get("multitask", {}).get("statistics")
+        if "multitask" in contract and joint_statistics is None:
+            raise ValueError("Joint π0.5 checkpoint lacks saved shared statistics")
+        if dataset is None and joint_statistics is None:
+            raise ValueError("Single-task π0.5 serving requires its training dataset metadata")
+        # 联合模型只读随契约保存的共享统计；单库保留原 metadata 验证。
+        if joint_statistics is None:
+            if not any((dataset / "data").glob("**/*.parquet")) and saved_metadata.is_dir():
+                # 推理归档保留训练时metadata，无需恢复全部训练轨迹。
+                for name in ("stats.json", "info.json"):
+                    if sha256(dataset / "meta" / name) != sha256(saved_metadata / name):
+                        raise ValueError(f"π0.5 saved processor metadata differs: {name}")
+            elif dataset_content_fingerprint(dataset) != contract["dataset"]:
+                raise ValueError("π0.5 processor dataset differs from training")
         if sha256(tokenizer) != contract["tokenizer"]:
             raise ValueError("π0.5 tokenizer differs from training")
         saved = json.loads((checkpoint / "rsci_config.json").read_text())
@@ -76,7 +83,11 @@ class Server:
         self.device = torch.device(device)
         self.model.to(self.device).eval()
         self.processor = Processor(
-            dataset, tokenizer, contract["model"], normalization=normalization
+            dataset,
+            tokenizer,
+            contract["model"],
+            normalization=normalization,
+            statistics=joint_statistics,
         )
         self.variant = contract["model"]
 
@@ -97,7 +108,7 @@ class Server:
         )
         if self.variant == "STATE":
             sample["state"] = request.state["states"][0]
-        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if self.variant in ("VGQ-AE", "VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             # Processor metadata only; sample_actions never executes the auxiliary branch.
             sample.update(
                 rsci_history_valid=np.ones(4, bool),

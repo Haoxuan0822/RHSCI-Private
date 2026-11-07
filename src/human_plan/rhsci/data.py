@@ -9,6 +9,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.ardy_motion import resolve_motion_delta
 from rhsci.data.visual_history import visual_history_offsets
 
 
@@ -21,13 +22,13 @@ class SimpleDataset(Dataset):
         variant="VGQ-AE",
         *,
         cache=InputCacheConfig(),
-        ardy_delta_frames=6,
+        ardy_delta_frames=None,
     ):
         from rhsci.data.ardy_sidecar import ArdySidecarReader, validate_processed_dataset_context
 
         self.root, self.processor = Path(root), processor
         self.variant = variant
-        self.ardy_delta_frames = ardy_delta_frames
+        self.ardy_delta_frames = resolve_motion_delta(variant, ardy_delta_frames)
         self.info = json.loads((self.root / "meta/info.json").read_text())
         self.episodes = [
             json.loads(line)
@@ -139,7 +140,7 @@ class SimpleDataset(Dataset):
             target.ardy_loss_mask and not np.isfinite(target.ardy_body_latent).all()
         ):
             raise ValueError("Invalid formal ARDY target")
-        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240"):
+        if self.variant in ("VGQ-AE-Mo", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480"):
             from rhsci.data.ardy_motion import ardy_motion_target
 
             motion, valid = ardy_motion_target(
@@ -152,7 +153,7 @@ class SimpleDataset(Dataset):
             ardy_target=np.array(target.ardy_body_latent, copy=True),
             ardy_valid=bool(
                 target.ardy_loss_mask
-                and (self.variant not in ("VGQ-AE-240", "VGQ-AE-Mo-240") or (requested >= 0).all())
+                and (self.variant not in ("VGQ-AE-240", "VGQ-AE-480", "VGQ-AE-Mo-240", "VGQ-AE-Mo-480") or (requested >= 0).all())
             ),
         )
 
