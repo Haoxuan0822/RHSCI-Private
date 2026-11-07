@@ -92,9 +92,10 @@ class MultitaskTests(unittest.TestCase):
                     ),
                     root / f"data/episode_{episode:06d}.parquet",
                 )
+                width, height = getattr(cls, "video_size", (32, 32))
                 pixels = np.broadcast_to(
                     (base // 10 + np.arange(length, dtype=np.uint8))[:, None, None, None],
-                    (length, 32, 32, 3),
+                    (length, height, width, 3),
                 ).copy()
                 subprocess.run(
                     [
@@ -106,7 +107,7 @@ class MultitaskTests(unittest.TestCase):
                         "-pixel_format",
                         "rgb24",
                         "-video_size",
-                        "32x32",
+                        f"{width}x{height}",
                         "-framerate",
                         "50",
                         "-i",

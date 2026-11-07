@@ -20,7 +20,7 @@ Shared infrastructure lives in `src/rhsci`.
 | `rhsci.data` | ARDY sidecars, dataset provenance, sampling and raw input caches |
 | `rhsci.data.ardy_motion` | Mo variant configuration and same-episode backward ARDY differences |
 | `rhsci.data.visual_history` | Visual frame offsets for VGQ-AE and its 240/480 ms variants, independent of ARDY teacher windows |
-| `rhsci.data.multitask` | π0.5/GR00T multi-root arguments, dataset-local routing and shared normalization contracts |
+| `rhsci.data.multitask` | π0.5/GR00T multi-root arguments, dataset-local routing, per-source cache identities and shared normalization contracts |
 | `rhsci.runtime.losses` | Masked auxiliary and ARDY losses |
 | `rhsci.runtime.auxiliary_accumulation` | Valid-label counts across a complete optimizer update, including gradient accumulation and DDP |
 | `rhsci.runtime.hf_full_state` | Complete checkpoint lifecycle for HF-based adapters |

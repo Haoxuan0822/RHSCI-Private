@@ -21,6 +21,19 @@ class InputCacheConfig:
             object.__setattr__(self, "root", Path(self.root).resolve())
 
 
+def validate_cache_dataset_names(roots):
+    """缓存沿用 <父目录>/<数据集名>，不同源不能映射到同一子目录。"""
+    names = {}
+    for root in roots:
+        root = Path(root).resolve()
+        previous = names.setdefault(root.name, root)
+        if previous != root:
+            raise ValueError(
+                f"Input cache dataset-name collision: {previous} and {root}; "
+                "use distinct dataset directory names"
+            )
+
+
 def add_input_cache_arguments(parser, *, env_var):
     # 只在入口读取旧变量；数据集/完整性工具不读取进程环境。
     options = parser.add_mutually_exclusive_group()

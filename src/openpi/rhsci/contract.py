@@ -10,7 +10,7 @@ from .checkpoints import sha256
 def build_training_contract(args, paths):
     """根据模型、数据与配方生成恢复身份；源码编辑和依赖版本不作为恢复门槛。返回 (契约字典, SHA256)。"""
     from rhsci.data.ardy_sidecar import dataset_content_fingerprint
-    from rhsci.data.input_cache import cache_identity
+    from rhsci.data.multitask import training_cache_identity
 
     from .augmentation import AUGMENTATION_VERSION
 
@@ -37,7 +37,7 @@ def build_training_contract(args, paths):
         preprocessing="RGB-bilinear-pad224-quantile-zero-span-clipped-v2",
         training_augmentation=AUGMENTATION_VERSION,
         dataset=dataset_content_fingerprint(paths["dataset"]),
-        input_cache=cache_identity(paths["dataset"], config=paths["input_cache"]),
+        input_cache=training_cache_identity(paths),
         initialization=str(paths["checkpoint"].resolve()),
         asset_manifest=sha256(paths["checkpoint"] / "RSCI_ASSETS.json")
         if (paths["checkpoint"] / "RSCI_ASSETS.json").is_file()

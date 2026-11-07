@@ -6,6 +6,7 @@ import fcntl
 import json
 import multiprocessing
 import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -13,7 +14,7 @@ import numpy as np
 import torch
 
 from rhsci.data.ardy_sidecar import dataset_content_fingerprint
-from rhsci.data.cache_config import InputCacheConfig
+from rhsci.data.cache_config import InputCacheConfig, validate_cache_dataset_names
 from rhsci.data.lerobot import RGB_KEY, load_raw_lerobot_dataset
 from rhsci.data.raw_input_cache import SCHEMA, cache_identity
 from rhsci.runtime.artifacts import atomic_json, sha256
@@ -83,28 +84,19 @@ def build_video(args):
     )
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset", type=Path, required=True)
-    ap.add_argument("--cache-root", type=Path, required=True)
-    ap.add_argument("--workers", type=int, default=4)
-    cli = ap.parse_args()
-    if cli.workers < 1:
-        ap.error("--workers must be positive")
-    CACHE = cli.cache_root.resolve()
-    if CACHE.is_relative_to(CODE):
-        ap.error("Cache must live outside the source checkout")
-    # 生成时必须从原始视频读取，不能继承当前进程的缓存配置。
-    torch.set_num_threads(1)
-    root = cli.dataset.resolve(strict=True)
-    CACHE.mkdir(parents=True, exist_ok=True)
-    target = CACHE / root.name
-    with (CACHE / (root.name + ".lock")).open("a") as lock:
+def build_cache(root, cache_root, workers):
+    """逐库原子发布，保留原始视频；已建缓存核验通过后才能复用。"""
+    target = cache_root / root.name
+    with (cache_root / (root.name + ".lock")).open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if target.exists():
+            cache_identity(root, dataset_content_fingerprint(root), config=InputCacheConfig(cache_root))
             print("ALREADY_BUILT", target, flush=True)
             return
-        pending = CACHE / (root.name + f".building-{os.getpid()}")
+        fingerprint = dataset_content_fingerprint(root)
+        # 保留标准 <父目录>/<数据集名> 布局，在暂存区复用正式完整校验。
+        staging = Path(tempfile.mkdtemp(prefix=root.name + ".building-", dir=cache_root))
+        pending = staging / root.name
         pending.mkdir()
         ds = load_raw_lerobot_dataset(root)
         hf = ds.hf_dataset.select_columns(
@@ -117,7 +109,7 @@ def main():
         manifest = dict(
             schema=SCHEMA,
             dataset=root.name,
-            fingerprint=dataset_content_fingerprint(root),
+            fingerprint=fingerprint,
             rows=len(ds),
             columns=list(columns),
             table="table.pt",
@@ -136,7 +128,7 @@ def main():
             relative = str(ds.meta.get_video_file_path(ep["episode_index"], RGB_KEY))
             jobs.append((str(root), str(pending), ep["episode_index"], ep["length"], relative))
         with concurrent.futures.ProcessPoolExecutor(
-            max_workers=cli.workers, mp_context=multiprocessing.get_context("spawn")
+            max_workers=workers, mp_context=multiprocessing.get_context("spawn")
         ) as pool:
             for i, (ep, record, files) in enumerate(pool.map(build_video, jobs), 1):
                 manifest["episodes"][ep] = record
@@ -144,7 +136,7 @@ def main():
                 print(
                     json.dumps(
                         dict(
-                            task=cli.dataset.name,
+                            task=root.name,
                             episodes_done=i,
                             episodes_total=len(jobs),
                             frames_done=sum((x["frames"] for x in manifest["episodes"].values())),
@@ -153,11 +145,15 @@ def main():
                     flush=True,
                 )
         atomic_json(pending / "manifest.json", manifest)
-        # 全量写入和逐视频核验完成后原子发布；原始视频始终保留。
+        identity = cache_identity(root, fingerprint, config=InputCacheConfig(staging))
+        if dataset_content_fingerprint(root) != fingerprint:
+            raise ValueError("Source dataset changed while building input cache")
+        # 表、视频及源数据身份全部核验通过后才原子发布。
         os.rename(pending, target)
-        identity = cache_identity(root, manifest["fingerprint"], config=InputCacheConfig(CACHE))
+        staging.rmdir()
+        identity["directory"] = str(target.resolve())
         atomic_json(
-            CACHE / f"{root.name}-verified.json",
+            cache_root / f"{root.name}-verified.json",
             dict(
                 time=time.time(),
                 identity=identity,
@@ -166,7 +162,31 @@ def main():
                 frames=len(ds),
             ),
         )
-        print("CACHE_VERIFIED", cli.dataset.name, json.dumps(identity), flush=True)
+        print("CACHE_VERIFIED", root.name, json.dumps(identity), flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    datasets = ap.add_mutually_exclusive_group(required=True)
+    datasets.add_argument("--dataset", type=Path)
+    datasets.add_argument("--datasets", type=Path, nargs="+", help="Build one cache per dataset")
+    ap.add_argument("--cache-root", type=Path, required=True)
+    ap.add_argument("--workers", type=int, default=4)
+    cli = ap.parse_args()
+    if cli.workers < 1:
+        ap.error("--workers must be positive")
+    cache_root = cli.cache_root.resolve()
+    if cache_root.is_relative_to(CODE):
+        ap.error("Cache must live outside the source checkout")
+    roots = [root.resolve(strict=True) for root in (cli.datasets or [cli.dataset])]
+    if len(set(roots)) != len(roots):
+        ap.error("Dataset roots must not be duplicated")
+    validate_cache_dataset_names(roots)
+    # 生成时必须从原始视频读取，不能继承当前进程的缓存配置。
+    torch.set_num_threads(1)
+    cache_root.mkdir(parents=True, exist_ok=True)
+    for root in roots:
+        build_cache(root, cache_root, cli.workers)
 
 
 if __name__ == "__main__":

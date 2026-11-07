@@ -781,7 +781,7 @@
       "source_path": "gr00t/rsci/config.py"
     },
     "rhsci/contract.py": {
-      "sha256": "c85ee327507a11aed59c090f7264a18f703bfa37505bca88d9196f47e1d7fb22",
+      "sha256": "af90c38eec211ba7dd1c45f309a1cff423892dd527c275d6222164281bb572e7",
       "status": "rhsci-maintained",
       "source": "RHSCI-Private 2199f9207054ed5f94feca4b94e4c6bfaebe1290 src/rsci/backbones/gr00t/contract.py",
       "source_path": "gr00t/rsci/contract.py"

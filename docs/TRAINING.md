@@ -97,7 +97,7 @@ History is padded within the same episode. Current-ARDY supervision requires all
 
 ## Joint training: π0.5 and GR00T
 
-Both RHSCI launchers accept `--datasets ROOT_A ROOT_B ...` instead of `--dataset`. Query variants also require `--sidecars LABELS_A LABELS_B ...`, in exactly the same order. STATE and NO-STATE need no sidecars. `--task` names the run; each sample's instruction comes from its own dataset's task metadata. All six supported variants can use joint training. Use a new output directory and `--no-input-cache`: the current single-dataset cache format cannot represent multiple sources.
+Both RHSCI launchers accept `--datasets ROOT_A ROOT_B ...` instead of `--dataset`. Query variants also require `--sidecars LABELS_A LABELS_B ...`, in exactly the same order. STATE and NO-STATE need no sidecars. `--task` names the run; each sample's instruction comes from its own dataset's task metadata. All supported variants can use joint training. Use a new output directory. Caches are optional: pass `--input-cache-root CACHE_PARENT` for the per-dataset caches described below, or `--no-input-cache` to decode videos directly.
 
 ```bash
 bash scripts/train/pi05.sh --task joint --model VGQ-AE \
@@ -254,5 +254,16 @@ Use `baseline.py --mode native` with the selected backbone. PSI0 takes a `psi.co
 ## Explicit raw input caches
 
 ACT, π0.5, GR00T and EgoVLA accept `--input-cache-root PATH` (the parent of `<dataset-name>/manifest.json`) or `--no-input-cache`. Without either option, the CLI accepts its existing cache environment variable; unset means disabled. The resolved choice is passed to child processes. Direct Python dataset users pass `cache=InputCacheConfig(...)`; datasets no longer inspect environment variables.
+
+π0.5/GR00T joint training uses the same format: one subdirectory per dataset under the shared cache parent. Existing single-task caches can be reused in place when they already share this parent. Build missing caches in the corresponding model environment:
+
+```bash
+PYTHONPATH=src python scripts/data/build_raw_input_cache.py \
+  --datasets /datasets/task_a /datasets/task_b --cache-root /caches/simple
+```
+
+This creates `/caches/simple/task_a/manifest.json` and `/caches/simple/task_b/manifest.json`. In the joint-training command, replace `--no-input-cache` with `--input-cache-root /caches/simple`. The original `--dataset` builder option still builds one dataset. Existing caches are fully verified before reuse; new caches are fully verified in staging before atomic publication. The builder rejects source metadata/table changes during construction and retains original videos. Completed datasets remain reusable if a later dataset fails.
+
+Dataset directory names must be distinct within the shared cache parent. Every source cache must be complete and match its own dataset fingerprint and source videos; missing or incompatible caches cause an error. The training contract records all cache identities in source order. Caches hold original uint8 RGB, timestamps and unnormalized frame tables. Visual history selection (including 240/480 variants), augmentation, ARDY targets, task sampling and normalization remain on their existing paths. Cache files use read-only mmap, and selected frames are copied before preprocessing.
 
 Automatic training recovery requires complete optimizer, scheduler, RNG and progress state. Inference only requires the model and its saved preprocessing configuration.

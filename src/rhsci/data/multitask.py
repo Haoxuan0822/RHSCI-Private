@@ -116,16 +116,30 @@ class JointDataset(ConcatDataset):
 
 def build_training_dataset(paths, dataset_type, variant, processor=None, **kwargs):
     sources = training_sources(paths)
-    if len(sources) > 1 and paths["input_cache"].root is not None:
-        raise ValueError(
-            "Joint training currently requires --no-input-cache; a single cache belongs to one dataset"
-        )
+    if paths["input_cache"].root is not None:
+        from .cache_config import validate_cache_dataset_names
+
+        validate_cache_dataset_names([root for root, _ in sources])
     datasets = []
     for root, sidecar in sources:
         datasets.append(
             dataset_type(root, variant, processor, sidecar, cache=paths["input_cache"], **kwargs)
         )
     return datasets[0] if len(datasets) == 1 else JointDataset(datasets)
+
+
+def training_cache_identity(paths):
+    """单库契约保持原样；联合缓存记录每个数据集的身份，顺序与训练源一致。"""
+    from .cache_config import validate_cache_dataset_names
+    from .input_cache import cache_identity
+
+    config = paths["input_cache"]
+    if config.root is None:
+        return None
+    sources = training_sources(paths)
+    validate_cache_dataset_names([root for root, _ in sources])
+    identities = [cache_identity(root, config=config) for root, _ in sources]
+    return identities[0] if len(identities) == 1 else dict(datasets=identities)
 
 
 def dataset_children(dataset):
